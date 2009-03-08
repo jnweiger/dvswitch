@@ -64,6 +64,7 @@ mixer_window::mixer_window(mixer & mixer)
       pip_button_(effect_group_, "_Pic-in-pic", true),
       apply_button_("gtk-apply"),
       vu_meter_(-56, 0),
+      pri_video_source_id_(0),
       sec_video_source_id_(0),
       pip_active_(false),
       pip_pending_(false),
@@ -184,7 +185,7 @@ void mixer_window::cancel_effect()
 {
     pip_pending_ = false;
     pip_active_ = false;
-    mixer_.set_video_effect(mixer::null_video_effect());
+    mixer_.set_video_mix(mixer_.create_video_mix_simple(pri_video_source_id_));
     display_.set_selection_enabled(false);
     apply_button_.set_sensitive(false);
 }
@@ -206,9 +207,9 @@ void mixer_window::apply_effect()
 
 	pip_pending_ = false;
 	pip_active_ = true;
-	mixer_.set_video_effect(
-	    mixer_.create_video_effect_pic_in_pic(
-		sec_video_source_id_, region));
+	mixer_.set_video_mix(
+	    mixer_.create_video_mix_pic_in_pic(
+		pri_video_source_id_, sec_video_source_id_, region));
 	display_.set_selection_enabled(false);	
     }
     apply_button_.set_sensitive(false);
@@ -240,10 +241,18 @@ void mixer_window::set_pri_video_source(mixer::source_id id)
 	pip_active_ = false;
 	if (!pip_pending_)
 	    none_button_.set_active();
-	mixer_.set_video_effect(mixer_.null_video_effect());
     }
 
-    mixer_.set_video_source(id);
+    if (pip_active_)
+    {
+	mixer_.set_video_mix(
+	    mixer_.create_video_mix_pic_in_pic(
+		pri_video_source_id_, sec_video_source_id_, display_.get_selection()));
+    }
+    else
+    {
+	mixer_.set_video_mix(mixer_.create_video_mix_simple(pri_video_source_id_));
+    }
 }
 
 void mixer_window::set_sec_video_source(mixer::source_id id)
@@ -251,9 +260,11 @@ void mixer_window::set_sec_video_source(mixer::source_id id)
     sec_video_source_id_ = id;
 
     if (pip_active_)
-	mixer_.set_video_effect(
-	    mixer_.create_video_effect_pic_in_pic(
-		sec_video_source_id_, display_.get_selection()));
+    {
+	mixer_.set_video_mix(
+	    mixer_.create_video_mix_pic_in_pic(
+		pri_video_source_id_, sec_video_source_id_, display_.get_selection()));
+    }
 }
 
 void mixer_window::put_frames(unsigned source_count,

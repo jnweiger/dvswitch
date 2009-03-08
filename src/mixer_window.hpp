@@ -75,7 +75,7 @@ private:
     dv_full_display_widget display_;
     dv_selector_widget selector_;
 
-    mixer::source_id sec_video_source_id_;
+    mixer::source_id pri_video_source_id_, sec_video_source_id_;
     bool pip_active_;
     bool pip_pending_;
 

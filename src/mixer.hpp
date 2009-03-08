@@ -38,11 +38,10 @@ public:
 	dv_frame_aspect frame_aspect;
 	dv_sample_rate sample_rate;
     };
-    struct video_effect_settings;
+    struct video_mix;
     struct mix_settings
     {
-	source_id video_source_id;
-	std::tr1::shared_ptr<video_effect_settings> video_effect;
+	std::tr1::shared_ptr<mixer::video_mix> video_mix;
 	source_id audio_source_id;
 	bool do_record;
 	bool cut_before;
@@ -113,24 +112,18 @@ public:
     // Interface for monitors
     void set_monitor(monitor *);
 
-    static std::tr1::shared_ptr<video_effect_settings>
-    create_video_effect_pic_in_pic(source_id sec_source_id,
-				   rectangle dest_region);
-    static std::tr1::shared_ptr<video_effect_settings>
-    null_video_effect()
-    {
-	return std::tr1::shared_ptr<video_effect_settings>();
-    }
+    static std::tr1::shared_ptr<video_mix>
+    create_video_mix_simple(source_id pri_source_id);
+    static std::tr1::shared_ptr<video_mix>
+    create_video_mix_pic_in_pic(source_id pri_source_id,
+				source_id sec_source_id,
+				rectangle dest_region);
 
     // Mixer interface
     format_settings get_format() const;
     void set_format(format_settings);
-    // Select the primary video source for output (this cancels any
-    // video mixing effect)
-    void set_video_source(source_id);
-    // Set the video mixing effect (or cancel it, if the argument is
-    // a null pointer)
-    void set_video_effect(std::tr1::shared_ptr<video_effect_settings>);
+    // Set the video mix
+    void set_video_mix(std::tr1::shared_ptr<video_mix>);
     // Select the audio source for output
     void set_audio_source(source_id);
     // Make a cut in the output as soon as possible, where appropriate
@@ -140,6 +133,9 @@ public:
     void enable_record(bool);
 
 private:
+    class video_mix_pic_in_pic;
+    class video_mix_simple;
+
     // Source data.  We want to allow a bit of leeway in the input
     // pipeline before we have to drop or repeat a frame.  At the
     // same time we don't want to add much to latency.  We try to

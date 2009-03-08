@@ -29,6 +29,8 @@ mixer::mixer()
     format_.system = NULL;
     format_.frame_aspect = dv_frame_aspect_auto;
     format_.sample_rate = dv_sample_rate_auto;
+    settings_.video_mix = create_video_mix_simple(0);
+    settings_.audio_source_id = 0;
     settings_.do_record = false;
     settings_.cut_before = false;
     sources_.reserve(5);
@@ -90,13 +92,11 @@ void mixer::put_frame(source_id id, const dv_frame_ptr & frame)
 	    frame->timestamp = frame_timer_get();
 	    source.frames.push(frame);
 
-	    // Start clock ticking once one source has reached the
+	    // Start clock ticking once first source has reached the
 	    // target queue length
 	    if (clock_state_ == run_state_wait
-		&& source.frames.size() == target_queue_len)
+		&& id == 0 && source.frames.size() == target_queue_len)
 	    {
-		settings_.video_source_id = id;
-		settings_.audio_source_id = id;
 		clock_state_ = run_state_run;
 		should_notify_clock = true; // after we unlock the mutex
 	    }
@@ -163,27 +163,6 @@ void mixer::remove_sink(sink_id id)
     sinks_.at(id) = 0;
 }
 
-// Video effect settings.  In future this is likely to be an abstract
-// base class but for now the only effect we will have is picture-in-
-// picture.
-struct mixer::video_effect_settings
-{
-    source_id sec_source_id;
-    rectangle dest_region;
-};
-
-std::tr1::shared_ptr<mixer::video_effect_settings>
-mixer::create_video_effect_pic_in_pic(source_id sec_source_id,
-				      rectangle dest_region)
-{
-    // XXX Need to validate parameters before they break anything
-    std::tr1::shared_ptr<video_effect_settings> result(
-	new video_effect_settings);
-    result->sec_source_id = sec_source_id;
-    result->dest_region = dest_region;
-    return result;
-}
-
 mixer::format_settings mixer::get_format() const
 {
     boost::mutex::scoped_lock lock(source_mutex_);
@@ -196,22 +175,6 @@ void mixer::set_format(format_settings format)
 {
     boost::mutex::scoped_lock lock(source_mutex_);
     format_ = format;
-}
-
-void mixer::set_video_source(source_id id)
-{
-    boost::mutex::scoped_lock lock(source_mutex_);
-    if (id < sources_.size())
-	settings_.video_source_id = id;
-    else
-	throw std::range_error("video source id out of range");
-}
-
-void mixer::set_video_effect(
-    std::tr1::shared_ptr<video_effect_settings> effect)
-{
-    boost::mutex::scoped_lock lock(source_mutex_);
-    settings_.video_effect = effect;
 }
 
 void mixer::set_audio_source(source_id id)
@@ -298,8 +261,7 @@ void mixer::run_clock()
 	    }
 	}
 
-	assert(m.settings.audio_source_id < m.source_frames.size()
-	       && m.settings.video_source_id < m.source_frames.size());
+	assert(m.settings.audio_source_id < m.source_frames.size());
 
 	// Frame timer is based on the audio source.  Synchronisation
 	// with the audio source matters more because audio
@@ -583,6 +545,117 @@ namespace
     }
 }
 
+// Video mix settings abstract base class
+struct mixer::video_mix
+{
+    virtual void validate(const mixer &) = 0;
+    virtual void apply(const mix_data &, const auto_codec &,
+		       raw_frame_ptr &, dv_frame_ptr &) = 0;
+};
+
+void mixer::set_video_mix(std::tr1::shared_ptr<video_mix> video_mix)
+{
+    boost::mutex::scoped_lock lock(source_mutex_);
+    video_mix->validate(*this);
+    settings_.video_mix = video_mix;
+}
+
+// Simple video mix - selects a single source
+
+class mixer::video_mix_simple : public video_mix
+{
+public:
+    explicit video_mix_simple(source_id id)
+	: source_id_(id)
+    {}
+private:
+    virtual void validate(const mixer &);
+    virtual void apply(const mix_data &, const auto_codec &,
+		       raw_frame_ptr &, dv_frame_ptr &);
+    source_id source_id_;
+};
+
+void mixer::video_mix_simple::validate(const mixer & mixer)
+{
+    if (source_id_ >= mixer.sources_.size())
+	throw std::range_error("video source id out of range");
+}
+
+void mixer::video_mix_simple::apply(const mix_data & m, const auto_codec &,
+				    raw_frame_ptr &, dv_frame_ptr & mixed_dv)
+{
+    const dv_frame_ptr & source_dv = m.source_frames[source_id_];
+
+    if (source_dv && dv_frame_system(source_dv.get()) == m.format.system)
+	mixed_dv = source_dv;
+}
+
+// Picture-in-picture video mix - replaces some region of primary source with
+// a secondary source scaled to fit
+
+class mixer::video_mix_pic_in_pic : public video_mix
+{
+public:
+    video_mix_pic_in_pic(source_id pri_source_id,
+			 source_id sec_source_id, rectangle dest_region)
+	: pri_source_id_(pri_source_id),
+	  sec_source_id_(sec_source_id),
+	  dest_region_(dest_region)
+    {}
+private:
+    virtual void validate(const mixer &);
+    virtual void apply(const mix_data &, const auto_codec &,
+		       raw_frame_ptr &, dv_frame_ptr &);
+    source_id pri_source_id_, sec_source_id_;
+    rectangle dest_region_;
+};
+
+void mixer::video_mix_pic_in_pic::validate(const mixer & mixer)
+{
+    if (pri_source_id_ >= mixer.sources_.size() ||
+	sec_source_id_ >= mixer.sources_.size())
+	throw std::range_error("video source id out of range");
+}
+
+void mixer::video_mix_pic_in_pic::apply(const mix_data & m,
+					const auto_codec & decoder,
+					raw_frame_ptr & mixed_raw,
+					dv_frame_ptr &)
+{
+    const dv_frame_ptr & pri_source_dv = m.source_frames[pri_source_id_];
+    const dv_frame_ptr & sec_source_dv = m.source_frames[sec_source_id_];
+
+    if (pri_source_dv &&
+	dv_frame_system(pri_source_dv.get()) == m.format.system &&
+	sec_source_dv &&
+	dv_frame_system(sec_source_dv.get()) == m.format.system)
+    {
+	// Decode sources
+	mixed_raw = decode_video_frame(decoder, pri_source_dv);
+	raw_frame_ptr sec_source_raw =
+	    decode_video_frame(decoder, sec_source_dv);
+
+	// Mix raw video
+	video_effect_pic_in_pic(
+	    make_raw_frame_ref(mixed_raw), dest_region_,
+	    make_raw_frame_ref(sec_source_raw),
+	    raw_frame_system(sec_source_raw.get())->active_region);	    
+    }
+}
+
+std::tr1::shared_ptr<mixer::video_mix> mixer::create_video_mix_simple(source_id id)
+{
+    return std::tr1::shared_ptr<mixer::video_mix>(new video_mix_simple(id));
+}
+
+std::tr1::shared_ptr<mixer::video_mix>
+mixer::create_video_mix_pic_in_pic(source_id pri_source_id,
+				   source_id sec_source_id, rectangle dest_region)
+{
+    return std::tr1::shared_ptr<mixer::video_mix>(
+	new video_mix_pic_in_pic(pri_source_id, sec_source_id, dest_region));
+}
+
 void mixer::run_mixer()
 {
     dv_frame_ptr last_mixed_dv;
@@ -618,53 +691,13 @@ void mixer::run_mixer()
 	    if (m->source_frames[id])
 		m->source_frames[id]->serial_num = serial_num;
 
-	const dv_frame_ptr & audio_source_dv =
-	    m->source_frames[m->settings.audio_source_id];
-	const dv_frame_ptr & video_pri_source_dv =
-	    m->source_frames[m->settings.video_source_id];
-
 	dv_frame_ptr mixed_dv;
-	raw_frame_ptr video_pri_source_raw;
-	raw_frame_ptr video_sec_source_raw;
 	raw_frame_ptr mixed_raw;
 
-	if (!video_pri_source_dv ||
-	    dv_frame_system(video_pri_source_dv.get()) != format_.system)
+	m->settings.video_mix->apply(*m, decoder, mixed_raw, mixed_dv);
+
+	if (mixed_raw)
 	{
-	    std::cerr << "WARN: Repeating frame due to "
-		      << (video_pri_source_dv ?
-			  "wrong video system" : "empty queue")
-		      << " for source " << 1 + m->settings.video_source_id
-		      << "\n";
-
-	    // Make a copy of the last mixed frame so we can
-	    // replace the audio.  (We can't modify the last frame
-	    // because sinks may still be reading from it.)
-	    mixed_dv = allocate_dv_frame();
-	    std::memcpy(mixed_dv.get(),
-			last_mixed_dv.get(),
-			offsetof(dv_frame, buffer)
-			+ dv_frame_system(last_mixed_dv.get())->size);
-	    mixed_dv->serial_num = serial_num;
-	}
-	else if (m->settings.video_effect
-		 && m->source_frames[m->settings.video_effect->sec_source_id])
-	{
-	    const dv_frame_ptr video_sec_source_dv =
-		m->source_frames[m->settings.video_effect->sec_source_id];
-
-	    // Decode sources
-	    mixed_raw = decode_video_frame(decoder, video_pri_source_dv);
-	    video_sec_source_raw =
-		decode_video_frame(decoder, video_sec_source_dv);
-
-	    // Mix raw video
-	    video_effect_pic_in_pic(
-		make_raw_frame_ref(mixed_raw),
-		m->settings.video_effect->dest_region,
-		make_raw_frame_ref(video_sec_source_raw),
-		raw_frame_system(video_sec_source_raw.get())->active_region);
-
 	    // Encode mixed video
 	    const dv_system * system = m->format.system;
 	    AVCodecContext * enc = encoder.get();
@@ -686,10 +719,24 @@ void mixer::run_mixer()
 	    assert(size_t(out_size) == system->size);
 	    mixed_dv->serial_num = serial_num;
 	}
-	else
+
+	if (!mixed_dv)
 	{
-	    mixed_dv = video_pri_source_dv;
+	    std::cerr << "WARN: Repeating mixed frame\n"; // XXX not very informative
+
+	    // Make a copy of the last mixed frame so we can
+	    // replace the audio.  (We can't modify the last frame
+	    // because sinks may still be reading from it.)
+	    mixed_dv = allocate_dv_frame();
+	    std::memcpy(mixed_dv.get(),
+			last_mixed_dv.get(),
+			offsetof(dv_frame, buffer)
+			+ dv_frame_system(last_mixed_dv.get())->size);
+	    mixed_dv->serial_num = serial_num;
 	}
+
+	const dv_frame_ptr & audio_source_dv =
+	    m->source_frames[m->settings.audio_source_id];
 
 	if (!audio_source_dv ||
 	    dv_frame_get_sample_rate(audio_source_dv.get()) != m->format.sample_rate)
