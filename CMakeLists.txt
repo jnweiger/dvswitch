@@ -11,6 +11,13 @@ pkg_check_modules(ALSA REQUIRED alsa)
 pkg_check_modules(GTKMM REQUIRED gtkmm-2.4)
 pkg_check_modules(LIBAVCODEC REQUIRED libavcodec)
 
+find_library(BOOST_THREAD_LIBRARIES
+	     NAMES boost_thread-mt boost_thread
+	     NO_SYSTEM_ENVIRONMENT_PATH)
+if(NOT BOOST_THREAD_LIBRARIES)
+    message(FATAL_ERROR "Could not find Boost.Thread library")
+endif(NOT BOOST_THREAD_LIBRARIES)
+
 # Cope with recent move of ffmpeg headers into subdirectories
 set(LIBAVCODEC_INCLUDE_DIRS ${LIBAVCODEC_INCLUDE_DIRS} ${LIBAVCODEC_INCLUDEDIR}/libavcodec)
 

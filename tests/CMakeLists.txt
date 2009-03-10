@@ -5,7 +5,8 @@ link_directories(${LIBAVCODEC_LIBRARY_DIRS})
 add_executable(mixer mixer.cpp ../src/mixer.cpp ../src/frame_timer.c
   ../src/dif.c ../src/dif_audio.c ../src/frame_pool.cpp ../src/auto_codec.cpp
   ../src/frame.c ../src/os_error.cpp ../src/video_effect.c)
-target_link_libraries(mixer boost_thread-mt pthread rt ${LIBAVCODEC_LIBRARIES})
+target_link_libraries(mixer pthread rt ${BOOST_THREAD_LIBRARIES}
+                      ${LIBAVCODEC_LIBRARIES})
 
 add_executable(ring_buffer ring_buffer.cpp)
 
