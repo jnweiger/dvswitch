@@ -1,8 +1,9 @@
 // Copyright 2009 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
-#include <cstdio>
 #include <limits>
+
+#include <stdio.h> // for snprintf()
 
 #include "vu_meter.hpp"
 
@@ -11,7 +12,7 @@ namespace
     Glib::ustring int_to_string(int n)
     {
 	char buf[sizeof(n) * 8]; // should always be large enough
-	std::snprintf(buf, sizeof(buf), "%d", n);
+	snprintf(buf, sizeof(buf), "%d", n);
 	return Glib::ustring(buf);
     }
 }
