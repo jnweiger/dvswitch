@@ -42,7 +42,7 @@ static void usage(const char * progname)
 {
     fprintf(stderr,
 	    "\
-Usage: %s [{-h|--host} MIXER-HOST] [{-p|--port} MIXER-PORT] COMMAND...\n",
+Usage: %s [-h HOST] [-p PORT] COMMAND...\n",
 	    progname);
 }
 

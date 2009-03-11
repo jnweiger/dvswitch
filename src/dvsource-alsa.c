@@ -53,9 +53,8 @@ static void usage(const char * progname)
 {
     fprintf(stderr,
 	    "\
-Usage: %s [{-h|--host} MIXER-HOST] [{-p|--port} MIXER-PORT] \\\n\
-           [{-s|--system} ntsc|pal] [{-r|--rate} 48000|32000|44100] \\\n\
-           [{-d|--delay} DELAY] [DEVICE]\n",
+Usage: %s [-h HOST] [-p PORT] [-s ntsc|pal] \\\n\
+           [-r 48000|32000|44100] [-d DELAY] [DEVICE]\n",
 	    progname);
 }
 

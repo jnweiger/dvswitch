@@ -5,11 +5,7 @@ dvswitch \- mixes and distributes DV streams
 .SH SYNOPSIS
 .HP
 .B dvswitch
-.RI [ gtk-options ]
-.RB [ \-h
-.IR host ]
-.RB [ \-p
-.IR port ]
+.RI [ OPTIONS ]
 .SH DESCRIPTION
 .LP
 DVswitch is a basic video mixer designed for use at conferences that
@@ -19,8 +15,9 @@ sources and sinks.
 .LP
 The GUI is documented in the \fBREADME\fR file.
 .SH OPTIONS
+\fB\-h\fR, \fB\-\-host=\fIHOST\fR
 .TP
-.BI \-h " host " \-p " port"
+\fB\-p\fR, \fB\-\-port=\fIPORT\fR
 .RS
 Specify the network address on which to listen and accept source
 and sink connections.  The host address may be specified by name

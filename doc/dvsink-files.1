@@ -5,23 +5,20 @@ dvsink-files \- file sink for DVswitch
 .SH SYNOPSIS
 .HP
 .B dvsink-files
-.RB [ \-h
-.IR host ]
-.RB [ \-p
-.IR port ]
-.I pattern
+.RI [ OPTIONS "] " NAME-FORMAT
 .SH DESCRIPTION
 .LP
 Record the output from DVswitch.  This will open a new file whenever
 recording starts and whenever the Cut command is used in DVswitch.
-The filename pattern may include formatting sequences as used by
+The filename format may include formatting sequences as used by
 \fBstrftime\fR(3) so that files are named according to the time when
-they are created.  If the name pattern does not end with the suffix
+they are created.  If the name format does not end with the suffix
 ".dv", this will be added.  Finally, a hyphen and a number will be
 added before the ".dv" if necessary to avoid filename collisions.
 .SH OPTIONS
+\fB\-h\fR, \fB\-\-host=\fIHOST\fR
 .TP
-.BI \-h " host " \-p " port"
+\fB\-p\fR, \fB\-\-port=\fIPORT\fR
 .RS
 Specify the network address on which DVswitch is listening.  The host
 address may be specified by name or as an IPv4 or IPv6 literal.

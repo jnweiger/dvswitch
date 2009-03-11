@@ -5,26 +5,24 @@ dvsource-file \- file source for DVswitch
 .SH SYNOPSIS
 .HP
 .B dvsource-file
-.RB [ \-h
-.IR host ]
-.RB [ \-p
-.IR port ]
+.RI [ OPTIONS ]
 .RB [ \-l ]
-.I filename
+.I FILE
 .SH DESCRIPTION
 .LP
 Stream a DV file to the mixer.  By default this plays the file once
 and then exits.  This is mostly useful for development and testing
 purposes.
 .SH OPTIONS
+\fB\-h\fR, \fB\-\-host=\fIHOST\fR
 .TP
-.BI \-h " host " \-p " port"
+\fB\-p\fR, \fB\-\-port=\fIPORT\fR
 .RS
 Specify the network address on which DVswitch is listening.  The host
 address may be specified by name or as an IPv4 or IPv6 literal.
 .RE
 .TP
-.B \-l
+.BR \-l , " \-\-loop"
 .RS
 Play the file repeatedly in a loop.
 .RE

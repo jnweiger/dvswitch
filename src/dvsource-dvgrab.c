@@ -84,10 +84,10 @@ static void handle_config(const char * name, const char * value)
 static void usage(const char * progname)
 {
     static const char firewire_args[] =
-	"[{-c|--card} FIREWIRE-CARD] | DEVICE-NAME]";
-    static const char v4l2_args[] = "[DEVICE-NAME]";
+	"[-c CARD-NUMBER | DEVICE]";
+    static const char v4l2_args[] = "[DEVICE]";
     static const char network_args[] =
-	"[{-h|--host} MIXER-HOST] [{-p|--port} MIXER-PORT]";
+	"[-h HOST] [-p PORT]";
 
     switch (program_mode(progname))
     {
