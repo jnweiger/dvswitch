@@ -1,0 +1,52 @@
+.\" dvsource-alsa.1 written by Ben Hutchings <ben@decadent.org.uk>
+.mso www.tmac
+.TH DVSOURCE-DVGRAB 1 "11 March 2009"
+.SH NAME
+dvsource-alsa \- audio source for DVswitch
+.SH SYNOPSIS
+.HP
+.B dvsource-alsa
+.RI [ OPTIONS ]
+.RB [ \-s " ntsc|pal]
+.RB [ \-r " 48000|32000|44100]
+.RI [ DEVICE ]
+.SH DESCRIPTION
+.LP
+\fBdvsource-alsa\fR uses ALSA to capture audio and sends it to
+DVswitch together with a dummy video stream.
+.LP
+The optional \fIDEVICE\fR argument is a PCM device name. See
+.URL http://www.alsa-project.org/alsa-doc/alsa-lib/pcm.html#pcm_dev_names "the ALSA documentation"
+for an explanation of these names.
+.SH OPTIONS
+\fB\-h\fR, \fB\-\-host=\fIHOST\fR
+.TP
+\fB\-p\fR, \fB\-\-port=\fIPORT\fR
+.RS
+Specify the network address on which DVswitch is listening.  The host
+address may be specified by name or as an IPv4 or IPv6 literal.
+.RE
+.TP
+\fB\-s\fR, \fB\-\-system=\fRntsc|pal
+.RS
+Specify the video system to use.  This must match the system used by
+DVswitch.  The default is "pal".
+.RE
+.TP
+\fB\-d\fR, \fB\-\-rate=\fR48000|32000|44100
+.RS
+Specify the sample rate, in Hz.  The default is 48000.
+.RE
+.TP
+\fB-d\fR, \fB--delay\fR=\fIDELAY\fR
+.RS
+Specify the time by which audio should be delayed, in seconds.
+The delays in live audio and video sources need to be closely
+matched in order that the audio and video signals will be
+synchronised in the output of DVswitch.  The default is 0.2.
+.RE
+.SH AUTHOR
+Ben Hutchings <ben@decadent.org.uk>.
+.SH SEE ALSO
+http://www\.alsa\-project\.org/alsa\-doc/alsa\-lib/pcm\.html,
+/usr/share/doc/dvswitch/README
