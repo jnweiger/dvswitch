@@ -1,6 +1,7 @@
 // Copyright 2009 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+#include <cstdio>
 #include <limits>
 
 #include "vu_meter.hpp"
