@@ -22,6 +22,7 @@ that can run on different computers on a TCP/IP network:
 - dvsource-firewire: source that connects to a DV camera via Firewire
 - dvsource-v4l2-dv: source that connect to a DV camera via V4L2, useful for USB
 - dvsource-file: source that reads a raw DV (DIF) file
+- dvsource-alsa: source that captures audio through ALSA
 - dvsink-files: sink that writes the mixed stream to raw DV files
 - dvsink-command: sink that runs a command with the mixed stream as
   its standard input
