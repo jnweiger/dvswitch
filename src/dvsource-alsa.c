@@ -76,46 +76,89 @@ static void dv_buffer_fill_dummy(uint8_t * buf, const struct dv_system * system)
     {
 	for (block_num = 0; block_num != DIF_BLOCKS_PER_SEQUENCE; ++block_num)
 	{
-	    uint8_t type, typed_block_num;
-
-	    // Set block id
-	    if (block_num == 0) // header
-	    {
-		type = 0x1f;
-		typed_block_num = 0;
-	    }
-	    else if (block_num < 3) // subcode
-	    {
-		type = 0x3f;
-		typed_block_num = block_num - 1;
-	    }
-	    else if (block_num < 6) // VAUX
-	    {
-		type = 0x56;
-		typed_block_num = block_num - 3;
-	    }
-	    else if (block_num % 16 == 6) // audio
-	    {
-		type = 0x76;
-		typed_block_num = block_num / 16;
-	    }
-	    else // video
-	    {
-		type = 0x96;
-		typed_block_num = (block_num - 7) - (block_num - 7) / 16;
-	    }
-	    block[0] = type;
 	    block[1] = (seq_num << 4) | 7;
-	    block[2] = typed_block_num;
 
-	    // Clear rest of the block
-	    memset(block + DIF_BLOCK_ID_SIZE,
-		   0xff,
-		   DIF_BLOCK_SIZE - DIF_BLOCK_ID_SIZE);
-
-	    // Set system code
 	    if (block_num == 0)
+	    {
+		// Header
+		block[0] = 0x1f;
+		block[2] = 0;
+
+		memset(block + DIF_BLOCK_ID_SIZE,
+		       0xff, DIF_BLOCK_SIZE - DIF_BLOCK_ID_SIZE);
+
+		// Header pack
 		block[DIF_BLOCK_ID_SIZE] = (system == &dv_system_625_50) ? 0xbf : 0x3f;
+		int apt = (system == &dv_system_625_50) ? 0 : 1;
+		block[DIF_BLOCK_ID_SIZE + 1] = 0xf8 | apt;
+		block[DIF_BLOCK_ID_SIZE + 2] = 0x78 | apt;
+	    }
+	    else if (block_num < 3)
+	    {
+		// Subcode
+		block[0] = 0x3f;
+		block[2] = block_num - 1;
+
+		memset(block + DIF_BLOCK_ID_SIZE,
+		       0xff, DIF_BLOCK_SIZE - DIF_BLOCK_ID_SIZE);
+	    }
+	    else if (block_num < 6)
+	    {
+		// VAUX
+		block[0] = 0x56;
+		block[2] = block_num - 3;
+
+		memset(block + DIF_BLOCK_ID_SIZE,
+		       0xff, DIF_BLOCK_SIZE - DIF_BLOCK_ID_SIZE);
+
+		// VS pack
+		int dsf = (system == &dv_system_625_50) ? 1 : 0;
+		block[DIF_BLOCK_ID_SIZE] = 0x60;
+		block[DIF_BLOCK_ID_SIZE + 3] = 0xc0 | (dsf << 5);
+		// VSC pack
+		block[DIF_BLOCK_ID_SIZE + DIF_PACK_SIZE] = 0x61;
+		block[DIF_BLOCK_ID_SIZE + DIF_PACK_SIZE + 1] = 0x3f;
+		block[DIF_BLOCK_ID_SIZE + DIF_PACK_SIZE + 2] = 0xc8;
+		block[DIF_BLOCK_ID_SIZE + DIF_PACK_SIZE + 3] = 0xfc;
+		// ...and again
+		memcpy(block + DIF_BLOCK_ID_SIZE + 9 * DIF_PACK_SIZE,
+		       block + DIF_BLOCK_ID_SIZE,
+		       2 * DIF_PACK_SIZE);
+	    }
+	    else if (block_num % 16 == 6)
+	    {
+		// Audio
+		block[0] = 0x76;
+		block[2] = block_num / 16;
+
+		memset(block + DIF_BLOCK_ID_SIZE, 0xff, DIF_PACK_SIZE);
+		memset(block + DIF_BLOCK_ID_SIZE + DIF_PACK_SIZE,
+		       0, DIF_BLOCK_SIZE - DIF_BLOCK_ID_SIZE - DIF_PACK_SIZE);
+	    }
+	    else
+	    {
+		// Video
+		block[0] = 0x96;
+		block[2] = (block_num - 7) - (block_num - 7) / 16;
+
+		// A macroblock full of black; no need for overspill
+		block[DIF_BLOCK_ID_SIZE] = 0x0f;
+		int i;
+		// 4 luma blocks of 14 bytes
+		for (i = DIF_BLOCK_ID_SIZE + 1; i != DIF_BLOCK_ID_SIZE + 57; i += 14)
+		{
+		    block[i] = 0x90;
+		    block[i + 1] = 0x06;
+		    memset(block + i + 2, 0, 14 - 2);
+		}
+		// 2 chroma blocks of 10 bytes
+		for (; i != DIF_BLOCK_SIZE; i += 10)
+		{
+		    block[i] = 0x00;
+		    block[i + 1] = 0x16;
+		    memset(block + i + 2, 0, 10 - 2);
+		}
+	    }
 
 	    block += DIF_BLOCK_SIZE;
 	}
