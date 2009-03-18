@@ -8,8 +8,15 @@ CFLAGS += -O2
 endif
 export CXXFLAGS := $(CFLAGS)
 
+ifneq (,$(findstring parallel,$(DEB_BUILD_OPTIONS)))
+comma := ,
+MAKEFLAGS += $(subst parallel=,-j,$(filter parallel=%,$(subst $(comma), ,$(DEB_BUILD_OPTIONS))))
+# cmake coloured output can get messy quickly...
+export COLOR := off
+endif
+
 build : build/Makefile
-	make -C build
+	$(MAKE) -C build
 
 build/Makefile :
 	mkdir -p build
@@ -17,7 +24,7 @@ build/Makefile :
 
 install-stamp : build
 	dh_testroot
-	make -C build DESTDIR=$$(pwd)/debian/tmp install
+	$(MAKE) -C build DESTDIR=$$(pwd)/debian/tmp install
 	touch install-stamp
 
 binary : binary-arch binary-indep
