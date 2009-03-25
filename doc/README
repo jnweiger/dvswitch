@@ -174,9 +174,9 @@ Currently the only mixing effect is picture-in-picture.  To apply this
 effect:
 
 1. Select the primary video source by pressing its number key or
-   clicking the 'A' button under its thumbnail
-2. Select the secondary video source by pressing Alt and its number
-   key or clicking the 'B' button under its thumbnail
+   clicking the 'A' button next to its thumbnail
+2. Select the secondary video source by clicking the 'B' button next
+   to its thumbnail
 3. Press P
 4. Drag to mark the area the secondary video source should overlay in
    the main display, using mouse button 1 (normally left).  You can
