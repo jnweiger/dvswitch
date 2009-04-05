@@ -8,6 +8,9 @@
 #include <ostream>
 #include <stdexcept>
 
+#include <limits.h>
+#include <unistd.h>
+
 #include <boost/bind.hpp>
 #include <boost/thread/thread.hpp>
 
@@ -667,7 +670,21 @@ void mixer::run_mixer()
     dec->get_buffer = raw_frame_get_buffer;
     dec->release_buffer = raw_frame_release_buffer;
     dec->reget_buffer = raw_frame_reget_buffer;
+
     auto_codec encoder(auto_codec_open_encoder(CODEC_ID_DVVIDEO));
+    AVCodecContext * enc = encoder.get();
+    {
+	// Try to use one thread per CPU, up to a limit of 8
+	int enc_thread_count =
+	    std::min<int>(8, std::max<long>(sysconf(_SC_NPROCESSORS_ONLN), 1));
+	if (enc_thread_count >= 2 && avcodec_thread_init(enc, enc_thread_count))
+	{
+	    std::cerr << "WARN: avcodec_thread_init("
+		      << enc_thread_count << ") failed\n";
+	    enc_thread_count = 1;
+	}
+	std::cout << "INFO: DV encoder threads: " << enc_thread_count << "\n";
+    }
 
     for (;;)
     {
@@ -700,7 +717,6 @@ void mixer::run_mixer()
 	{
 	    // Encode mixed video
 	    const dv_system * system = m->format.system;
-	    AVCodecContext * enc = encoder.get();
 	    enc->sample_aspect_ratio.num = system->pixel_aspect[m->format.frame_aspect].width;
 	    enc->sample_aspect_ratio.den = system->pixel_aspect[m->format.frame_aspect].height;
 	    // Work around libavcodec's aspect ratio confusion (bug #790)
