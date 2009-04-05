@@ -225,8 +225,6 @@ void dv_buffer_set_audio(uint8_t * buffer,
     assert(sample_count >= system->sample_counts[sample_rate_code].min &&
 	   sample_count <= system->sample_counts[sample_rate_code].max);
 
-    sample_count *= 2; // stereo
-
     bool use_12bit = sample_rate_code == dv_sample_rate_32k;
 
     // Each audio block has a 3-byte block id, a 5-byte AAUX
@@ -281,6 +279,8 @@ void dv_buffer_set_audio(uint8_t * buffer,
 	// bit 7: reserved
 	0x7F
     };
+
+    sample_count *= 2; // stereo
 
     for (unsigned seq = 0; seq != system->seq_count; ++seq)
     {
