@@ -190,11 +190,19 @@ static void transfer_frames(struct transfer_params * params)
 	    snd_pcm_sframes_t rc = snd_pcm_readi(params->pcm,
 						 samples + channel_count * avail_count,
 						 params->hw_sample_count);
-	    if (rc != (snd_pcm_sframes_t)params->hw_sample_count)
+	    if (rc < 0)
 	    {
-		fprintf(stderr, "ERROR: snd_pcm_readi: %s\n",
-			(rc < 0) ? snd_strerror(rc) : "underrun");
-		exit(1);
+		// Recover from buffer underrun
+		if (rc == -EPIPE && snd_pcm_prepare(params->pcm) == 0)
+		{
+		    fprintf(stderr, "WARN: Failing to keep up with audio source\n");
+		    continue;
+		}
+		else
+		{
+		    fprintf(stderr, "ERROR: snd_pcm_readi: %s\n", snd_strerror(rc));
+		    exit(1);
+		}
 	    }
 	    avail_count += rc;
 	}
