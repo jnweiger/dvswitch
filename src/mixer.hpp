@@ -176,7 +176,7 @@ private:
     boost::thread clock_thread_;
 
     boost::mutex mixer_mutex_; // controls access to the following
-    ring_buffer<mix_data, 3> mixer_queue_;
+    ring_buffer<mix_data, 10> mixer_queue_;
     run_state mixer_state_;
     boost::condition mixer_state_cond_;
 
