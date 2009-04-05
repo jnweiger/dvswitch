@@ -91,8 +91,9 @@ unsigned dv_buffer_get_audio(const uint8_t * buffer, int16_t * samples)
     if (quant > 1)
 	return 0;
 
-    unsigned sample_count = 2 * (system->sample_counts[sample_rate_code].min +
-				 (as_pack[1] & 0x3f));
+    unsigned sample_count =
+	2 * (system->audio_frame_counts[sample_rate_code].min +
+	     (as_pack[1] & 0x3f));
 
     for (unsigned seq = 0;
 	 seq != (quant ? system->seq_count / 2 : system->seq_count);
@@ -153,16 +154,16 @@ unsigned dv_buffer_get_audio(const uint8_t * buffer, int16_t * samples)
 void dv_buffer_get_audio_levels(const uint8_t * buffer, int * levels)
 {
     int16_t samples[2 * 2000];
-    unsigned sample_count = dv_buffer_get_audio(buffer, samples);
+    unsigned frame_count = dv_buffer_get_audio(buffer, samples);
 
-    assert(2 * sample_count * sizeof(int16_t) <= sizeof(samples));
+    assert(2 * frame_count * sizeof(int16_t) <= sizeof(samples));
 
     // Total of squares of samples, so we can calculate average power.  We shift
     // right to avoid overflow.
     static const unsigned total_shift = 9;
     unsigned total_l = 0, total_r = 0;
 
-    for (unsigned i = 0; i != sample_count; ++i)
+    for (unsigned i = 0; i != frame_count; ++i)
     {
 	int16_t sample = samples[2 * i];
 	total_l += ((unsigned)(sample * sample)) >> total_shift;
@@ -173,11 +174,11 @@ void dv_buffer_get_audio_levels(const uint8_t * buffer, int * levels)
     // Calculate average power and convert to dB
     levels[0] = (total_l == 0 ? INT_MIN
 		 : (int)(log10((double)total_l * (1 << total_shift) /
-			       ((double)sample_count * (0x7fff * 0x7fff)))
+			       ((double)frame_count * (0x7fff * 0x7fff)))
 			 * 10.0));
     levels[1] = (total_r == 0 ? INT_MIN
 		 : (int)(log10((double)total_r * (1 << total_shift) /
-			       ((double)sample_count * (0x7fff * 0x7fff)))
+			       ((double)frame_count * (0x7fff * 0x7fff)))
 			 * 10.0));
 }
 
@@ -217,15 +218,16 @@ void dv_buffer_dub_audio(uint8_t * dest, const uint8_t * source)
 
 void dv_buffer_set_audio(uint8_t * buffer,
 			 enum dv_sample_rate sample_rate_code,
-			 unsigned sample_count, const int16_t * samples)
+			 unsigned frame_count, const int16_t * samples)
 {
     const struct dv_system * system = dv_buffer_system(buffer);
 
     assert(sample_rate_code >= 0 && sample_rate_code < dv_sample_rate_count);
-    assert(sample_count >= system->sample_counts[sample_rate_code].min &&
-	   sample_count <= system->sample_counts[sample_rate_code].max);
+    assert(frame_count >= system->audio_frame_counts[sample_rate_code].min &&
+	   frame_count <= system->audio_frame_counts[sample_rate_code].max);
 
     bool use_12bit = sample_rate_code == dv_sample_rate_32k;
+    unsigned sample_count = frame_count * 2; // stereo
 
     // Each audio block has a 3-byte block id, a 5-byte AAUX
     // pack, and 72 bytes of samples.  Audio block 3 in each
@@ -238,10 +240,10 @@ void dv_buffer_set_audio(uint8_t * buffer,
     uint8_t aaux_as_pack[DIF_PACK_SIZE] = {
 	// pack id; 0x50 for AAUX source
 	0x50,
-	// bits 0-5: number of samples in frame minus minimum value
+	// bits 0-5: number of audio frames in video frame minus minimum value
 	// bit 6: flag "should be 1"
 	// bit 7: flag for unlocked audio sampling
-	(sample_count - system->sample_counts[sample_rate_code].min)
+	(frame_count - system->audio_frame_counts[sample_rate_code].min)
 	| (1 << 6) | (1 << 7),
 	// bits 0-3: audio mode
 	// bit 4: flag for independent channels
@@ -279,8 +281,6 @@ void dv_buffer_set_audio(uint8_t * buffer,
 	// bit 7: reserved
 	0x7F
     };
-
-    sample_count *= 2; // stereo
 
     for (unsigned seq = 0; seq != system->seq_count; ++seq)
     {
@@ -344,9 +344,10 @@ void dv_buffer_silence_audio(uint8_t * buffer,
 			     unsigned serial_num)
 {
     const struct dv_system * system = dv_buffer_system(buffer);
-    unsigned sample_count =
-	system->sample_counts[sample_rate_code].std_cycle[
-	    serial_num % system->sample_counts[sample_rate_code].std_cycle_len];
+    unsigned frame_count =
+	system->audio_frame_counts[sample_rate_code].std_cycle[
+	    serial_num %
+	    system->audio_frame_counts[sample_rate_code].std_cycle_len];
 
-    dv_buffer_set_audio(buffer, sample_rate_code, sample_count, NULL);
+    dv_buffer_set_audio(buffer, sample_rate_code, frame_count, NULL);
 }

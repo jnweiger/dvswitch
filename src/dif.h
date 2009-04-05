@@ -57,10 +57,11 @@ struct dv_system
     } pixel_aspect[dv_frame_aspect_count];
     unsigned seq_count;
     size_t size;
-    // The number of samples per frame may vary, for two reasons.  Firstly,
-    // consumer gear is not required to have synchronised audio and video
-    // clocks.  Secondly, the frame rate 30000/1001 does not divide evenly
-    // into any of the supported audio sample rates.
+    // The number of audio frames per video frame may vary, for two
+    // reasons.  Firstly, consumer gear is not required to have
+    // synchronised audio and video clocks.  Secondly, the frame rate
+    // 30000/1001 does not divide evenly into any of the supported
+    // audio sample rates.
     struct {
 	// Minimum and maximum sample counts allowed.  The actual sample
 	// count is encoded in the AS pack relative to the minimum.
@@ -68,7 +69,7 @@ struct dv_system
 	// A cycle of sample counts which will result in perfect
 	// synchronisation ("locked audio" for 32k and 48k).
 	unsigned std_cycle_len, std_cycle[100];
-    } sample_counts[dv_sample_rate_count];
+    } audio_frame_counts[dv_sample_rate_count];
     const uint8_t (*audio_shuffle)[9];
 };
 
@@ -98,7 +99,7 @@ unsigned dv_buffer_get_audio(const uint8_t * buffer, int16_t * samples);
 // of samples is valid for the selected video system and sample rate.
 void dv_buffer_set_audio(uint8_t * buffer,
 			 enum dv_sample_rate sample_rate_code,
-			 unsigned sample_count, const int16_t * samples);
+			 unsigned frame_count, const int16_t * samples);
 
 void dv_buffer_get_audio_levels(const uint8_t * frame, int * levels);
 void dv_buffer_dub_audio(uint8_t * dest, const uint8_t * source);

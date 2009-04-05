@@ -60,7 +60,7 @@ Usage: %s [-h HOST] [-p PORT] [-s ntsc|pal] \\\n\
 
 struct transfer_params {
     snd_pcm_t *              pcm;
-    snd_pcm_uframes_t        hw_sample_count;
+    snd_pcm_uframes_t        hw_frame_count;
     const struct dv_system * system;
     enum dv_sample_rate      sample_rate_code;
     snd_pcm_uframes_t        delay_size;
@@ -174,22 +174,22 @@ static void transfer_frames(struct transfer_params * params)
 
     const snd_pcm_uframes_t buffer_size =
 	(params->delay_size >= 2000 ? params->delay_size : 2000)
-	+ params->hw_sample_count - 1;
+	+ params->hw_frame_count - 1;
     int16_t * samples = malloc(sizeof(int16_t) * channel_count * buffer_size);
 
     dv_buffer_fill_dummy(buf, params->system);
 
     for (;;)
     {
-	unsigned sample_count = 
-	    params->system->sample_counts[params->sample_rate_code].std_cycle[
-		serial_num % params->system->sample_counts[params->sample_rate_code].std_cycle_len];
+	unsigned frame_count = 
+	    params->system->audio_frame_counts[params->sample_rate_code].std_cycle[
+		serial_num % params->system->audio_frame_counts[params->sample_rate_code].std_cycle_len];
 
-	while (avail_count < params->delay_size || avail_count < sample_count)
+	while (avail_count < params->delay_size || avail_count < frame_count)
 	{
 	    snd_pcm_sframes_t rc = snd_pcm_readi(params->pcm,
 						 samples + channel_count * avail_count,
-						 params->hw_sample_count);
+						 params->hw_frame_count);
 	    if (rc < 0)
 	    {
 		// Recover from buffer underrun
@@ -207,7 +207,7 @@ static void transfer_frames(struct transfer_params * params)
 	    avail_count += rc;
 	}
 
-	dv_buffer_set_audio(buf, params->sample_rate_code, sample_count, samples);
+	dv_buffer_set_audio(buf, params->sample_rate_code, frame_count, samples);
 
 	if (write(params->sock, buf, params->system->size)
 	    != (ssize_t)params->system->size)
@@ -216,9 +216,9 @@ static void transfer_frames(struct transfer_params * params)
 	    exit(1);
 	}
 
-	memmove(samples, samples + channel_count * sample_count,
-		sizeof(int16_t) * channel_count * (avail_count - sample_count));
-	avail_count -= sample_count;
+	memmove(samples, samples + channel_count * frame_count,
+		sizeof(int16_t) * channel_count * (avail_count - frame_count));
+	avail_count -= frame_count;
 	++serial_num;
     }
 }
@@ -357,10 +357,10 @@ int main(int argc, char ** argv)
 	snd_pcm_hw_params_set_rate(params.pcm, hw_params, sample_rate, 0);
     if (rc >= 0)
     {
-	params.hw_sample_count =
-	    params.system->sample_counts[params.sample_rate_code].std_cycle[0];
+	params.hw_frame_count =
+	    params.system->audio_frame_counts[params.sample_rate_code].std_cycle[0];
 	rc = snd_pcm_hw_params_set_period_size_near(params.pcm, hw_params,
-						    &params.hw_sample_count, 0);
+						    &params.hw_frame_count, 0);
     }
     if (rc >= 0)
     {
