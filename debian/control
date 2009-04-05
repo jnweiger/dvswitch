@@ -24,7 +24,9 @@ Package: dvsource
 Architecture: any
 Depends: ${shlibs:Depends}, dvgrab
 Description: programs to provide source streams for dvswitch
- This package provides two sources for dvswitch:
+ This package provides sources for dvswitch:
+ .
+ dvsource-alsa captures audio from an ALSA device.
  .
  dvsource-file reads DV frames from a file and sends them at the
  normal frame rate.
