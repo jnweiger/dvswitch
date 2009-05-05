@@ -292,12 +292,15 @@ void dv_buffer_set_audio(uint8_t * buffer,
 	    uint8_t * out = (buffer + seq * DIF_SEQUENCE_SIZE +
 			     (6 + 16 * block_n) * DIF_BLOCK_SIZE +
 			     DIF_BLOCK_ID_SIZE);
+	    const uint8_t * pack;
 
-	    memcpy(out,
-		   block_n == 3 ? aaux_as_pack
-		   : block_n == 4 ? aaux_asc_pack
-		   : aaux_blank_pack,
-		   DIF_PACK_SIZE);
+	    if (block_n == ((seq & 1) ? 0 : 3))
+		pack = aaux_as_pack;
+	    else if (block_n == ((seq & 1) ? 1 : 4))
+		pack = aaux_asc_pack;
+	    else
+		pack = aaux_blank_pack;
+	    memcpy(out, pack, DIF_PACK_SIZE);
 	    out += DIF_PACK_SIZE;
 
 	    if (samples == NULL)

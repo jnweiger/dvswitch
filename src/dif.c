@@ -72,7 +72,7 @@ const struct dv_system dv_system_525_60 =
     .audio_frame_counts = {
 	[dv_sample_rate_48k] = {
 	    .min = 1580, .max = 1620,
-	    .std_cycle_len = 5, .std_cycle = { 1602, 1601, 1602, 1601, 1602 }
+	    .std_cycle_len = 5, .std_cycle = { 1600, 1602, 1602, 1602, 1602 }
 	},
 	[dv_sample_rate_44k1] = {
 	    .min = 1452, .max = 1489,
