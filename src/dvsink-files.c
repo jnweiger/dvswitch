@@ -195,7 +195,7 @@ static void transfer_frames(struct transfer_params * params)
 	    }
 
 	    // Check for stop indicator
-	    if (buf[SINK_FRAME_CUT_FLAG_POS] == 'S')
+	    if (buf[SINK_FRAME_CUT_FLAG_POS] == SINK_FRAME_CUT_STOP)
 	    {
 		printf("INFO: Stopped recording\n");
 		fflush(stdout);

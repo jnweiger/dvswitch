@@ -1,4 +1,4 @@
-// Copyright 2007-2008 Ben Hutchings.
+// Copyright 2007-2009 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
 #include <cstring>
@@ -514,11 +514,11 @@ server::connection::send_status server::sink_connection::do_send()
 	{
 	    uint8_t & flag = frame_header[SINK_FRAME_CUT_FLAG_POS];
 	    if (is_recording_ && !elem.frame->do_record)
-		flag = 'S'; // stop indicator (frame itself will not be sent)
+		flag = SINK_FRAME_CUT_STOP;
 	    else if (elem.overflow_before)
-		flag = 'O';
+		flag = SINK_FRAME_CUT_OVERFLOW;
 	    else if (elem.frame->cut_before)
-		flag = 'C';
+		flag = SINK_FRAME_CUT_CUT;
 	    else
 		flag = 0;
 	    // rest of header left as zero for expansion
