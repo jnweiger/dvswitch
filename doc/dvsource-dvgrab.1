@@ -1,5 +1,5 @@
 .\" dvsource-dvgrab.1 written by Ben Hutchings <ben@decadent.org.uk>
-.TH DVSOURCE-DVGRAB 1 "18 February 2009"
+.TH DVSOURCE-DVGRAB 1 "24 May 2009"
 .SH NAME
 dvsource-dvgrab \- Firewire and Video4Linux2 sources for DVswitch
 .SH SYNOPSIS
@@ -20,6 +20,13 @@ device (camera or VCR) connected by Firewire.
 that has a Video4Linux2 driver.  This includes most USB DV cameras if
 you have the uvcvideo driver installed.
 .SH OPTIONS
+\fB\-t\fR, \fB\-\-tally\fR
+.RS
+Print notices of activation and deactivation in the mixer, for use
+with a tally light.  These will take the form "TALLY: on" or "TALLY:
+off".
+.RE
+.TP
 \fB\-h\fR, \fB\-\-host=\fIHOST\fR
 .TP
 \fB\-p\fR, \fB\-\-port=\fIPORT\fR

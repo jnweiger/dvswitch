@@ -1,5 +1,6 @@
-/* Copyright 2007-2008 Ben Hutchings.
+/* Copyright 2007-2009 Ben Hutchings.
  * Copyright 2008 Petter Reinholdtsen.
+ * Copyright 2009 Wouter Verhelst.
  * See the file "COPYING" for licence details.
  */
 
@@ -22,6 +23,7 @@ static struct option options[] = {
     {"v4l2",     0, NULL, 'V'},
     {"host",     1, NULL, 'h'},
     {"port",     1, NULL, 'p'},
+    {"tally",    0, NULL, 't'},
     {"help",     0, NULL, 'H'},
     {NULL,       0, NULL, 0}
 };
@@ -37,6 +39,7 @@ static char * device_name = NULL;
 static char * firewire_card = NULL;
 static char * mixer_host = NULL;
 static char * mixer_port = NULL;
+static int do_tally = 0;
 
 static enum mode program_mode(const char * progname)
 {
@@ -86,8 +89,8 @@ static void usage(const char * progname)
     static const char firewire_args[] =
 	"[-c CARD-NUMBER | DEVICE]";
     static const char v4l2_args[] = "[DEVICE]";
-    static const char network_args[] =
-	"[-h HOST] [-p PORT]";
+    static const char other_args[] =
+	"[-t] [-h HOST] [-p PORT]";
 
     switch (program_mode(progname))
     {
@@ -97,22 +100,65 @@ static void usage(const char * progname)
 		"           --firewire %s\n"
 		"       %s %s \\\n"
 		"           --v4l2 %s\n",
-		progname, network_args, firewire_args,
-		progname, network_args, v4l2_args);
+		progname, other_args, firewire_args,
+		progname, other_args, v4l2_args);
 	break;
     case mode_firewire:
 	fprintf(stderr,
 		"Usage: %s %s \\\n"
 		"           %s\n",
-		progname, network_args, firewire_args);
+		progname, other_args, firewire_args);
 	break;
     case mode_v4l2:
 	fprintf(stderr,
 		"Usage: %s %s \\\n"
 		"           %s\n",
-		progname, network_args, v4l2_args);
+		progname, other_args, v4l2_args);
 	break;
     }
+}
+
+static ssize_t read_retry(int fd, void * buf, size_t count)
+{
+    ssize_t chunk, total = 0;
+
+    do
+    {
+        chunk = read(fd, buf, count);
+        if (chunk <= 0)
+        {
+            if (total == 0)
+                return chunk;
+            break;
+        }
+        total += chunk;
+        buf = (char *)buf + chunk;
+        count -= chunk;
+    }
+    while (count);
+
+    return total;
+}
+
+static void tally(int sock)
+{
+    for (;;)
+    {
+	char act_msg[ACT_MSG_SIZE];
+	ssize_t read_size = read_retry(sock, act_msg, ACT_MSG_SIZE);
+	if (read_size < ACT_MSG_SIZE)
+	{
+	    if (read_size < 0)
+		perror("ERROR: read");
+	    break;
+	}
+
+	if (act_msg[ACT_MSG_VIDEO_POS])
+	    printf("TALLY: on\n");
+	else
+	    printf("TALLY: off\n");
+    }
+
 }
 
 int main(int argc, char ** argv)
@@ -146,6 +192,9 @@ int main(int argc, char ** argv)
 	case 'p':
 	    free(mixer_port);
 	    mixer_port = strdup(optarg);
+	    break;
+	case 't':
+	    do_tally = 1;
 	    break;
 	case 'H': /* --help */
 	    usage(argv[0]);
@@ -203,10 +252,27 @@ int main(int argc, char ** argv)
     printf("INFO: Connecting to %s:%s\n", mixer_host, mixer_port);
     int sock = create_connected_socket(mixer_host, mixer_port);
     assert(sock >= 0); /* create_connected_socket() should handle errors */
-    if (write(sock, GREETING_SOURCE, GREETING_SIZE) != GREETING_SIZE)
+    if (write(sock, do_tally ? GREETING_ACT_SOURCE : GREETING_SOURCE,
+              GREETING_SIZE) != GREETING_SIZE)
     {
 	perror("ERROR: write");
 	exit(1);
+    }
+    if (do_tally)
+    {
+	fflush(NULL);
+	int child_pid = fork();
+
+	if (child_pid < 0)
+	{
+	    perror("ERROR: fork");
+	    return 1;
+	}
+	if (child_pid == 0)
+	{
+	    tally(sock);
+	    _exit(0);
+	}
     }
     if (dup2(sock, STDOUT_FILENO) < 0)
     {
