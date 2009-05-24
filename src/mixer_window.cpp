@@ -234,6 +234,8 @@ void mixer_window::toggle_record() throw()
 
 void mixer_window::set_pri_video_source(mixer::source_id id)
 {
+    pri_video_source_id_ = id;
+
     // If the secondary source is becoming the primary source, cancel
     // the effect rather than mixing it with itself.
     if (pip_active_ && id == sec_video_source_id_)
