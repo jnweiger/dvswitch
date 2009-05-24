@@ -66,6 +66,15 @@ protected:
 
     connection(server & server, auto_fd socket);
 
+    void schedule_send()
+    {
+	int fd = socket_.get();
+	os_check_zero(
+	    "write",
+	    write(server_.message_pipe_.writer.get(), &fd, sizeof(int))
+	    - sizeof(int));
+    }
+
     server & server_;
     auto_fd socket_;
 
@@ -302,13 +311,6 @@ void server::serve()
     }
 }
 
-void server::enable_output_polling(int fd)
-{
-    os_check_zero("write",
-		  write(message_pipe_.writer.get(), &fd, sizeof(int))
-		  - sizeof(int));
-}
-
 // connection
 
 server::connection::connection(server & server, auto_fd socket)
@@ -442,7 +444,7 @@ void server::source_connection::set_active(mixer::source_activation flags)
     if (wants_act_)
     {
 	act_flags_ = flags;
-	server_.enable_output_polling(socket_.get());
+	schedule_send();
     }
 }
 
@@ -694,5 +696,5 @@ void server::sink_connection::put_frame(const dv_frame_ptr & frame)
 	}
     }
     if (was_empty)
-	server_.enable_output_polling(socket_.get());
+	schedule_send();
 }

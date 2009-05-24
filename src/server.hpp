@@ -26,7 +26,6 @@ private:
     class sink_connection;
 
     void serve();
-    void enable_output_polling(int fd);
 
     mixer & mixer_;
     auto_fd listen_socket_;
