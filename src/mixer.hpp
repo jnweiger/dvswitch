@@ -1,4 +1,4 @@
-// Copyright 2007-2008 Ben Hutchings.
+// Copyright 2007-2009 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
 #ifndef DVSWITCH_MIXER_HPP
@@ -47,6 +47,13 @@ public:
 	bool cut_before;
     };
 
+    // Source activation flags
+    enum source_activation {
+	source_active_none = 0,
+	// Source is used in the current video mix
+	source_active_video = 1,
+    };
+
     // Interface to sinks
     struct sink
     {
@@ -58,6 +65,15 @@ public:
 	// member of the frame can be used to check whether the
 	// frame is new.
 	virtual void put_frame(const dv_frame_ptr &) = 0;
+    };
+
+    // Interface to sources
+    struct source
+    {
+	// Tell a source whether it is active, i.e. selected for
+	// output.  This may be used to control a tally light, for
+	// example.
+	virtual void set_active(source_activation) = 0;
     };
 
     // Interface to monitor
@@ -97,7 +113,7 @@ public:
 
     // Interface for sources
     // Register and unregister sources
-    source_id add_source();
+    source_id add_source(source *);
     void remove_source(source_id);
     // Add a new frame from the given source.  This should be called at
     // appropriate intervals to avoid the need to drop or duplicate
@@ -148,6 +164,7 @@ private:
 	source_data() : is_live(true) {}
 	bool is_live;
 	ring_buffer<dv_frame_ptr, full_queue_len> frames;
+	source * src;
     };
 
     struct mix_data

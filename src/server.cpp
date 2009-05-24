@@ -94,19 +94,26 @@ private:
 
 // source_connection: connection from source
 
-class server::source_connection : public connection
+class server::source_connection : public connection, private mixer::source
 {
 public:
-    source_connection(server & server, auto_fd socket);
+    source_connection(server & server, auto_fd socket, bool wants_act = false);
     virtual ~source_connection();
 
 private:
+    virtual send_status do_send();
     virtual receive_buffer get_receive_buffer();
     virtual connection * handle_complete_receive();
     virtual std::ostream & print_identity(std::ostream &);
 
+    virtual void set_active(mixer::source_activation);
+
     dv_frame_ptr frame_;
     bool first_sequence_;
+    bool wants_act_;		// client wants activation messages
+    mixer::source_activation act_flags_;
+    char act_message_[ACT_MSG_SIZE];
+    std::size_t act_message_pos_;
 
     mixer::source_id source_id_;
 };
@@ -366,6 +373,8 @@ server::connection * server::unknown_connection::handle_complete_receive()
     enum {
 	client_type_unknown,
 	client_type_source,     // source which sends greeting (>= 0.3)
+	client_type_act_source, // source which wants activity (tally)
+				// notifications
 	client_type_sink,       // sink which wants DIF with control headers
 	client_type_raw_sink,   // sink which wants raw DIF
 	client_type_rec_sink,   // sink which wants DIF with control headers
@@ -383,13 +392,18 @@ server::connection * server::unknown_connection::handle_complete_receive()
     else if (std::memcmp(greeting_, GREETING_REC_SINK, GREETING_SIZE)
 	     == 0)
 	client_type = client_type_rec_sink;
+    else if (std::memcmp(greeting_, GREETING_ACT_SOURCE, GREETING_SIZE)
+    	     == 0)
+    	client_type = client_type_act_source;
     else
 	client_type = client_type_unknown;
 
     switch (client_type)
     {
     case client_type_source:
-	return new source_connection(server_, socket_);
+    case client_type_act_source:
+	return new source_connection(server_, socket_,
+				     client_type == client_type_act_source);
     case client_type_sink:
     case client_type_raw_sink:
     case client_type_rec_sink:
@@ -408,17 +422,73 @@ std::ostream & server::unknown_connection::print_identity(std::ostream & os)
 
 // source_connection implementation
 
-server::source_connection::source_connection(server & server, auto_fd socket)
+server::source_connection::source_connection(server & server, auto_fd socket,
+					     bool wants_act)
     : connection(server, socket),
       frame_(allocate_dv_frame()),
-      first_sequence_(true)
+      first_sequence_(true),
+      wants_act_(wants_act)
 {
-    source_id_ = server_.mixer_.add_source();
+    source_id_ = server_.mixer_.add_source(this);
 }
 
 server::source_connection::~source_connection()
 {
     server_.mixer_.remove_source(source_id_);
+}
+
+void server::source_connection::set_active(mixer::source_activation flags)
+{
+    if (wants_act_)
+    {
+	act_flags_ = flags;
+	server_.enable_output_polling(socket_.get());
+    }
+}
+
+server::connection::send_status server::source_connection::do_send()
+{
+    send_status result = send_failed;
+
+    if (act_message_pos_ == 0)
+    {
+	// Generate message
+	memset(act_message_, 0, ACT_MSG_SIZE);
+	act_message_[ACT_MSG_VIDEO_POS] =
+	    !!(act_flags_ & mixer::source_active_video);
+    }
+
+    ssize_t sent_size = write(socket_.get(), act_message_, ACT_MSG_SIZE);
+    if (sent_size > 0)
+    {
+	act_message_pos_ += sent_size;
+	if (act_message_pos_ == ACT_MSG_SIZE)
+	{
+	    // We've finished sending this message, but we must check
+	    // whether the activation flags have changed.
+	    act_message_pos_ = 0;
+	    if (act_message_[ACT_MSG_VIDEO_POS] ==
+		!!(act_flags_ & mixer::source_active_video))
+		result = sent_all;
+	    else
+		result = sent_some;
+	}
+    }
+    else if (sent_size == -1 && errno == EWOULDBLOCK)
+    {
+	result = sent_some;
+    }
+
+    if (result == send_failed)
+    {
+	// XXX We should distinguish several kinds of failure: network
+	// problems, normal disconnection, protocol violation, and
+	// resource allocation failure.
+	std::cerr << "WARN: Dropping connection from source "
+		  << 1 + source_id_ << "\n";
+    }
+
+    return result;
 }
 
 server::connection::receive_buffer

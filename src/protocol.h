@@ -10,6 +10,8 @@
 
 // Source which sends a raw DIF stream.
 #define GREETING_SOURCE "SORC"
+// Source which sends a raw DIF stream and receives activation messages.
+#define GREETING_ACT_SOURCE "ASRC"
 // Sink which receives a raw DIF stream.
 #define GREETING_RAW_SINK "RSNK"
 // Sink which receives a header before each DIF frame.
@@ -33,5 +35,13 @@
 #define SINK_FRAME_CUT_STOP 'S'
 
 // The remaining bytes of the frame header are reserved and should be 0.
+
+// Length of an activation message.
+#define ACT_MSG_SIZE 4
+// Position of the video active flag byte in the message.  All non-zero
+// values indicate that the mixer is using video frames from the source.
+#define ACT_MSG_VIDEO_POS 0
+// The remaining bytes of the activation message are reserved and should
+// be 0.
 
 #endif // !defined(DVSWITCH_PROTOCOL_H)

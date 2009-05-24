@@ -1,5 +1,6 @@
 // Copyright 2007-2009 Ben Hutchings.
 // Copyright 2008 Petter Reinholdtsen.
+// Copyright 2009 Wouter Verhelst.
 // See the file "COPYING" for licence details.
 
 #include <cstddef>
@@ -57,7 +58,7 @@ mixer::~mixer()
     mixer_thread_.join();
 }
 
-mixer::source_id mixer::add_source()
+mixer::source_id mixer::add_source(source * src)
 {
     boost::mutex::scoped_lock lock(source_mutex_);
     source_id id;
@@ -66,10 +67,12 @@ mixer::source_id mixer::add_source()
 	if (!sources_[id].is_live)
 	{
 	    sources_[id].is_live = true;
+	    sources_[id].src = src;
 	    return id;
 	}
     }
     sources_.resize(id + 1);
+    sources_[id].src = src;
     return id;
 }
 
@@ -552,6 +555,7 @@ namespace
 struct mixer::video_mix
 {
     virtual void validate(const mixer &) = 0;
+    virtual void set_active(const mixer &, bool active) = 0;
     virtual void apply(const mix_data &, const auto_codec &,
 		       raw_frame_ptr &, dv_frame_ptr &) = 0;
 };
@@ -560,7 +564,9 @@ void mixer::set_video_mix(std::tr1::shared_ptr<video_mix> video_mix)
 {
     boost::mutex::scoped_lock lock(source_mutex_);
     video_mix->validate(*this);
+    settings_.video_mix->set_active(*this, false);
     settings_.video_mix = video_mix;
+    settings_.video_mix->set_active(*this, true);
 }
 
 // Simple video mix - selects a single source
@@ -573,6 +579,7 @@ public:
     {}
 private:
     virtual void validate(const mixer &);
+    virtual void set_active(const mixer &, bool active);
     virtual void apply(const mix_data &, const auto_codec &,
 		       raw_frame_ptr &, dv_frame_ptr &);
     source_id source_id_;
@@ -582,6 +589,12 @@ void mixer::video_mix_simple::validate(const mixer & mixer)
 {
     if (source_id_ >= mixer.sources_.size())
 	throw std::range_error("video source id out of range");
+}
+
+void mixer::video_mix_simple::set_active(const mixer & mixer, bool active)
+{
+    mixer.sources_[source_id_].src->set_active(
+	active ? source_active_video : source_active_none);
 }
 
 void mixer::video_mix_simple::apply(const mix_data & m, const auto_codec &,
@@ -607,6 +620,7 @@ public:
     {}
 private:
     virtual void validate(const mixer &);
+    virtual void set_active(const mixer &, bool active);
     virtual void apply(const mix_data &, const auto_codec &,
 		       raw_frame_ptr &, dv_frame_ptr &);
     source_id pri_source_id_, sec_source_id_;
@@ -618,6 +632,14 @@ void mixer::video_mix_pic_in_pic::validate(const mixer & mixer)
     if (pri_source_id_ >= mixer.sources_.size() ||
 	sec_source_id_ >= mixer.sources_.size())
 	throw std::range_error("video source id out of range");
+}
+
+void mixer::video_mix_pic_in_pic::set_active(const mixer & mixer, bool active)
+{
+    mixer.sources_[pri_source_id_].src->set_active(
+	active ? source_active_video : source_active_none);
+    mixer.sources_[sec_source_id_].src->set_active(
+	active ? source_active_video : source_active_none);
 }
 
 void mixer::video_mix_pic_in_pic::apply(const mix_data & m,

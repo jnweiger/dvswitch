@@ -1,3 +1,6 @@
+// Copyright 2007-2009 Ben Hutchings.
+// See the file "COPYING" for licence details.
+
 #include <cstdlib>
 #include <iostream>
 #include <ostream>
@@ -12,6 +15,19 @@
 
 namespace
 {
+    class dummy_source : public mixer::source
+    {
+    public:
+	dummy_source() {}
+    private:
+	virtual void set_active(mixer::source_activation flags)
+	{
+	    std::cout << "video source "
+		      << ((flags & mixer::source_active_video) ? "" : "de")
+		      << "activated\n";
+	}
+    };
+
     class dummy_sink : public mixer::sink
     {
     public:
@@ -37,7 +53,7 @@ int main()
     volatile unsigned sink_count = 0;
     unsigned source_count = 0;
     mixer the_mixer;
-    the_mixer.add_source();
+    the_mixer.add_source(new dummy_source);
     the_mixer.add_sink(new dummy_sink(sink_count));
     for (;;)
     {
