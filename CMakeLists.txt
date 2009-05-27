@@ -13,6 +13,7 @@ pkg_check_modules(LIBAVCODEC REQUIRED libavcodec)
 
 find_library(BOOST_THREAD_LIBRARIES
 	     NAMES boost_thread-mt boost_thread
+	     DOC "Boost.Thread library path"
 	     NO_SYSTEM_ENVIRONMENT_PATH)
 if(NOT BOOST_THREAD_LIBRARIES)
     message(FATAL_ERROR "Could not find Boost.Thread library")
@@ -20,6 +21,7 @@ endif(NOT BOOST_THREAD_LIBRARIES)
 
 find_path(LIVEMEDIA_INCLUDEDIR
 	  NAMES liveMedia/liveMedia.hh
+	  DOC "liveMedia header installation directory"
 	  NO_SYSTEM_ENVIRONMENT_PATH)
 if(NOT LIVEMEDIA_INCLUDEDIR)
     message(FATAL_ERROR "Could not find liveMedia headers")
@@ -28,7 +30,8 @@ set(LIVEMEDIA_INCLUDE_DIRS
     ${LIVEMEDIA_INCLUDEDIR}/BasicUsageEnvironment
     ${LIVEMEDIA_INCLUDEDIR}/groupsock
     ${LIVEMEDIA_INCLUDEDIR}/liveMedia
-    ${LIVEMEDIA_INCLUDEDIR}/UsageEnvironment)
+    ${LIVEMEDIA_INCLUDEDIR}/UsageEnvironment
+    CACHE FILEPATH "liveMedia include paths")
 
 foreach(library_name BasicUsageEnvironment groupsock liveMedia UsageEnvironment)
     unset(library_path CACHE)
@@ -41,21 +44,22 @@ foreach(library_name BasicUsageEnvironment groupsock liveMedia UsageEnvironment)
     set(LIVEMEDIA_LIBRARIES ${LIVEMEDIA_LIBRARIES} ${library_path})
 endforeach(library_name)
 set(LIVEMEDIA_LIBRARIES ${LIVEMEDIA_LIBRARIES}
-    CACHE FILEPATH "liveMedia libraries")
+    CACHE FILEPATH "liveMedia library paths")
 
 # Cope with recent move of ffmpeg headers into subdirectories
 set(LIBAVCODEC_INCLUDE_DIRS ${LIBAVCODEC_INCLUDE_DIRS} ${LIBAVCODEC_INCLUDEDIR}/libavcodec)
 
+unset(CMAKE_INSTALL_PREFIX CACHE) # we don't use this
 set(prefix /usr/local
-    CACHE STRING "Installation prefix")
+    CACHE PATH "Installation prefix")
 set(bindir ${prefix}/bin
-    CACHE STRING "Executable installation directory")
+    CACHE PATH "Executable installation directory")
 set(sharedir ${prefix}/share
-    CACHE STRING "Shared data installation directory")
+    CACHE PATH "Shared data installation directory")
 set(docdir ${sharedir}/doc
-    CACHE STRING "Documentation installation directory")
+    CACHE PATH "Documentation installation directory")
 set(mandir ${sharedir}/man
-    CACHE STRING "Manual page installation directory")
+    CACHE PATH "Manual page installation directory")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wextra")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++98 -Wall -Wextra")
