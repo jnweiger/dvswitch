@@ -1,7 +1,7 @@
 include(Symlink)
 
 add_definitions(${ALSA_CFLAGS_OTHER} ${GTKMM_CFLAGS_OTHER} ${LIBAVCODEC_CFLAGS_OTHER})
-include_directories(${ALSA_INCLUDE_DIRS} ${GTKMM_INCLUDE_DIRS} ${LIBAVCODEC_INCLUDE_DIRS})
+include_directories(${ALSA_INCLUDE_DIRS} ${GTKMM_INCLUDE_DIRS} ${LIBAVCODEC_INCLUDE_DIRS} ${LIVEMEDIA_INCLUDE_DIRS})
 link_directories(${ALSA_LIBRARY_DIRS} ${GTKMM_LIBRARY_DIRS} ${LIBAVCODEC_LIBRARY_DIRS})
 
 add_definitions(-DSHAREDIR="\\"${sharedir}\\"")
@@ -26,7 +26,8 @@ add_executable(dvswitch dvswitch.cpp mixer.cpp frame_timer.c
   frame.c auto_codec.cpp format_dialog.cpp dif_audio.c vu_meter.cpp
   ${common_sources})
 target_link_libraries(dvswitch m pthread rt Xv
-  ${BOOST_THREAD_LIBRARIES} ${GTKMM_LIBRARIES} ${LIBAVCODEC_LIBRARIES})
+  ${BOOST_THREAD_LIBRARIES} ${GTKMM_LIBRARIES} ${LIBAVCODEC_LIBRARIES}
+  ${LIVEMEDIA_LIBRARIES})
 
 install(TARGETS dvsink-command dvsink-files dvsource-file dvsource-dvgrab
                 dvsource-alsa dvswitch

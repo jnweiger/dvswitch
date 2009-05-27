@@ -18,6 +18,31 @@ if(NOT BOOST_THREAD_LIBRARIES)
     message(FATAL_ERROR "Could not find Boost.Thread library")
 endif(NOT BOOST_THREAD_LIBRARIES)
 
+find_path(LIVEMEDIA_INCLUDEDIR
+	  NAMES liveMedia/liveMedia.hh
+	  NO_SYSTEM_ENVIRONMENT_PATH)
+if(NOT LIVEMEDIA_INCLUDEDIR)
+    message(FATAL_ERROR "Could not find liveMedia headers")
+endif(NOT LIVEMEDIA_INCLUDEDIR)
+set(LIVEMEDIA_INCLUDE_DIRS
+    ${LIVEMEDIA_INCLUDEDIR}/BasicUsageEnvironment
+    ${LIVEMEDIA_INCLUDEDIR}/groupsock
+    ${LIVEMEDIA_INCLUDEDIR}/liveMedia
+    ${LIVEMEDIA_INCLUDEDIR}/UsageEnvironment)
+
+foreach(library_name BasicUsageEnvironment groupsock liveMedia UsageEnvironment)
+    unset(library_path CACHE)
+    find_library(library_path
+                 NAMES ${library_name}
+		 NO_SYSTEM_ENVIRONMENT_PATH)
+    if(NOT library_path)
+        message(FATAL_ERROR "Could not find liveMedia libraries")
+    endif(NOT library_path)
+    set(LIVEMEDIA_LIBRARIES ${LIVEMEDIA_LIBRARIES} ${library_path})
+endforeach(library_name)
+set(LIVEMEDIA_LIBRARIES ${LIVEMEDIA_LIBRARIES}
+    CACHE FILEPATH "liveMedia libraries")
+
 # Cope with recent move of ffmpeg headers into subdirectories
 set(LIBAVCODEC_INCLUDE_DIRS ${LIBAVCODEC_INCLUDE_DIRS} ${LIBAVCODEC_INCLUDEDIR}/libavcodec)
 
