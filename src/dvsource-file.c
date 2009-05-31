@@ -2,6 +2,7 @@
  * Copyright 2008 Petter Reinholdtsen.
  * See the file "COPYING" for licence details.
  */
+/* Source that reads a DIF ("raw DV") file */
 
 #include <assert.h>
 #include <stdbool.h>

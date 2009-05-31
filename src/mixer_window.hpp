@@ -1,6 +1,8 @@
 // Copyright 2007-2009 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// The top-level window
+
 #ifndef DVSWITCH_MIXER_WINDOW_HPP
 #define DVSWITCH_MIXER_WINDOW_HPP
 

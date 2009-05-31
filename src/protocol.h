@@ -1,6 +1,8 @@
 // Copyright 2007-2009 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// Constants for the original network protocol
+
 #ifndef DVSWITCH_PROTOCOL_H
 #define DVSWITCH_PROTOCOL_H
 

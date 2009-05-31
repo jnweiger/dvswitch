@@ -3,6 +3,7 @@
  * Copyright 2009 Wouter Verhelst.
  * See the file "COPYING" for licence details.
  */
+/* Source that reads DIF over USB or Firewire using dvgrab */
 
 #include <assert.h>
 #include <stddef.h>

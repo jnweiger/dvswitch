@@ -1,6 +1,8 @@
 // Copyright 2007-2008 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// Video effects for raw video frames
+
 #ifndef DVSWITCH_VIDEO_EFFECT_H
 #define DVSWITCH_VIDEO_EFFECT_H
 

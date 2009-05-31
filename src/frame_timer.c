@@ -2,6 +2,8 @@
 // Copyright 2008 Petter Reinholdtsen.
 // See the file "COPYING" for licence details.
 
+// Simple interval timer functions
+
 #include <errno.h>
 #include <pthread.h>
 #include <signal.h>

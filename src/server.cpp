@@ -1,6 +1,8 @@
 // Copyright 2007-2009 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// Server for the original network protocol
+
 #include <cstring>
 #include <functional>
 #include <iostream>

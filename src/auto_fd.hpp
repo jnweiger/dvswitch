@@ -1,6 +1,8 @@
 // Copyright 2005 Ben Hutchings <ben@decadent.org.uk>.
 // See the file "COPYING" for licence details.
 
+// Automatic cleanup of file descriptors
+
 #ifndef INC_AUTO_FD_HPP
 #define INC_AUTO_FD_HPP
 

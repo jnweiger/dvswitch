@@ -1,6 +1,7 @@
 /* Copyright 2007-2009 Ben Hutchings.
  * See the file "COPYING" for licence details.
  */
+/* Source that reads audio from an ALSA device and combines with black video */
 
 #include <assert.h>
 #include <stdbool.h>

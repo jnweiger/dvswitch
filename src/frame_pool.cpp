@@ -1,6 +1,8 @@
 // Copyright 2007-2008 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// DIF and raw video frame buffer pools
+
 #include <boost/pool/object_pool.hpp>
 #include <boost/thread/mutex.hpp>
 

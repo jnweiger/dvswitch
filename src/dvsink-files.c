@@ -2,6 +2,8 @@
 // Copyright 2008 Petter Reinholdtsen.
 // See the file "COPYING" for licence details.
 
+// Sink that creates DIF ("raw DV") files
+
 #include <assert.h>
 #include <errno.h>
 #include <stddef.h>

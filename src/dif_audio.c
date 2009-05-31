@@ -1,6 +1,8 @@
 // Copyright 2007-2009 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// DIF audio (de)multiplexing and decoding/encoding of 12-bit audio
+
 #include <assert.h>
 #include <limits.h>
 #include <math.h>

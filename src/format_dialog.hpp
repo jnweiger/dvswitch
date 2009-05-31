@@ -1,6 +1,8 @@
 // Copyright 2008 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// Gtkmm dialog for choosing DV format settings
+
 #ifndef DVSWITCH_STUDIO_SETTINGS_DIALOG_HPP
 #define DVSWITCH_STUDIO_SETTINGS_DIALOG_HPP
 

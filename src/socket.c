@@ -1,6 +1,7 @@
 /* Copyright 2007-2008 Ben Hutchings.
  * See the file "COPYING" for licence details.
  */
+/* Socket utility functions */
 
 #include <errno.h>
 #include <stdio.h>

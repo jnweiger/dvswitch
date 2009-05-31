@@ -1,6 +1,8 @@
 // Copyright 2008 Ben Hutchings <ben@decadent.org.uk>.
 // See the file "COPYING" for licence details.
 
+// RAII support for AVCodec (libavcodec context)
+
 #include <cerrno>
 
 #include <boost/thread/mutex.hpp>

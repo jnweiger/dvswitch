@@ -1,6 +1,8 @@
 // Copyright 2007-2008 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// Gtkmm widget for visual selection of DV streams
+
 #ifndef DVSWITCH_DV_SELECTOR_WIDGET_HPP
 #define DVSWITCH_DV_SELECTOR_WIDGET_HPP
 

@@ -1,6 +1,8 @@
 // Copyright 2005-2009 Ben Hutchings <ben@decadent.org.uk>.
 // See the file "COPYING" for licence details.
 
+// Geometry utilities, currently only for rectangles
+
 #ifndef DVSWITCH_GEOMETRY_H
 #define DVSWITCH_GEOMETRY_H
 

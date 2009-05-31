@@ -1,6 +1,8 @@
 // Copyright 2008 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// DIF and raw video frame structures and utilities
+
 #include <assert.h>
 #include <limits.h>
 #include <stddef.h>

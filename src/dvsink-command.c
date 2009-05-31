@@ -1,6 +1,8 @@
 // Copyright 2007 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// Sink that runs an arbitrary command
+
 #include <assert.h>
 #include <stddef.h>
 #include <stdio.h>

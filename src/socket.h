@@ -1,6 +1,7 @@
 /* Copyright 2007 Ben Hutchings.
  * See the file "COPYING" for licence details.
  */
+/* Socket utility functions */
 
 #ifndef DVSWITCH_SOCKET_H
 #define DVSWITCH_SOCKET_H

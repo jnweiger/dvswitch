@@ -1,6 +1,8 @@
 // Copyright 2008 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// DIF and raw video frame buffer pools
+
 #ifndef DVSWITCH_FRAME_POOL_HPP
 #define DVSWITCH_FRAME_POOL_HPP
 

@@ -1,6 +1,8 @@
 // Copyright 2007-2009 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// Video effects for raw video frames
+
 #include <assert.h>
 #include <string.h>
 

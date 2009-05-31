@@ -1,6 +1,8 @@
 // Copyright 2007-2009 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// Gtkmm widgets for displaying DV video
+
 #ifndef DVSWITCH_DV_DISPLAY_WIDGET_HPP
 #define DVSWITCH_DV_DISPLAY_WIDGET_HPP
 

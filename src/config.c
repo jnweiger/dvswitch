@@ -1,6 +1,7 @@
 /* Copyright 2007 Ben Hutchings.
  * See the file "COPYING" for licence details.
  */
+/* Configuration file reader */
 
 #include <ctype.h>
 #include <errno.h>

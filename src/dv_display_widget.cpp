@@ -2,6 +2,8 @@
 // Copyright 2008 Petter Reinholdtsen.
 // See the file "COPYING" for licence details.
 
+// Gtkmm widgets for displaying DV video
+
 #include <cassert>
 #include <cstdlib>
 #include <cstring>

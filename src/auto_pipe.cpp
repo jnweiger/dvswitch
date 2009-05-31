@@ -1,6 +1,8 @@
 // Copyright 2007 Ben Hutchings <ben@decadent.org.uk>.
 // See the file "COPYING" for licence details.
 
+// RAII for pipes
+
 #include "auto_pipe.hpp"
 #include "os_error.hpp"
 

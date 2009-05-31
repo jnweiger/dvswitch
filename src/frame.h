@@ -1,6 +1,8 @@
 // Copyright 2007-2008 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// DIF and raw video frame structures and utilities
+
 #ifndef DVSWITCH_FRAME_H
 #define DVSWITCH_FRAME_H
 

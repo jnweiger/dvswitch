@@ -1,6 +1,8 @@
 // Copyright 2007-2009 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// DIF definitions, metadata access and audio functions
+
 #ifndef DVSWITCH_DIF_H
 #define DVSWITCH_DIF_H
 

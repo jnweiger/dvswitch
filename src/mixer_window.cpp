@@ -1,6 +1,8 @@
 // Copyright 2007-2009 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// The top-level window
+
 #include <cerrno>
 #include <cstring>
 #include <iostream>

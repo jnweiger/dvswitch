@@ -1,6 +1,8 @@
 // Copyright 2008-2009 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// DIF definitions and metadata access
+
 #include "dif.h"
 
 static const uint8_t dv_audio_shuffle_625_50[12][9] = {

@@ -1,6 +1,8 @@
 // Copyright 2007-2008 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// Top level of DVswitch
+
 #include <cstdlib>
 #include <cstring>
 #include <exception>

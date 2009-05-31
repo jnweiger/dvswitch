@@ -1,6 +1,8 @@
 // Copyright 2007 Ben Hutchings <ben@decadent.org.uk>.
 // See the file "COPYING" for licence details.
 
+// Exception class encapsulating OS error codes
+
 #include "os_error.hpp"
 
 #include <cerrno>

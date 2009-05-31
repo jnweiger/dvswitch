@@ -1,6 +1,8 @@
 // Copyright 2007 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// Class template for fixed-size ring buffers
+
 #ifndef DVSWITCH_RING_BUFFER_HPP
 #define DVSWITCH_RING_BUFFER_HPP
 

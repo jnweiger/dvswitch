@@ -1,6 +1,7 @@
 /* Copyright 2007 Ben Hutchings.
  * See the file "COPYING" for licence details.
  */
+/* Configuration file reader */
 
 #ifndef DVSWITCH_CONFIG_H
 #define DVSWITCH_CONFIG_H

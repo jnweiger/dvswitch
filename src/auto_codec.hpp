@@ -1,6 +1,8 @@
 // Copyright 2008 Ben Hutchings <ben@decadent.org.uk>.
 // See the file "COPYING" for licence details.
 
+// RAII support for AVCodec (libavcodec context)
+
 #ifndef INC_AUTO_CODEC_HPP
 #define INC_AUTO_CODEC_HPP
 

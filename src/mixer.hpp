@@ -1,6 +1,11 @@
 // Copyright 2007-2009 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// The mixer.  This holds the current mixing settings and small
+// buffers for each source.  It maintains a frame clock, selects and
+// mixes frames at each clock tick, and passes frames in the sinks and
+// monitor.
+
 #ifndef DVSWITCH_MIXER_HPP
 #define DVSWITCH_MIXER_HPP
 

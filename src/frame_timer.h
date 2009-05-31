@@ -1,6 +1,8 @@
 // Copyright 2007 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// Simple interval timer functions
+
 #ifndef DVSWITCH_FRAME_TIMER_H
 #define DVSWITCH_FRAME_TIMER_H
 

@@ -1,6 +1,8 @@
 // Copyright 2007 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// Server for the original network protocol
+
 #ifndef DVSWITCH_SERVER_HPP
 #define DVSWITCH_SERVER_HPP
 

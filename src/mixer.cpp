@@ -3,6 +3,11 @@
 // Copyright 2009 Wouter Verhelst.
 // See the file "COPYING" for licence details.
 
+// The mixer.  This holds the current mixing settings and small
+// buffers for each source.  It maintains a frame clock, selects and
+// mixes frames at each clock tick, and passes frames in the sinks and
+// monitor.
+
 #include <cstddef>
 #include <cstring>
 #include <iostream>

@@ -1,6 +1,8 @@
 // Copyright 2009 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
+// Gtkmm widget for displaying stereo VU-style volume meters
+
 #include <gtkmm/drawingarea.h>
 
 class vu_meter : public Gtk::DrawingArea
