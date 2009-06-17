@@ -93,7 +93,7 @@ static void usage(const char * progname)
 	"[-c CARD-NUMBER | DEVICE]";
     static const char v4l2_args[] = "[DEVICE]";
     static const char other_args[] =
-	"[-t] [-h HOST] [-p PORT]";
+	"[-t] [-v] [-h HOST] [-p PORT]";
 
     switch (program_mode(progname))
     {
@@ -174,7 +174,7 @@ int main(int argc, char ** argv)
     /* Parse arguments. */
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "c:h:p:v", options, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "c:h:p:tv", options, NULL)) != -1)
     {
 	switch (opt)
 	{
