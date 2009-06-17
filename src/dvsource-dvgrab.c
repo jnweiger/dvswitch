@@ -25,6 +25,7 @@ static struct option options[] = {
     {"host",     1, NULL, 'h'},
     {"port",     1, NULL, 'p'},
     {"tally",    0, NULL, 't'},
+    {"verbose",  0, NULL, 'v'},
     {"help",     0, NULL, 'H'},
     {NULL,       0, NULL, 0}
 };
@@ -41,6 +42,7 @@ static char * firewire_card = NULL;
 static char * mixer_host = NULL;
 static char * mixer_port = NULL;
 static int do_tally = 0;
+static int verbose = 0;
 
 static enum mode program_mode(const char * progname)
 {
@@ -172,7 +174,7 @@ int main(int argc, char ** argv)
     /* Parse arguments. */
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "c:h:p:", options, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "c:h:p:v", options, NULL)) != -1)
     {
 	switch (opt)
 	{
@@ -196,6 +198,9 @@ int main(int argc, char ** argv)
 	    break;
 	case 't':
 	    do_tally = 1;
+	    break;
+	case 'v':
+	    verbose = 1;
 	    break;
 	case 'H': /* --help */
 	    usage(argv[0]);
@@ -248,7 +253,7 @@ int main(int argc, char ** argv)
 	return 2;
     }
 
-    /* Connect to the mixer, set that as stdout, and run dvgrab. */
+    /* Connect to the mixer. */
 
     printf("INFO: Connecting to %s:%s\n", mixer_host, mixer_port);
     int sock = create_connected_socket(mixer_host, mixer_port);
@@ -259,6 +264,8 @@ int main(int argc, char ** argv)
 	perror("ERROR: write");
 	exit(1);
     }
+    printf("INFO: Connected\n");
+
     if (do_tally)
     {
 	fflush(NULL);
@@ -275,12 +282,8 @@ int main(int argc, char ** argv)
 	    _exit(0);
 	}
     }
-    if (dup2(sock, STDOUT_FILENO) < 0)
-    {
-	perror("ERROR: dup2");
-	return 1;
-    }
-    close(sock);
+
+    /* Run dvgrab with the socket as stdout. */
 
     char * dvgrab_argv[7];
     char ** argp = dvgrab_argv;
@@ -301,6 +304,21 @@ int main(int argc, char ** argv)
     *argp++ = "-";
     *argp = NULL;
     assert(argp < dvgrab_argv + sizeof(dvgrab_argv) / sizeof(dvgrab_argv[0]));
+
+    if (verbose)
+    {
+	printf("INFO: Running");
+	for (argp = dvgrab_argv; *argp != NULL; argp++)
+	    printf(" %s", *argp);
+	printf("\n");
+    }
+
+    if (dup2(sock, STDOUT_FILENO) < 0)
+    {
+	perror("ERROR: dup2");
+	return 1;
+    }
+    close(sock);
 
     execvp("dvgrab", dvgrab_argv);
     perror("ERROR: execvp");
