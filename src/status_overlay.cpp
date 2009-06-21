@@ -135,15 +135,12 @@ void status_overlay::status_widget::set_status(const Glib::ustring & text,
 
 bool status_overlay::status_widget::on_expose_event(GdkEventExpose *) throw()
 {
-    Glib::RefPtr<Gdk::Drawable> drawable;
-    int x, y;
-    get_window()->get_internal_paint_info(drawable, x, y);
-    drawable->reference(); // get_internal_paint_info() doesn't do this!
+    Glib::RefPtr<Gdk::Drawable> drawable(get_window());
 
     if (Glib::RefPtr<Gdk::GC> gc = Gdk::GC::create(drawable))
     {
 	if (icon_)
-	    drawable->draw_pixbuf(gc, icon_, 0, 0, x, y,
+	    drawable->draw_pixbuf(gc, icon_, 0, 0, 0, 0,
 				  -1, -1, Gdk::RGB_DITHER_NORMAL, 0, 0);
 
 	if (!text_.empty())
@@ -159,8 +156,7 @@ bool status_overlay::status_widget::on_expose_event(GdkEventExpose *) throw()
 
 	    Glib::RefPtr<Pango::Layout> layout = Pango::Layout::create(pango);
 	    layout->set_text(text_);
-	    drawable->draw_layout(gc, x + status_scale, y + status_scale / 8,
-				  layout);
+	    drawable->draw_layout(gc, status_scale, status_scale / 8, layout);
 	}
     }
 

@@ -38,10 +38,7 @@ void vu_meter::set_levels(const int * levels)
 bool vu_meter::on_expose_event(GdkEventExpose *) throw()
 {
     int width = get_width(), height = get_height();
-    Glib::RefPtr<Gdk::Drawable> drawable;
-    int base_x, base_y;
-    get_window()->get_internal_paint_info(drawable, base_x, base_y);
-    drawable->reference(); // get_internal_paint_info() doesn't do this!
+    Glib::RefPtr<Gdk::Drawable> drawable(get_window());
 
     if (Glib::RefPtr<Gdk::GC> gc = Gdk::GC::create(drawable))
     {
@@ -78,19 +75,19 @@ bool vu_meter::on_expose_event(GdkEventExpose *) throw()
 				     / (height / label_height - 1));
 
 	drawable->draw_line(gc,
-			    base_x + label_width + border_thick,
-			    base_y + label_height / 2,
-			    base_x + label_width + border_thick + tick_width,
-			    base_y + label_height / 2);
+			    label_width + border_thick,
+			    label_height / 2,
+			    label_width + border_thick + tick_width,
+			    label_height / 2);
 	layout->set_text(int_to_string(maximum_));
-	drawable->draw_layout(gc, base_x, base_y, layout);
+	drawable->draw_layout(gc, 0, 0, layout);
 	drawable->draw_line(gc,
-			    base_x + label_width + border_thick,
-			    base_y + label_height / 2 + scale_height - 1,
-			    base_x + label_width + border_thick + tick_width,
-			    base_y + label_height / 2 + scale_height - 1);
+			    label_width + border_thick,
+			    label_height / 2 + scale_height - 1,
+			    label_width + border_thick + tick_width,
+			    label_height / 2 + scale_height - 1);
 	layout->set_text(int_to_string(minimum_));
-	drawable->draw_layout(gc, base_x, base_y + height - label_height, layout);
+	drawable->draw_layout(gc, 0, height - label_height, layout);
 
 	for (int value = minimum_ / tick_interval * tick_interval;
 	     value < maximum_;
@@ -99,15 +96,15 @@ bool vu_meter::on_expose_event(GdkEventExpose *) throw()
 	    int y =
 		(scale_height - 1) * (maximum_ - value) / (maximum_ - minimum_);
 	    drawable->draw_line(gc,
-				base_x + label_width + border_thick,
-				base_y + y + label_height / 2,
-				base_x + label_width + border_thick + tick_width,
-				base_y + y + label_height / 2);
+				label_width + border_thick,
+				y + label_height / 2,
+				label_width + border_thick + tick_width,
+				y + label_height / 2);
 	    if (value % label_interval == 0
 		&& y >= label_height && y <= height - label_height * 2)
 	    {
 		layout->set_text(int_to_string(value));
-		drawable->draw_layout(gc, base_x, base_y + y, layout);
+		drawable->draw_layout(gc, 0, y, layout);
 	    }
 	}
 
@@ -115,8 +112,8 @@ bool vu_meter::on_expose_event(GdkEventExpose *) throw()
 	colour.set_grey(0);
 	gc->set_rgb_fg_color(colour);
 	drawable->draw_rectangle(gc, true,
-				 base_x + label_width + tick_width,
-				 base_y + label_height / 2,
+				 label_width + tick_width,
+				 label_height / 2,
 				 width - label_width - tick_width,
 				 height - label_height);
 
@@ -135,9 +132,9 @@ bool vu_meter::on_expose_event(GdkEventExpose *) throw()
 				   0);
 		    gc->set_rgb_fg_color(colour);
 		    drawable->draw_rectangle(gc, true,
-					     base_x + width - scale_width
+					     width - scale_width
 					     + channel * seg_hspacing,
-					     base_y + label_height / 2
+					     label_height / 2
 					     + (seg_count - seg) * seg_vspacing
 					     - seg_height,
 					     seg_width, seg_height);
