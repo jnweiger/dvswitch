@@ -705,7 +705,9 @@ bool dv_full_display_widget::on_expose_event(GdkEventExpose *) throw()
 	}
 	else
 	{
-	    gc->set_rgb_fg_color(get_style()->get_background(Gtk::STATE_NORMAL));
+	    Gdk::Color colour;
+	    colour.set_grey(0); // black
+	    gc->set_rgb_fg_color(colour);
 	    drawable->draw_rectangle(gc, true,
 				     dest_x, dest_y, dest_width_, dest_height_);
 	}

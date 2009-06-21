@@ -16,6 +16,10 @@ status_overlay::status_overlay()
     set_flags(Gtk::NO_WINDOW);
 
     status_widget_.set_parent(*this);
+
+    Gdk::Color colour;
+    colour.set_grey(0); // black
+    status_widget_.modify_bg(Gtk::STATE_NORMAL, colour);
 }
 
 status_overlay::~status_overlay()
