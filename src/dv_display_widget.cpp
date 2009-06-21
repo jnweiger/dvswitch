@@ -15,10 +15,10 @@
 #include <sys/shm.h>
 
 #include <gdkmm/cursor.h>
-#include <gtkmm/icontheme.h>
 
 #include "dv_display_widget.hpp"
 #include "frame.h"
+#include "gui.hpp"
 #include "video_effect.h"
 
 // X headers come last due to egregious macro pollution.
@@ -80,12 +80,6 @@ namespace
     void free_x_shm(XShmSegmentInfo * info)
     {
 	shmdt(info->shmaddr);
-    }
-
-    Glib::RefPtr<Gdk::Pixbuf> load_icon(const Glib::ustring & name, int size)
-    {
-	return Gtk::IconTheme::get_default()->
-	    load_icon(name, size, Gtk::IconLookupFlags(0));
     }
 }
 
