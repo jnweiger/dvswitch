@@ -28,6 +28,15 @@
 #include "ring_buffer.hpp"
 #include "video_effect.h"
 
+// Video mix settings abstract base class
+struct mixer::video_mix
+{
+    virtual void validate(const mixer &) = 0;
+    virtual void set_active(const mixer &, bool active) = 0;
+    virtual void apply(const mix_data &, const auto_codec &,
+		       raw_frame_ptr &, dv_frame_ptr &) = 0;
+};
+
 mixer::mixer()
     : clock_state_(run_state_wait),
       clock_thread_(boost::bind(&mixer::run_clock, this)),
@@ -233,6 +242,7 @@ void mixer::run_clock()
 	boost::mutex::scoped_lock lock(source_mutex_);
 	while (clock_state_ == run_state_wait)
 	    clock_state_cond_.wait(lock);
+	settings_.video_mix->set_active(*this, true);
     }
 
     // Interval to the next frame (in ns)
@@ -555,15 +565,6 @@ namespace
 	}
     }
 }
-
-// Video mix settings abstract base class
-struct mixer::video_mix
-{
-    virtual void validate(const mixer &) = 0;
-    virtual void set_active(const mixer &, bool active) = 0;
-    virtual void apply(const mix_data &, const auto_codec &,
-		       raw_frame_ptr &, dv_frame_ptr &) = 0;
-};
 
 void mixer::set_video_mix(std::tr1::shared_ptr<video_mix> video_mix)
 {
