@@ -24,7 +24,7 @@ add_executable(dvswitch dvswitch.cpp mixer.cpp frame_timer.c
   mixer_window.cpp dv_display_widget.cpp dv_selector_widget.cpp
   server.cpp auto_pipe.cpp os_error.cpp video_effect.c frame_pool.cpp
   frame.c auto_codec.cpp format_dialog.cpp dif_audio.c vu_meter.cpp
-  status_overlay.cpp ${common_sources})
+  status_overlay.cpp connector.cpp ${common_sources})
 target_link_libraries(dvswitch m pthread rt Xv
   ${BOOST_THREAD_LIBRARIES} ${GTKMM_LIBRARIES} ${LIBAVCODEC_LIBRARIES}
   ${LIVEMEDIA_LIBRARIES})
