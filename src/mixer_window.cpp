@@ -12,10 +12,13 @@
 #include <unistd.h>
 
 #include <gdk/gdkkeysyms.h>
+#include <gtkmm/entry.h>
 #include <gtkmm/main.h>
+#include <gtkmm/messagedialog.h>
 #include <gtkmm/stock.h>
 #include <gtkmm/stockid.h>
 
+#include "connector.hpp"
 #include "format_dialog.hpp"
 #include "frame.h"
 #include "gui.hpp"
@@ -54,9 +57,11 @@
 // | ╚═══════════════════════════════════════════════════════════════╝ |
 // +-------------------------------------------------------------------+
 
-mixer_window::mixer_window(mixer & mixer)
+mixer_window::mixer_window(mixer & mixer, connector & connector)
     : mixer_(mixer),
+      connector_(connector),
       file_menu_item_("_File", true),
+      add_source_menu_item_("_Add Source...", true),
       quit_menu_item_(Gtk::StockID("gtk-quit")),
       settings_menu_item_("_Settings", true),
       format_menu_item_("_Format", true),
@@ -85,6 +90,10 @@ mixer_window::mixer_window(mixer & mixer)
 
     set_mnemonic_modifier(Gdk::ModifierType(0));
 
+    add_source_menu_item_.signal_activate().connect(
+	sigc::mem_fun(this, &mixer_window::open_add_source_dialog));
+    add_source_menu_item_.show();
+    file_menu_.add(add_source_menu_item_);
     quit_menu_item_.signal_activate().connect(sigc::ptr_fun(&Gtk::Main::quit));
     quit_menu_item_.show();
     file_menu_.add(quit_menu_item_);
@@ -225,6 +234,33 @@ void mixer_window::apply_effect()
 	display_.set_selection_enabled(false);	
     }
     apply_button_.set_sensitive(false);
+}
+
+void mixer_window::open_add_source_dialog()
+{
+    Gtk::Dialog dialog("Add Source", *this, /*modal=*/true);
+    Gtk::Entry url_entry;
+    url_entry.set_activates_default();
+    url_entry.set_text("rtsp://");
+    url_entry.show();
+    dialog.get_vbox()->add(url_entry);
+    dialog.add_button(Gtk::StockID("gtk-add"), 1);
+    dialog.add_button(Gtk::StockID("gtk-cancel"), 0);
+
+    if (dialog.run())
+    {
+	try
+	{
+	    connector_.add_source(url_entry.get_text());
+	}
+	catch(std::exception & e)
+	{
+	    Gtk::MessageDialog(*this, e.what(), /*use_markup=*/false,
+			       Gtk::MESSAGE_ERROR, Gtk::BUTTONS_CANCEL,
+			       /*modal=*/true)
+		.run();
+	}
+    }
 }
 
 void mixer_window::open_format_dialog()

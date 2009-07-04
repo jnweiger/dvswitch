@@ -31,16 +31,19 @@ namespace Glib
     class IOSource;
 }
 
+class connector;
+
 class mixer_window : public Gtk::Window, public mixer::monitor
 {
 public:
-    explicit mixer_window(mixer & mixer);
+    mixer_window(mixer & mixer, connector & connector);
     ~mixer_window();
 
 private:
     void cancel_effect();
     void begin_pic_in_pic();
     void apply_effect();
+    void open_add_source_dialog();
     void open_format_dialog();
 
     void toggle_record() throw();
@@ -56,11 +59,13 @@ private:
 			    const raw_frame_ptr & mixed_raw);
 
     mixer & mixer_;
+    connector & connector_;
 
     Gtk::VBox main_box_;
     Gtk::MenuBar menu_bar_;
     Gtk::MenuItem file_menu_item_;
     Gtk::Menu file_menu_;
+    Gtk::MenuItem add_source_menu_item_;
     Gtk::ImageMenuItem quit_menu_item_;
     Gtk::MenuItem settings_menu_item_;
     Gtk::Menu settings_menu_;

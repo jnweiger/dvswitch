@@ -18,6 +18,7 @@
 #include "avcodec_wrap.h"
 
 #include "config.h"
+#include "connector.hpp"
 #include "mixer.hpp"
 #include "mixer_window.hpp"
 #include "server.hpp"
@@ -101,7 +102,8 @@ int main(int argc, char **argv)
 	std::auto_ptr<mixer_window> the_window;
 	mixer the_mixer;
 	server the_server(mixer_host, mixer_port, the_mixer);
-	the_window.reset(new mixer_window(the_mixer));
+	connector the_connector(the_mixer);
+	the_window.reset(new mixer_window(the_mixer, the_connector));
 	the_mixer.set_monitor(the_window.get());
 	the_window->show();
 	the_window->signal_hide().connect(sigc::ptr_fun(&Gtk::Main::quit));
