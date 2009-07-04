@@ -43,7 +43,8 @@ private:
 
     // for requesting addition of new connections
     boost::mutex add_mutex_;
-    boost::scoped_array<char> add_desc_;
+    source_connection * add_conn_;
+    std::string add_error_;
     boost::condition add_done_;
 
     // environment for resolving URIs to SDP

@@ -16,11 +16,29 @@
 
 #include "connector.hpp"
 
+struct auto_medium_closer
+{
+    void operator()(Medium * medium) const { Medium::close(medium); }
+};
+struct auto_mediasession_factory
+{
+    MediaSession * operator()() const { return 0; }
+};
+struct auto_rtspclient_factory
+{
+    RTSPClient * operator()() const { return 0; }
+};
+typedef auto_handle<MediaSession *,
+		    auto_medium_closer, auto_mediasession_factory>
+auto_mediasession;
+typedef auto_handle<RTSPClient *, auto_medium_closer, auto_rtspclient_factory>
+auto_rtspclient;
+
 class connector::source_connection : public mixer::source
 {
 public:
-    source_connection(mixer & mixer, BasicUsageEnvironment * env,
-		      const char * session_desc);
+    source_connection(connector & connr, const std::string & uri);
+    void setup(UsageEnvironment * env);
     ~source_connection();
 
 private:
@@ -32,22 +50,43 @@ private:
     static void handle_close(void * opaque);
 
     mixer & mixer_;
-    MediaSession * session_;
+    auto_rtspclient client_;
+    boost::scoped_array<char> desc_;
+    auto_mediasession session_;
     MediaSubsession * subsession_;
     mixer::source_id id_;
     dv_frame_ptr frame_;
 };
 
-connector::source_connection::source_connection(
-    mixer & mixer, BasicUsageEnvironment * env, const char * session_desc)
-    : mixer_(mixer)
+connector::source_connection::source_connection(connector & connr,
+						const std::string & uri)
+    : mixer_(connr.mixer_),
+      // Get source description from the source URI
+      client_(RTSPClient::createNew(*connr.resolve_env_, 0, "DVswitch")),
+      desc_(client_.get() ? client_.get()->describeURL(uri.c_str()) : 0)
 {
-    session_ = MediaSession::createNew(*env, session_desc);
-    if (!session_ ||
-	!session_->initiateByMediaType("video/dv", subsession_))
-	throw std::runtime_error(env->getResultMsg());
+    if (!desc_)
+	throw std::runtime_error(connr.resolve_env_->getResultMsg());
+
+    // Set up the session in the thread running the liveMedia event loop
+    // (this will call back to setup()).
+    connr.do_add_source(this);
 
     id_ = mixer_.add_source(this);
+    if (!client_.get()->setupMediaSubsession(*subsession_, false, false) ||
+	!client_.get()->playMediaSession(*session_.get(), 0.0, -1.0, 1.0))
+    {
+	mixer_.remove_source(id_);
+	throw std::runtime_error(connr.resolve_env_->getResultMsg());
+    }
+}
+
+void connector::source_connection::setup(UsageEnvironment * env)
+{
+    session_.reset(MediaSession::createNew(*env, desc_.get()));
+    if (!session_.get() ||
+	!session_.get()->initiateByMediaType("video/dv", subsession_))
+	throw std::runtime_error(env->getResultMsg());
 
     // Read first frame
     frame_ = allocate_dv_frame();
@@ -61,8 +100,6 @@ connector::source_connection::~source_connection()
     mixer_.remove_source(id_);
     if (subsession_)
 	subsession_->readSource()->stopGettingFrames();
-    if (session_)
-	Medium::close(session_);
 }
 
 void connector::source_connection::set_active(mixer::source_activation)
@@ -123,21 +160,17 @@ connector::~connector()
 
 void connector::add_source(const std::string & uri)
 {
-    // Get source description from the source URI
-    boost::shared_ptr<RTSPClient> client(
-	RTSPClient::createNew(*resolve_env_, 0, "DVswitch"),
-	static_cast<void (*)(Medium *)>(&Medium::close));
-    if (!client)
-	throw std::bad_alloc();
-    boost::scoped_array<char> desc(client->describeURL(uri.c_str()));
-    if (!desc)
-	throw std::runtime_error(resolve_env_->getResultMsg());
+    new source_connection(*this, uri);
+}
 
-    // Pass it over to the thread running the liveMedia event loop
+void connector::do_add_source(source_connection * conn)
+{
     boost::mutex::scoped_lock lock(add_mutex_);
-    swap(add_desc_, desc);
-    write(poll_pipe_.writer.get(), &poll_exit_flag_, 1);
+    add_conn_ = conn;
+    write(poll_pipe_.writer.get(), "", 1);
     add_done_.wait(lock);
+    if (!add_error_.empty())
+	throw std::runtime_error(add_error_);
 }
 
 void connector::run_event_loop()
@@ -158,19 +191,16 @@ void connector::handle_request(void * opaque, int)
     if (read(connr.poll_pipe_.reader.get(), &dummy, 1) != 1)
 	return;
 
-    // Get source description from the UI thread
-    boost::scoped_array<char> desc;
     boost::mutex::scoped_lock lock(connr.add_mutex_);
-    swap(desc, connr.add_desc_);
-    lock.unlock();
-    connr.add_done_.notify_one();
-
     try
     {
-	new source_connection(connr.mixer_, connr.poll_env_, desc.get());
+	connr.add_conn_->setup(connr.poll_env_);
+	connr.add_error_.clear();
     }
     catch (std::exception & e)
     {
-	std::cerr << "ERROR: " << e.what() << "\n";
+	connr.add_error_ = e.what();
     }
+    lock.unlock();
+    connr.add_done_.notify_one();
 }
