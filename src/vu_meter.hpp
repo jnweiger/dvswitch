@@ -18,4 +18,5 @@ private:
     virtual bool on_expose_event(GdkEventExpose *) throw();
 
     int minimum_, maximum_, levels_[channel_count];
+    int peaks_[channel_count], peak_timers_[channel_count];
 };

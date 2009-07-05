@@ -1,4 +1,5 @@
 // Copyright 2009 Ben Hutchings.
+// Copyright 2009 Carl Karsten.
 // See the file "COPYING" for licence details.
 
 // Gtkmm widget for displaying stereo VU-style volume meters
@@ -24,14 +25,32 @@ vu_meter::vu_meter(int minimum, int maximum)
       maximum_(maximum)
 {
     for (int channel = 0; channel != channel_count; ++channel)
+    {
 	levels_[channel] = std::numeric_limits<int>::min();
+	peak_timers_[channel] = 0;
+    }
     set_size_request(16, 32);
 }
 
 void vu_meter::set_levels(const int * levels)
 {
     for (int channel = 0; channel != channel_count; ++channel)
+    {
 	levels_[channel] = levels[channel];
+
+	if (peaks_[channel] <= levels_[channel] || peak_timers_[channel] == 0)
+	{
+	    peaks_[channel] = levels_[channel];
+
+	    // TODO: let user specify the update frequency
+	    peak_timers_[channel] = std::max(0, levels_[channel] / 2 + 25);
+	}
+	else
+	{
+	    --peak_timers_[channel];
+	}
+    }
+
     queue_draw();
 }
 
@@ -139,6 +158,25 @@ bool vu_meter::on_expose_event(GdkEventExpose *) throw()
 					     - seg_height,
 					     seg_width, seg_height);
 		}
+	    }
+
+	    if (peaks_[channel] >= minimum_)
+	    {
+		int seg = 1 + (((seg_count - 1)
+				* (peaks_[channel] - minimum_)
+				+ ((maximum_ - minimum_) / 2))
+			       / (maximum_ - minimum_));
+		colour.set_rgb(65535 * seg / seg_count,
+			       65535 * (seg_count - seg) / seg_count,
+			       0);
+		gc->set_rgb_fg_color(colour);
+		drawable->draw_rectangle(gc, true,
+					 width - scale_width
+					 + channel * seg_hspacing,
+					 label_height / 2
+					 + (seg_count - seg) * seg_vspacing
+					 - seg_height,
+					 seg_width, seg_height);
 	    }
 	}
     }

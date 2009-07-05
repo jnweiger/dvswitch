@@ -6,6 +6,7 @@ dvswitch (0.9~alpha) UNRELEASED; urgency=low
     thanks to Wouter Verhelst
   * Add status overlay to make it more clear whether recording is enabled
   * Set display to black before a source is connected
+  * Add peak level indicators to VU-meter, thanks to Carl Karsten
 
  -- Ben Hutchings <ben@decadent.org.uk>  Sun, 01 Mar 2009 03:16:30 +0000
 
