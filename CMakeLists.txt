@@ -11,20 +11,24 @@ pkg_check_modules(ALSA REQUIRED alsa)
 pkg_check_modules(GTKMM REQUIRED gtkmm-2.4)
 pkg_check_modules(LIBAVCODEC REQUIRED libavcodec)
 
+message(STATUS "checking for Boost.Thread")
 find_library(BOOST_THREAD_LIBRARIES
 	     NAMES boost_thread-mt boost_thread
 	     DOC "Boost.Thread library path"
 	     NO_SYSTEM_ENVIRONMENT_PATH)
 if(NOT BOOST_THREAD_LIBRARIES)
-    message(FATAL_ERROR "Could not find Boost.Thread library")
+    message(FATAL_ERROR "Boost.Thread library not found")
 endif(NOT BOOST_THREAD_LIBRARIES)
+message(STATUS "  found Boost.Thread")
+
+message(STATUS "checking for liveMedia")
 
 find_path(LIVEMEDIA_INCLUDEDIR
 	  NAMES liveMedia/liveMedia.hh
 	  DOC "liveMedia header installation directory"
 	  NO_SYSTEM_ENVIRONMENT_PATH)
 if(NOT LIVEMEDIA_INCLUDEDIR)
-    message(FATAL_ERROR "Could not find liveMedia headers")
+    message(FATAL_ERROR "liveMedia headers not found")
 endif(NOT LIVEMEDIA_INCLUDEDIR)
 set(LIVEMEDIA_INCLUDE_DIRS
     ${LIVEMEDIA_INCLUDEDIR}/BasicUsageEnvironment
@@ -40,12 +44,14 @@ foreach(library_name BasicUsageEnvironment groupsock liveMedia UsageEnvironment)
                  NAMES ${library_name}
 		 NO_SYSTEM_ENVIRONMENT_PATH)
     if(NOT library_path)
-        message(FATAL_ERROR "Could not find liveMedia libraries")
+        message(FATAL_ERROR "  liveMedia libraries not found")
     endif(NOT library_path)
     set(LIVEMEDIA_LIBRARIES ${LIVEMEDIA_LIBRARIES} ${library_path})
 endforeach(library_name)
 set(LIVEMEDIA_LIBRARIES ${LIVEMEDIA_LIBRARIES}
     CACHE FILEPATH "liveMedia library paths")
+
+message(STATUS "  found liveMedia")
 
 # Cope with recent move of ffmpeg headers into subdirectories
 set(LIBAVCODEC_INCLUDE_DIRS ${LIBAVCODEC_INCLUDE_DIRS} ${LIBAVCODEC_INCLUDEDIR}/libavcodec)
