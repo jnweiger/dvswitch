@@ -145,6 +145,9 @@ static ssize_t read_retry(int fd, void * buf, size_t count)
 
 static void tally(int sock)
 {
+    // Messages should never be buffered
+    setbuf(stdout, NULL);
+
     for (;;)
     {
 	char act_msg[ACT_MSG_SIZE];
