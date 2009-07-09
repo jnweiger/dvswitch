@@ -21,37 +21,7 @@ if(NOT BOOST_THREAD_LIBRARIES)
 endif(NOT BOOST_THREAD_LIBRARIES)
 message(STATUS "  found Boost.Thread")
 
-message(STATUS "checking for liveMedia")
-
-find_path(LIVEMEDIA_INCLUDEDIR
-	  NAMES liveMedia/liveMedia.hh
-	  DOC "liveMedia header installation directory"
-	  NO_SYSTEM_ENVIRONMENT_PATH)
-if(NOT LIVEMEDIA_INCLUDEDIR)
-    message(FATAL_ERROR "liveMedia headers not found")
-endif(NOT LIVEMEDIA_INCLUDEDIR)
-set(LIVEMEDIA_INCLUDE_DIRS
-    ${LIVEMEDIA_INCLUDEDIR}/BasicUsageEnvironment
-    ${LIVEMEDIA_INCLUDEDIR}/groupsock
-    ${LIVEMEDIA_INCLUDEDIR}/liveMedia
-    ${LIVEMEDIA_INCLUDEDIR}/UsageEnvironment
-    CACHE FILEPATH "liveMedia include paths")
-
-foreach(library_name BasicUsageEnvironment groupsock liveMedia UsageEnvironment)
-    # Forget previous library_path
-    set(library_path "library_path-NOTFOUND" CACHE INTERNAL "")
-    find_library(library_path
-                 NAMES ${library_name}
-		 NO_SYSTEM_ENVIRONMENT_PATH)
-    if(NOT library_path)
-        message(FATAL_ERROR "  liveMedia libraries not found")
-    endif(NOT library_path)
-    set(LIVEMEDIA_LIBRARIES ${LIVEMEDIA_LIBRARIES} ${library_path})
-endforeach(library_name)
-set(LIVEMEDIA_LIBRARIES ${LIVEMEDIA_LIBRARIES}
-    CACHE FILEPATH "liveMedia library paths")
-
-message(STATUS "  found liveMedia")
+find_package(LiveMedia REQUIRED)
 
 # Cope with recent move of ffmpeg headers into subdirectories
 set(LIBAVCODEC_INCLUDE_DIRS ${LIBAVCODEC_INCLUDE_DIRS} ${LIBAVCODEC_INCLUDEDIR}/libavcodec)
