@@ -34,7 +34,8 @@ set(LIVEMEDIA_INCLUDE_DIRS
     CACHE FILEPATH "liveMedia include paths")
 
 foreach(library_name BasicUsageEnvironment groupsock liveMedia UsageEnvironment)
-    unset(library_path CACHE)
+    # Forget previous library_path
+    set(library_path "library_path-NOTFOUND" CACHE INTERNAL "")
     find_library(library_path
                  NAMES ${library_name}
 		 NO_SYSTEM_ENVIRONMENT_PATH)
@@ -49,7 +50,7 @@ set(LIVEMEDIA_LIBRARIES ${LIVEMEDIA_LIBRARIES}
 # Cope with recent move of ffmpeg headers into subdirectories
 set(LIBAVCODEC_INCLUDE_DIRS ${LIBAVCODEC_INCLUDE_DIRS} ${LIBAVCODEC_INCLUDEDIR}/libavcodec)
 
-unset(CMAKE_INSTALL_PREFIX CACHE) # we don't use this
+set(CMAKE_INSTALL_PREFIX "" CACHE INTERNAL "") # we don't use this
 set(prefix /usr/local
     CACHE PATH "Installation prefix")
 set(bindir ${prefix}/bin
