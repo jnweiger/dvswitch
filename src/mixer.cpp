@@ -78,9 +78,8 @@ mixer::source_id mixer::add_source(source * src)
     source_id id;
     for (id = 0; id != sources_.size(); ++id)
     {
-	if (!sources_[id].is_live)
+	if (!sources_[id].src)
 	{
-	    sources_[id].is_live = true;
 	    sources_[id].src = src;
 	    return id;
 	}
@@ -93,7 +92,7 @@ mixer::source_id mixer::add_source(source * src)
 void mixer::remove_source(source_id id)
 {
     boost::mutex::scoped_lock lock(source_mutex_);
-    sources_.at(id).is_live = false;
+    sources_.at(id).src = NULL;
 }
 
 void mixer::put_frame(source_id id, const dv_frame_ptr & frame)
@@ -599,8 +598,9 @@ void mixer::video_mix_simple::validate(const mixer & mixer)
 
 void mixer::video_mix_simple::set_active(const mixer & mixer, bool active)
 {
-    mixer.sources_[source_id_].src->set_active(
-	active ? source_active_video : source_active_none);
+    if (mixer.sources_[source_id_].src)
+	mixer.sources_[source_id_].src->set_active(
+	    active ? source_active_video : source_active_none);
 }
 
 void mixer::video_mix_simple::apply(const mix_data & m, const auto_codec &,
@@ -642,10 +642,12 @@ void mixer::video_mix_pic_in_pic::validate(const mixer & mixer)
 
 void mixer::video_mix_pic_in_pic::set_active(const mixer & mixer, bool active)
 {
-    mixer.sources_[pri_source_id_].src->set_active(
-	active ? source_active_video : source_active_none);
-    mixer.sources_[sec_source_id_].src->set_active(
-	active ? source_active_video : source_active_none);
+    if (mixer.sources_[pri_source_id_].src)
+	mixer.sources_[pri_source_id_].src->set_active(
+	    active ? source_active_video : source_active_none);
+    if (mixer.sources_[sec_source_id_].src)
+	mixer.sources_[sec_source_id_].src->set_active(
+	    active ? source_active_video : source_active_none);
 }
 
 void mixer::video_mix_pic_in_pic::apply(const mix_data & m,

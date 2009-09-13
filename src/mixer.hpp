@@ -166,8 +166,7 @@ private:
     static const std::size_t full_queue_len = target_queue_len * 2;
     struct source_data
     {
-	source_data() : is_live(true) {}
-	bool is_live;
+	source_data() : src(NULL) {}
 	ring_buffer<dv_frame_ptr, full_queue_len> frames;
 	source * src;
     };
