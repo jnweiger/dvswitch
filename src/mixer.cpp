@@ -241,7 +241,8 @@ void mixer::run_clock()
 	boost::mutex::scoped_lock lock(source_mutex_);
 	while (clock_state_ == run_state_wait)
 	    clock_state_cond_.wait(lock);
-	settings_.video_mix->set_active(*this, true);
+	if (clock_state_ == run_state_run)
+	    settings_.video_mix->set_active(*this, true);
     }
 
     // Interval to the next frame (in ns)
