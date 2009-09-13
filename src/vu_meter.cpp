@@ -27,6 +27,7 @@ vu_meter::vu_meter(int minimum, int maximum)
     for (int channel = 0; channel != channel_count; ++channel)
     {
 	levels_[channel] = std::numeric_limits<int>::min();
+	peaks_[channel] = std::numeric_limits<int>::min();
 	peak_timers_[channel] = 0;
     }
     set_size_request(16, 32);
