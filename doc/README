@@ -33,18 +33,12 @@ It is important to make sure all DV sources use the same video system
 DVswitch automatically detects the format used by its first source and
 will show warnings for any sources that don't match it.
 
-Home page
----------
+Web resources
+-------------
 
-The project home page is <http://alioth.debian.org/projects/dvswitch/>.
-Source tarballs are available from there.  There is a public
-subversion repository at <svn://svn.debian.org/dvswitch/trunk>.
-
-Bugs
-----
-
-Report bugs to the dvswitch mailing list,
-dvswitch-devel@lists.alioth.debian.org.
+The project home page is <http://dvswitch.alioth.debian.org>.  This
+has links to the download page, bug tracker, source repository, and
+mailing list.
 
 System requirements
 -------------------
