@@ -188,7 +188,8 @@ void connector::handle_request(void * opaque, int)
 {
     connector & connr = *static_cast<connector *>(opaque);
     char dummy;
-    if (read(connr.poll_pipe_.reader.get(), &dummy, 1) != 1)
+    if (read(connr.poll_pipe_.reader.get(), &dummy, 1) != 1 ||
+	connr.poll_exit_flag_)
 	return;
 
     boost::mutex::scoped_lock lock(connr.add_mutex_);
