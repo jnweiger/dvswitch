@@ -4,9 +4,9 @@ dvswitch: a basic video mixer for live DV streams
 Introduction
 ------------
 
-dvswitch is a basic video mixer designed for the needs of DebConf.  It
-may suit the needs of other conferences that require live mixing for
-streams and/or recording.
+dvswitch is a basic video mixer designed for the needs of low-budget
+technical conferences that require live mixing for streams and/or
+recording.
 
 Currently dvswitch can combine audio from one source with video from
 another and can combine two video streams with a picture-in-picture
@@ -66,17 +66,6 @@ doubtful that current wireless networks can reliably provide this
 bandwidth.  We recommend use of a 100 or 1000 Mbit/s switched Ethernet
 network between the hosts running the dvswitch system.
 
-Operating system configuration
-------------------------------
-
-CPU frequency scaling should be disabled on the host running the mixer
-because it seems to make the mixer's timing irregular, leading to
-dropped and duplicated frames.
-
-Socket buffers should be allowed to grow to at least one DV frame
-size (144000 or 120000 bytes depending on the video system).  On
-Linux 2.6 this happens automatically.
-
 Configuration
 -------------
 
@@ -97,16 +86,15 @@ can be specified using the -c option.
 Starting the mixer
 ------------------
 
-Run dvswitch, and you will initially see an empty window.  You then
-need to connect some sources to it (see below).
+Run dvswitch, and you will initially see a mostly empty window.  You
+then need to connect some sources to it (see below).
 
 Once sources are connected, you will see the mixed output at full
 resolution (slightly higher, in fact, since the video pixels are not
 square).  Below it, you will see all the sources at lower resolution
 in greyscale.  (This allows dvswitch to display many sources without
 requiring a very fast processor.)  Each is numbered and the active
-sources for video and audio are indicated with a film strip and
-speaker symbol respectively.
+sources for video and audio are indicated by the buttons beside them.
 
 In the main display, a 10% border on each side of the frame is shaded.
 This indicates approximately the area of the picture that may not be
@@ -125,7 +113,7 @@ Return/Enter    apply effect
 Escape          cancel area selection
 Ctrl-Q          quit
 
-Video and audio sources can also be selected using the buttons beneath
+Video and audio sources can also be selected using the buttons beside
 their thumbnails.
 
 Connecting sources and sinks
