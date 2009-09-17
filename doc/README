@@ -1,21 +1,21 @@
-dvswitch: a basic video mixer for live DV streams
+DVswitch: a basic video mixer for live DV streams
 =================================================
 
 Introduction
 ------------
 
-dvswitch is a basic video mixer designed for the needs of low-budget
+DVswitch is a basic video mixer designed for the needs of low-budget
 technical conferences that require live mixing for streams and/or
 recording.
 
-Currently dvswitch can combine audio from one source with video from
+Currently DVswitch can combine audio from one source with video from
 another and can combine two video streams with a picture-in-picture
 effect.  Further mixing effects are planned.  It works solely with the
 DV format since almost all camcorders support this and it allows for
 low latency display and cutting.
 
 Since DV cameras must be connected to computers via Firewire cables of
-limited length, dvswitch is divided into several different programs
+limited length, DVswitch is divided into several different programs
 that can run on different computers on a TCP/IP network:
 
 - dvswitch: the mixer GUI and network server
@@ -43,7 +43,7 @@ mailing list.
 System requirements
 -------------------
 
-dvswitch is developed and tested under Linux 2.6, and may not work on
+DVswitch is developed and tested under Linux 2.6, and may not work on
 earlier versions of Linux or other Unix-like systems.  In particular,
 dvsource-firewire uses dvgrab which only runs on Linux.
 
@@ -64,7 +64,7 @@ older versions of fglrx.
 A DV stream has a fixed bandwidth of about 36 Mbit/s and it is
 doubtful that current wireless networks can reliably provide this
 bandwidth.  We recommend use of a 100 or 1000 Mbit/s switched Ethernet
-network between the hosts running the dvswitch system.
+network between the hosts running the DVswitch system.
 
 Configuration
 -------------
