@@ -28,6 +28,7 @@ foreach(library_name BasicUsageEnvironment groupsock liveMedia UsageEnvironment)
         endif(LiveMedia_FIND_REQUIRED)
     endif(library_path)
 endforeach(library_name)
+set(library_path "library_path-NOTFOUND" CACHE INTERNAL "")
 
 if(LiveMedia_FOUND)
     message(STATUS "  found liveMedia")
