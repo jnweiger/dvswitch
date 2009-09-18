@@ -389,12 +389,19 @@ namespace
     {
 	const struct dv_system * system = dv_frame_system(dv_frame.get());
 	raw_frame_ptr result = allocate_raw_frame();
+
+	AVPacket packet;
+	av_init_packet(&packet);
+	packet.data = dv_frame->buffer;
+	packet.size = system->size;
+
 	int got_frame;
 	decoder.get()->opaque = result.get();
-	int used_size = avcodec_decode_video(decoder.get(),
-					     &result->header, &got_frame,
-					     dv_frame->buffer, system->size);
+	int used_size = avcodec_decode_video2(decoder.get(),
+					      &result->header, &got_frame,
+					      &packet);
 	assert(got_frame && size_t(used_size) == system->size);
+
 	result->header.opaque =
 	    const_cast<void *>(static_cast<const void *>(system));
 	result->aspect = dv_frame_get_aspect(dv_frame.get());

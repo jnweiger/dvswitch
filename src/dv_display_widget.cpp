@@ -170,10 +170,15 @@ void dv_display_widget::put_frame(const dv_frame_ptr & dv_frame)
 	if (!header)
 	    return;
 
+	AVPacket packet;
+	av_init_packet(&packet);
+	packet.data = dv_frame->buffer;
+	packet.size = system->size;
+
 	int got_frame;
-	int used_size = avcodec_decode_video(decoder,
-					     header, &got_frame,
-					     dv_frame->buffer, system->size);
+	int used_size = avcodec_decode_video2(decoder,
+					      header, &got_frame,
+					      &packet);
 	if (used_size <= 0)
 	    return;
 	assert(got_frame && size_t(used_size) == system->size);

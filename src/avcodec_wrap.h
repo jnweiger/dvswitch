@@ -13,6 +13,16 @@ extern "C" {
 
 #include <avcodec.h>
 
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 26, 0)
+static inline int
+avcodec_decode_video2(AVCodecContext *avctx, AVFrame *picture,
+		      int *got_picture_ptr, AVPacket *avpkt)
+{
+    return avcodec_decode_video(avctx, picture, got_picture_ptr,
+				avpkt->data, avpkt->size);
+}
+#endif
+
 #ifdef __cplusplus
 }
 #endif
