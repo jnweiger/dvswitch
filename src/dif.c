@@ -120,6 +120,22 @@ enum dv_frame_aspect dv_buffer_get_aspect(const uint8_t * buffer)
 	return dv_frame_aspect_normal;
 }
 
+void dv_buffer_set_aspect(uint8_t * buffer, enum dv_frame_aspect aspect)
+{
+    const struct dv_system * system = dv_buffer_system(buffer);
+    unsigned seq;
+
+    for (seq = 0; seq != system->seq_count; ++seq)
+    {
+	uint8_t * vsc_pack =
+	    buffer + seq * DIF_SEQUENCE_SIZE +
+	    ((seq & 1) ? 3 * DIF_BLOCK_SIZE + 8 : 5 * DIF_BLOCK_SIZE + 53);
+
+	vsc_pack[2] = ((vsc_pack[2] & 0xf8) |
+		       ((aspect == dv_frame_aspect_wide) ? 2 : 0));
+    }
+}
+
 enum dv_sample_rate dv_buffer_get_sample_rate(const uint8_t * buffer)
 {
     const uint8_t * as_pack = buffer + (6 + 3 * 16) * DIF_BLOCK_SIZE + 3;

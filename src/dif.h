@@ -47,6 +47,7 @@ enum dv_frame_aspect
 };
 
 extern enum dv_frame_aspect dv_buffer_get_aspect(const uint8_t * frame);
+extern void dv_buffer_set_aspect(uint8_t * buffer, enum dv_frame_aspect aspect);
 
 struct dv_system
 {

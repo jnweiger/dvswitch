@@ -43,6 +43,12 @@ dv_frame_get_aspect(const struct dv_frame * frame)
     return dv_buffer_get_aspect(frame->buffer);
 }
 
+static inline void
+dv_frame_set_aspect(struct dv_frame * frame, enum dv_frame_aspect aspect)
+{
+    dv_buffer_set_aspect(frame->buffer, aspect);
+}
+
 static inline enum dv_sample_rate
 dv_frame_get_sample_rate(const struct dv_frame * frame)
 {

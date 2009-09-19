@@ -142,11 +142,8 @@ void mixer::put_frame(source_id id, const dv_frame_ptr & frame)
 		if (format_.frame_aspect == dv_frame_aspect_auto)
 		    format_.frame_aspect = format.frame_aspect;
 		else if (format_.frame_aspect != format.frame_aspect)
-		{
-		    std::cerr << "WARN: Source " << 1 + id
-			      << " using wrong frame aspect\n";
-		    frame->format_error = true;
-		}
+		    // Override frame aspect ratio
+		    dv_frame_set_aspect(frame.get(), format_.frame_aspect);
 
 		if (format_.sample_rate == dv_sample_rate_auto)
 		    format_.sample_rate = format.sample_rate;
