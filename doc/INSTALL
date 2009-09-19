@@ -1,0 +1,34 @@
+DVswitch: a basic video mixer for live DV streams
+=================================================
+
+Installation
+------------
+
+From version 0.9, DVswitch will use the RTSP and RTP protocols with
+the aid of the liveMedia library (aka LIVE555).  It currently requires
+a modified version of the library, which is being developed in the git
+repository at:
+    git://git.debian.org/git/dvswitch/live-dv.git
+also available as:
+    https://alioth.debian.org/anonscm/git/dvswitch/live-dv.git
+
+You will need to build that first:
+    cd ..
+    git clone git://git.debian.org/git/dvswitch/live-dv.git
+    cd live-dv
+    ./genMakefiles linux
+    make
+
+Now build DVswitch:
+    cd ../dvswitch
+    mkdir -p build
+    cd build
+    cmake -D LiveMedia_BUILDDIR=$PWD/../../live-dv ..
+    make
+
+The DVswitch commands will be built in the subdirectory 'build/src'.
+You can install them with:
+    make install
+
+liveMedia only builds static libraries and does not need to be
+installed.
