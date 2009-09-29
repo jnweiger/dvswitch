@@ -114,19 +114,23 @@ static void dv_buffer_fill_dummy(uint8_t * buf, const struct dv_system * system)
 		memset(block + DIF_BLOCK_ID_SIZE,
 		       0xff, DIF_BLOCK_SIZE - DIF_BLOCK_ID_SIZE);
 
-		// VS pack
-		int dsf = (system == &dv_system_625_50) ? 1 : 0;
-		block[DIF_BLOCK_ID_SIZE] = 0x60;
-		block[DIF_BLOCK_ID_SIZE + 3] = 0xc0 | (dsf << 5);
-		// VSC pack
-		block[DIF_BLOCK_ID_SIZE + DIF_PACK_SIZE] = 0x61;
-		block[DIF_BLOCK_ID_SIZE + DIF_PACK_SIZE + 1] = 0x3f;
-		block[DIF_BLOCK_ID_SIZE + DIF_PACK_SIZE + 2] = 0xc8;
-		block[DIF_BLOCK_ID_SIZE + DIF_PACK_SIZE + 3] = 0xfc;
-		// ...and again
-		memcpy(block + DIF_BLOCK_ID_SIZE + 9 * DIF_PACK_SIZE,
-		       block + DIF_BLOCK_ID_SIZE,
-		       2 * DIF_PACK_SIZE);
+		int offset = 0;
+		if (!(seq_num & 1) && block_num == 5)
+		    offset = DIF_BLOCK_ID_SIZE;
+		else if ((seq_num & 1) && block_num == 3)
+		    offset = DIF_BLOCK_ID_SIZE + 9 * DIF_PACK_SIZE;
+		if (offset)
+		{
+		    // VS pack
+		    int dsf = (system == &dv_system_625_50) ? 1 : 0;
+		    block[offset] = 0x60;
+		    block[offset + 3] = 0xc0 | (dsf << 5);
+		    // VSC pack
+		    block[offset + DIF_PACK_SIZE] = 0x61;
+		    block[offset + DIF_PACK_SIZE + 1] = 0x3f;
+		    block[offset + DIF_PACK_SIZE + 2] = 0xc8;
+		    block[offset + DIF_PACK_SIZE + 3] = 0xfc;
+		}
 	    }
 	    else if (block_num % 16 == 6)
 	    {
