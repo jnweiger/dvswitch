@@ -90,9 +90,11 @@ static void dv_buffer_fill_dummy(uint8_t * buf, const struct dv_system * system)
 
 		// Header pack
 		block[DIF_BLOCK_ID_SIZE] = (system == &dv_system_625_50) ? 0xbf : 0x3f;
-		int apt = (system == &dv_system_625_50) ? 0 : 1;
+		int apt = 0; // IEC 61834 only for now
 		block[DIF_BLOCK_ID_SIZE + 1] = 0xf8 | apt;
-		block[DIF_BLOCK_ID_SIZE + 2] = 0x78 | apt;
+		block[DIF_BLOCK_ID_SIZE + 2] = 0xf8 | apt; // audio valid
+		block[DIF_BLOCK_ID_SIZE + 3] = 0x78 | apt; // video invalid
+		block[DIF_BLOCK_ID_SIZE + 4] = 0x78 | apt; // subcode invalid
 	    }
 	    else if (block_num < 3)
 	    {
