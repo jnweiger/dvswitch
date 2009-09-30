@@ -769,6 +769,16 @@ void mixer::run_mixer()
 						&mixed_raw->header);
 	    assert(size_t(out_size) == system->size);
 	    mixed_dv->serial_num = serial_num;
+
+	    // libavcodec doesn't properly distinguish IEC and SMPTE
+	    // variants of NTSC.  Fix the APTs here.
+	    if (system == &dv_system_525_60)
+	    {
+		uint8_t * block = mixed_dv->buffer;
+		unsigned apt = 0;
+		for (unsigned i = 4; i != 8; ++i)
+		    block[i] = (block[i] & 0xf8) | apt;
+	    }
 	}
 
 	if (!mixed_dv)
