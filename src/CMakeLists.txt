@@ -18,16 +18,16 @@ target_link_libraries(dvsource-file pthread rt)
 add_executable(dvsource-dvgrab dvsource-dvgrab.c ${common_sources})
 
 add_executable(dvsource-alsa dvsource-alsa.c dif_audio.c ${common_sources})
-target_link_libraries(dvsource-alsa ${ALSA_LIBRARIES})
+target_link_libraries(dvsource-alsa m ${ALSA_LIBRARIES})
 
 add_executable(dvswitch dvswitch.cpp mixer.cpp frame_timer.c
   mixer_window.cpp dv_display_widget.cpp dv_selector_widget.cpp
   server.cpp auto_pipe.cpp os_error.cpp video_effect.c frame_pool.cpp
   frame.c auto_codec.cpp format_dialog.cpp dif_audio.c vu_meter.cpp
   status_overlay.cpp connector.cpp ${common_sources})
-target_link_libraries(dvswitch m pthread rt Xv
+target_link_libraries(dvswitch m pthread rt X11 Xext Xv
   ${BOOST_THREAD_LIBRARIES} ${GTKMM_LIBRARIES} ${LIBAVCODEC_LIBRARIES}
-  ${LiveMedia_LIBRARIES})
+  ${LIBAVUTIL_LIBRARIES} ${LiveMedia_LIBRARIES})
 
 install(TARGETS dvsink-command dvsink-files dvsource-file dvsource-dvgrab
                 dvsource-alsa dvswitch

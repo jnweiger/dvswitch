@@ -11,6 +11,7 @@ include(FindPkgConfig)
 pkg_check_modules(ALSA REQUIRED alsa)
 pkg_check_modules(GTKMM REQUIRED gtkmm-2.4)
 pkg_check_modules(LIBAVCODEC REQUIRED libavcodec)
+pkg_check_modules(LIBAVUTIL REQUIRED libavutil)
 
 message(STATUS "checking for Boost.Thread")
 find_library(BOOST_THREAD_LIBRARIES
