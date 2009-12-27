@@ -43,8 +43,8 @@ private:
     void cancel_effect();
     void begin_pic_in_pic();
     void apply_effect();
-    void open_add_source_dialog();
     void open_format_dialog();
+    void open_sources_dialog();
 
     void toggle_record() throw();
     bool update(Glib::IOCondition) throw();
@@ -65,11 +65,11 @@ private:
     Gtk::MenuBar menu_bar_;
     Gtk::MenuItem file_menu_item_;
     Gtk::Menu file_menu_;
-    Gtk::MenuItem add_source_menu_item_;
     Gtk::ImageMenuItem quit_menu_item_;
     Gtk::MenuItem settings_menu_item_;
     Gtk::Menu settings_menu_;
     Gtk::MenuItem format_menu_item_;
+    Gtk::MenuItem sources_menu_item_;
     Gtk::HBox upper_box_;
     Gtk::VBox command_box_;
     Gtk::ToggleButton record_button_;
