@@ -3,8 +3,8 @@
 
 // Gtkmm dialog for choosing DV format settings
 
-#ifndef DVSWITCH_STUDIO_SETTINGS_DIALOG_HPP
-#define DVSWITCH_STUDIO_SETTINGS_DIALOG_HPP
+#ifndef DVSWITCH_FORMAT_DIALOG_HPP
+#define DVSWITCH_FORMAT_DIALOG_HPP
 
 #include <gtkmm/button.h>
 #include <gtkmm/comboboxtext.h>
@@ -29,4 +29,4 @@ private:
     Gtk::ComboBoxText sample_rate_combo_;
 };
 
-#endif // !defined(DVSWITCH_STUDIO_SETTINGS_DIALOG_HPP)
+#endif // !defined(DVSWITCH_FORMAT_DIALOG_HPP)
