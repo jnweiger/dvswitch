@@ -29,7 +29,7 @@ that can run on different computers on a TCP/IP network:
 
 It is important to make sure all DV sources use the same video system
 (PAL or NTSC), aspect ratio (16:9 or 4:3) and audio sample rate
-(32, 48 or 44.1 kHz).  Mixing input format will produce bogus output.
+(32 or 48 kHz).  Mixing input format will produce bogus output.
 DVswitch automatically detects the format used by its first source and
 will show warnings for any sources that don't match it.
 

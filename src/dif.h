@@ -32,7 +32,6 @@ enum dv_sample_rate
     dv_sample_rate_invalid = -2,
     dv_sample_rate_auto = -1,
     dv_sample_rate_48k,
-    dv_sample_rate_44k1,
     dv_sample_rate_32k,
     dv_sample_rate_count
 };
@@ -72,7 +71,7 @@ struct dv_system
 	unsigned min, max;
 	// A cycle of sample counts which will result in perfect
 	// synchronisation ("locked audio" for 32k and 48k).
-	unsigned std_cycle_len, std_cycle[100];
+	unsigned std_cycle_len, std_cycle[15];
     } audio_frame_counts[dv_sample_rate_count];
     const uint8_t (*audio_shuffle)[9];
 };

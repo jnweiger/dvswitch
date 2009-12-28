@@ -299,10 +299,6 @@ int main(int argc, char ** argv)
     {
 	params.sample_rate_code = dv_sample_rate_32k;
     }
-    else if (sample_rate == 44100)
-    {
-	params.sample_rate_code = dv_sample_rate_44k1;
-    }
     else if (sample_rate == 48000)
     {
 	params.sample_rate_code = dv_sample_rate_48k;

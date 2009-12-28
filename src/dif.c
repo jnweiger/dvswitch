@@ -37,7 +37,6 @@ const struct dv_system dv_system_625_50 =
     .size = 12 * DIF_SEQUENCE_SIZE,
     .audio_frame_counts = {
 	[dv_sample_rate_48k] =  { .min = 1896, .max = 1944, .std_cycle_len = 1, .std_cycle = { 1920 } },
-	[dv_sample_rate_44k1] = { .min = 1742, .max = 1786, .std_cycle_len = 1, .std_cycle = { 1764 } },
 	[dv_sample_rate_32k] =  { .min = 1264, .max = 1296, .std_cycle_len = 1, .std_cycle = { 1280 } }
     },
     .audio_shuffle = dv_audio_shuffle_625_50,
@@ -75,22 +74,6 @@ const struct dv_system dv_system_525_60 =
 	[dv_sample_rate_48k] = {
 	    .min = 1580, .max = 1620,
 	    .std_cycle_len = 5, .std_cycle = { 1600, 1602, 1602, 1602, 1602 }
-	},
-	[dv_sample_rate_44k1] = {
-	    .min = 1452, .max = 1489,
-	    .std_cycle_len = 100,
-	    .std_cycle = {
-		1471, 1472, 1471, 1472, 1471, 1472, 1471, 1472, 1471, 1472,
-		1471, 1472, 1471, 1472, 1471, 1472, 1471, 1471, 1472, 1471,
-		1472, 1471, 1472, 1471, 1472, 1471, 1472, 1471, 1472, 1471,
-		1472, 1471, 1472, 1471, 1471, 1472, 1471, 1472, 1471, 1472,
-		1471, 1472, 1471, 1472, 1471, 1472, 1471, 1472, 1471, 1472,
-		1471, 1471, 1472, 1471, 1472, 1471, 1472, 1471, 1472, 1471,
-		1472, 1471, 1472, 1471, 1472, 1471, 1471, 1472, 1471, 1472,
-		1471, 1472, 1471, 1472, 1471, 1472, 1471, 1472, 1471, 1472,
-		1471, 1472, 1471, 1471, 1472, 1471, 1472, 1471, 1472, 1471,
-		1472, 1471, 1472, 1471, 1472, 1471, 1472, 1471, 1472, 1471
-	    }
 	},
 	[dv_sample_rate_32k] = {
 	    .min = 1053, .max = 1080,
@@ -143,8 +126,10 @@ enum dv_sample_rate dv_buffer_get_sample_rate(const uint8_t * buffer)
     if (as_pack[0] == 0x50)
     {
 	unsigned sample_rate = (as_pack[4] >> 3) & 7;
-	if (sample_rate < dv_sample_rate_count)
-	    return sample_rate;
+	if (sample_rate == 0)
+	    return dv_sample_rate_48k;
+	else if (sample_rate == 2)
+	    return dv_sample_rate_32k;
     }
 
     return dv_sample_rate_invalid;

@@ -54,7 +54,6 @@ format_dialog::format_dialog(Gtk::Window & parent,
 
     sample_rate_combo_.append_text("Automatic");
     sample_rate_combo_.append_text("48 kHz");
-    sample_rate_combo_.append_text("44.1 kHz");
     sample_rate_combo_.append_text("32 kHz");
     sample_rate_combo_.set_active(1 + settings.sample_rate);
     sample_rate_combo_.show();
