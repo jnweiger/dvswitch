@@ -689,8 +689,16 @@ bool dv_full_display_widget::on_expose_event(GdkEventExpose *) throw()
 {
     Glib::RefPtr<Gdk::Drawable> drawable;
     int dest_x, dest_y;
-    get_window()->get_internal_paint_info(drawable, dest_x, dest_y);
-    drawable->reference(); // get_internal_paint_info() doesn't do this!
+
+    if (xv_image_)
+    {
+	get_window()->get_internal_paint_info(drawable, dest_x, dest_y);
+	drawable->reference(); // get_internal_paint_info() doesn't do this!
+    }
+    else
+    {
+	drawable = get_window();
+    }
 
     if (Glib::RefPtr<Gdk::GC> gc = Gdk::GC::create(drawable))
     {
@@ -713,8 +721,7 @@ bool dv_full_display_widget::on_expose_event(GdkEventExpose *) throw()
 	    Gdk::Color colour;
 	    colour.set_grey(0); // black
 	    gc->set_rgb_fg_color(colour);
-	    drawable->draw_rectangle(gc, true,
-				     dest_x, dest_y, dest_width_, dest_height_);
+	    drawable->draw_rectangle(gc, true, 0, 0, dest_width_, dest_height_);
 	}
     }
 
