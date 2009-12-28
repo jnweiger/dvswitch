@@ -29,6 +29,7 @@ extern "C" {
 
 enum dv_sample_rate
 {
+    dv_sample_rate_invalid = -2,
     dv_sample_rate_auto = -1,
     dv_sample_rate_48k,
     dv_sample_rate_44k1,

@@ -145,8 +145,11 @@ void mixer::put_frame(source_id id, const dv_frame_ptr & frame)
 		    // Override frame aspect ratio
 		    dv_frame_set_aspect(frame.get(), format_.frame_aspect);
 
-		if (format_.sample_rate == dv_sample_rate_auto)
+		if (format_.sample_rate == dv_sample_rate_auto &&
+		    format.sample_rate >= 0)
+		{
 		    format_.sample_rate = format.sample_rate;
+		}
 		else if (format_.sample_rate != format.sample_rate)
 		{
 		    std::cerr << "WARN: Source " << 1 + id
@@ -801,8 +804,11 @@ void mixer::run_mixer()
 
 	if (!audio_source_dv ||
 	    dv_frame_get_sample_rate(audio_source_dv.get()) != m->format.sample_rate)
-	    dv_buffer_silence_audio(mixed_dv->buffer, m->format.sample_rate,
-				    serial_num);
+	{
+	    if (m->format.sample_rate >= 0)
+		dv_buffer_silence_audio(mixed_dv->buffer, m->format.sample_rate,
+					serial_num);
+	}
 	else if (mixed_dv != audio_source_dv)
 	    dv_buffer_dub_audio(mixed_dv->buffer, audio_source_dv->buffer);
 

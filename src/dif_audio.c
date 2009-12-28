@@ -82,11 +82,8 @@ unsigned dv_buffer_get_audio(const uint8_t * buffer, int16_t * samples)
     const struct dv_system * system = dv_buffer_system(buffer);
     const uint8_t * as_pack = buffer + (6 + 3 * 16) * DIF_BLOCK_SIZE + 3;
 
-    if (as_pack[0] != 0x50)
-	return 0;
-
-    enum dv_sample_rate sample_rate_code = (as_pack[4] >> 3) & 7;
-    if (sample_rate_code >= dv_sample_rate_count)
+    enum dv_sample_rate sample_rate_code = dv_buffer_get_sample_rate(buffer);
+    if (sample_rate_code < 0)
 	return 0;
 
     unsigned quant = as_pack[4] & 7;

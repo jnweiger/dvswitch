@@ -147,7 +147,5 @@ enum dv_sample_rate dv_buffer_get_sample_rate(const uint8_t * buffer)
 	    return sample_rate;
     }
 
-    // If no AS pack present or sample rate is unrecognised, assume 48 kHz.
-    // XXX Does this make any sense?
-    return dv_sample_rate_48k;
+    return dv_sample_rate_invalid;
 }   
