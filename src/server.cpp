@@ -9,6 +9,7 @@
 #include <ostream>
 #include <stdexcept>
 
+#include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -433,7 +434,26 @@ server::source_connection::source_connection(server & server, auto_fd socket,
       first_sequence_(true),
       wants_act_(wants_act)
 {
-    source_id_ = server_.mixer_.add_source(this);
+    mixer::source_settings settings;
+    union {
+	struct sockaddr addr;
+	char addr_buf[40];
+    };
+    socklen_t addr_len = sizeof(addr_buf);
+    char addr_str[40];
+
+    if (getpeername(socket.get(), &addr, &addr_len) == 0 &&
+	addr_len <= sizeof(addr_buf) &&
+	inet_ntop(addr.sa_family, addr.sa_data,
+		  addr_str, sizeof(addr_str)) != NULL)
+	settings.name = addr_str;
+    else
+	settings.name = "unknown";
+
+    settings.use_video = true;
+    settings.use_audio = true;
+
+    source_id_ = server_.mixer_.add_source(this, settings);
 }
 
 server::source_connection::~source_connection()

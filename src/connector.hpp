@@ -24,7 +24,7 @@ class connector
 public:
     explicit connector(mixer &);
     ~connector();
-    void add_source(const std::string & uri);
+    void add_source(const mixer::source_settings &);
 
 private:
     class source_connection;

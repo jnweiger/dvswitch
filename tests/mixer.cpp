@@ -53,7 +53,8 @@ int main()
     volatile unsigned sink_count = 0;
     unsigned source_count = 0;
     mixer the_mixer;
-    the_mixer.add_source(new dummy_source);
+    mixer::source_settings dummy_settings;
+    the_mixer.add_source(new dummy_source, dummy_settings);
     the_mixer.add_sink(new dummy_sink(sink_count));
     for (;;)
     {

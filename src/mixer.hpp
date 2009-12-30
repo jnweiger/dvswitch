@@ -72,6 +72,14 @@ public:
 	virtual void put_frame(const dv_frame_ptr &) = 0;
     };
 
+    struct source_settings
+    {
+	std::string name;
+	std::string url;
+	bool use_video;
+	bool use_audio;
+    };
+
     // Interface to sources
     struct source
     {
@@ -118,7 +126,7 @@ public:
 
     // Interface for sources
     // Register and unregister sources
-    source_id add_source(source *);
+    source_id add_source(source *, const source_settings &);
     void remove_source(source_id);
     // Add a new frame from the given source.  This should be called at
     // appropriate intervals to avoid the need to drop or duplicate

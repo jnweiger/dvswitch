@@ -37,7 +37,8 @@ auto_rtspclient;
 class connector::source_connection : public mixer::source
 {
 public:
-    source_connection(connector & connr, const std::string & uri);
+    source_connection(connector & connr,
+		      const mixer::source_settings & settings);
     void setup(UsageEnvironment * env);
     ~source_connection();
 
@@ -58,12 +59,12 @@ private:
     dv_frame_ptr frame_;
 };
 
-connector::source_connection::source_connection(connector & connr,
-						const std::string & uri)
+connector::source_connection::source_connection(
+    connector & connr, const mixer::source_settings & settings)
     : mixer_(connr.mixer_),
       // Get source description from the source URI
       client_(RTSPClient::createNew(*connr.resolve_env_, 0, "DVswitch")),
-      desc_(client_.get() ? client_.get()->describeURL(uri.c_str()) : 0)
+      desc_(client_.get() ? client_.get()->describeURL(settings.url.c_str()) : 0)
 {
     if (!desc_)
 	throw std::runtime_error(connr.resolve_env_->getResultMsg());
@@ -72,7 +73,7 @@ connector::source_connection::source_connection(connector & connr,
     // (this will call back to setup()).
     connr.do_add_source(this);
 
-    id_ = mixer_.add_source(this);
+    id_ = mixer_.add_source(this, settings);
     if (!client_.get()->setupMediaSubsession(*subsession_, false, false) ||
 	!client_.get()->playMediaSession(*session_.get(), 0.0, -1.0, 1.0))
     {
@@ -158,9 +159,9 @@ connector::~connector()
     poll_thread_->join();
 }
 
-void connector::add_source(const std::string & uri)
+void connector::add_source(const mixer::source_settings & settings)
 {
-    new source_connection(*this, uri);
+    new source_connection(*this, settings);
 }
 
 void connector::do_add_source(source_connection * conn)

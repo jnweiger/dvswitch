@@ -72,7 +72,7 @@ mixer::~mixer()
     mixer_thread_.join();
 }
 
-mixer::source_id mixer::add_source(source * src)
+mixer::source_id mixer::add_source(source * src, const source_settings &)
 {
     boost::mutex::scoped_lock lock(source_mutex_);
     source_id id;
