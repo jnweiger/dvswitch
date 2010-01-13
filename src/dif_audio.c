@@ -332,7 +332,7 @@ void dv_buffer_set_audio(uint8_t * buffer,
 		    unsigned pos = (system->audio_shuffle[seq][block_n] +
 				    i * system->seq_count * 9);
 		    int16_t sample = (pos < sample_count) ? samples[pos] : 0;
-		    
+
 		    *out++ = sample >> 8;
 		    *out++ = sample & 0xff;
 		}

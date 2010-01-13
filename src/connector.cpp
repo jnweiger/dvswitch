@@ -130,7 +130,7 @@ void connector::source_connection::handle_frame(
 
     conn.subsession_->readSource()->getNextFrame(
 	conn.frame_->buffer, DIF_MAX_FRAME_SIZE,
-	handle_frame, &conn, handle_close, &conn);    
+	handle_frame, &conn, handle_close, &conn);
 }
 
 void connector::source_connection::handle_close(void * opaque)

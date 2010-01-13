@@ -82,8 +82,8 @@ source_add_dialog::source_add_dialog(Gtk::Window & window)
     vbox.set_border_width(gui_standard_spacing);
     vbox.set_spacing(gui_standard_spacing);
 
-    table_.set_col_spacings(gui_standard_spacing);			   
-    table_.set_row_spacings(gui_standard_spacing);			   
+    table_.set_col_spacings(gui_standard_spacing);
+    table_.set_row_spacings(gui_standard_spacing);
 
     name_label_.show();
     table_.attach(name_label_, 0, 1, 0, 1, Gtk::FILL, Gtk::FILL);

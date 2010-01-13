@@ -76,12 +76,12 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
       pip_active_(false),
       pip_pending_(false),
       wakeup_pipe_(O_NONBLOCK, O_NONBLOCK),
-      next_source_id_(0)      
+      next_source_id_(0)
 {
     record_button_.set_use_stock();
     cut_button_.set_use_stock();
     apply_button_.set_use_stock();
-	
+
     Glib::RefPtr<Glib::IOSource> pipe_io_source(
 	Glib::IOSource::create(wakeup_pipe_.reader.get(), Glib::IO_IN));
     pipe_io_source->set_priority(Glib::PRIORITY_DEFAULT_IDLE);
@@ -231,7 +231,7 @@ void mixer_window::apply_effect()
 	mixer_.set_video_mix(
 	    mixer_.create_video_mix_pic_in_pic(
 		pri_video_source_id_, sec_video_source_id_, region));
-	display_.set_selection_enabled(false);	
+	display_.set_selection_enabled(false);
     }
     apply_button_.set_sensitive(false);
 }

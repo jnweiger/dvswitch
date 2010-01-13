@@ -27,7 +27,7 @@ status_overlay::~status_overlay()
     status_widget_.unparent();
 }
 
-void status_overlay::set_status(const Glib::ustring & text, 
+void status_overlay::set_status(const Glib::ustring & text,
 				const Glib::ustring & icon_name,
 				unsigned timeout)
 {
@@ -117,7 +117,7 @@ void status_overlay::on_size_request(Gtk::Requisition * requisition)
     }
 }
 
-void status_overlay::status_widget::set_status(const Glib::ustring & text, 
+void status_overlay::status_widget::set_status(const Glib::ustring & text,
 					       const Glib::ustring & icon_name)
 {
     text_ = text;

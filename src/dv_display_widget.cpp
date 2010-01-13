@@ -99,7 +99,7 @@ dv_display_widget::dv_display_widget(int lowres)
     decoder->get_buffer = get_buffer;
     decoder->release_buffer = release_buffer;
     decoder->reget_buffer = reget_buffer;
-      
+
     set_app_paintable(true);
     set_double_buffered(false);
 }
@@ -523,7 +523,7 @@ void dv_full_display_widget::put_frame_buffer(
     }
 
     if (pix_fmt_ == PIX_FMT_YUV411P)
-    {	
+    {
 	// Lines are interleaved in the buffer; convert them in-place.
 
 	XvImage * xv_image = static_cast<XvImage *>(xv_image_);
@@ -949,7 +949,7 @@ void dv_thumb_display_widget::put_frame_buffer(
 	    }
 	}
 	while (dest != dest_row_end);
-	
+
 	error_y += source_height;
 	if (error_y >= dest_height_)
 	{

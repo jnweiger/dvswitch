@@ -188,7 +188,7 @@ static void transfer_frames(struct transfer_params * params)
 
     for (;;)
     {
-	unsigned frame_count = 
+	unsigned frame_count =
 	    params->system->audio_frame_counts[params->sample_rate_code].std_cycle[
 		serial_num % params->system->audio_frame_counts[params->sample_rate_code].std_cycle_len];
 

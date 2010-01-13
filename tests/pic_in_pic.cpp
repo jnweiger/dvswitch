@@ -185,7 +185,7 @@ void test_pic_in_pic(raw_frame_ref dest, int d_width, int d_height,
 }
 
 void test_dest(raw_frame_ref dest, int d_width, int d_height,
-	       int s_width, int s_height)	       
+	       int s_width, int s_height)
 {
     raw_frame_ref source = alloc_frame(dest.pix_fmt, s_width, s_height);
     rectangle s_buf_rect = { -pad, -pad, s_width + pad, s_height + pad };

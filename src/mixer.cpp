@@ -413,7 +413,7 @@ namespace
 	assert(v < 100);
 	return ((v / 10) << 4) + v % 10;
     }
-  
+
     void set_times(dv_frame & dv_frame)
     {
 	// XXX We should work this out in the clock loop.
@@ -438,7 +438,7 @@ namespace
 		- 2 * (frame_num + 2) / (10 * 60 * 30 - 18);
 	    frame_rate = 30;
 	}
-     
+
 	// Timecode format is based on SMPTE LTC
 	// <http://en.wikipedia.org/wiki/Linear_timecode>:
 	// 0: pack id = 0x13
@@ -481,7 +481,7 @@ namespace
 	    bcd(now_tm.tm_mday),
 	    bcd(1 + now_tm.tm_mon),
 	    bcd(now_tm.tm_year % 100)
-	};	
+	};
 
 	// Record time format (similar to timecode format):
 	// 0: pack id = 0x63 (video) or 0x53 (audio)
@@ -680,7 +680,7 @@ void mixer::video_mix_pic_in_pic::apply(const mix_data & m,
 	video_effect_pic_in_pic(
 	    make_raw_frame_ref(mixed_raw), dest_region_,
 	    make_raw_frame_ref(sec_source_raw),
-	    raw_frame_system(sec_source_raw.get())->active_region);	    
+	    raw_frame_system(sec_source_raw.get())->active_region);
     }
 }
 
@@ -768,7 +768,7 @@ void mixer::run_mixer()
 	    mixed_raw->header.pts = serial_num;
   	    mixed_dv = allocate_dv_frame();
 	    int out_size = avcodec_encode_video(enc,
-						mixed_dv->buffer, system->size, 
+						mixed_dv->buffer, system->size,
 						&mixed_raw->header);
 	    assert(size_t(out_size) == system->size);
 	    mixed_dv->serial_num = serial_num;

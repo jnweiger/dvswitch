@@ -16,7 +16,7 @@ enum {
 
 void video_effect_show_title_safe(struct raw_frame_ref dest)
 {
-    int chroma_shift_horiz, chroma_shift_vert;    
+    int chroma_shift_horiz, chroma_shift_vert;
     avcodec_get_chroma_sub_sample(dest.pix_fmt,
 				  &chroma_shift_horiz, &chroma_shift_vert);
 
@@ -62,7 +62,7 @@ void video_effect_show_title_safe(struct raw_frame_ref dest)
 void video_effect_brighten(struct raw_frame_ref dest,
 			   struct rectangle d_rect)
 {
-    int chroma_shift_horiz, chroma_shift_vert;    
+    int chroma_shift_horiz, chroma_shift_vert;
     avcodec_get_chroma_sub_sample(dest.pix_fmt,
 				  &chroma_shift_horiz, &chroma_shift_vert);
 

@@ -86,7 +86,7 @@ void frame_timer_wait(uint64_t point)
     {
 	perror("FATAL: timer_settime");
 	exit(1);
-    }  
+    }
     sigset_t sigset_alarm;
     sigemptyset(&sigset_alarm);
     sigaddset(&sigset_alarm, SIGALRM);

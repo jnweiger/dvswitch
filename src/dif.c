@@ -133,4 +133,4 @@ enum dv_sample_rate dv_buffer_get_sample_rate(const uint8_t * buffer)
     }
 
     return dv_sample_rate_invalid;
-}   
+}

@@ -559,7 +559,7 @@ server::sink_connection::sink_connection(server & server, auto_fd socket,
 }
 
 server::sink_connection::~sink_connection()
-{	  
+{
     server_.mixer_.remove_sink(sink_id_);
 }
 
@@ -639,7 +639,7 @@ server::connection::send_status server::sink_connection::do_send()
 	vector[vector_pos].iov_base =
 	    static_cast<char *>(vector[vector_pos].iov_base) + rel_pos;
 	vector[vector_pos].iov_len -= rel_pos;
-	  
+
 	ssize_t sent_size = writev(socket_.get(),
 				   vector + vector_pos,
 				   vector_size - vector_pos);

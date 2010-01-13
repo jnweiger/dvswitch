@@ -79,7 +79,7 @@ void copy_raw_frame(struct raw_frame_ref dest,
 	const unsigned source_size = source.planes.linesize[plane];
 	uint8_t * dest_p = dest.planes.data[plane];
 	const unsigned dest_size = dest.planes.linesize[plane];
-		
+
 	if (plane == 1)
 	{
 	    width >>= chroma_shift_horiz;
