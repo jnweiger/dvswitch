@@ -317,6 +317,7 @@ int main(int argc, char ** argv)
 	perror("ERROR: write");
 	exit(1);
     }
+    printf("INFO: Connected.\n");
 
     transfer_frames(&params);
 

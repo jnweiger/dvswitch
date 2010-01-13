@@ -107,6 +107,7 @@ int main(int argc, char ** argv)
 	return 1;
     }
     close(sock);
+    printf("INFO: Connected.\n");
     execvp(argv[optind], argv + optind);
     perror("ERROR: execvp");
     return 1;
