@@ -86,7 +86,7 @@ void connector::source_connection::setup(UsageEnvironment * env)
 {
     session_.reset(MediaSession::createNew(*env, desc_.get()));
     if (!session_.get() ||
-	!session_.get()->initiateByMediaType("video/dv", subsession_))
+	!session_.get()->initiateByMediaType("video/DV", subsession_))
 	throw std::runtime_error(env->getResultMsg());
 
     // Read first frame
