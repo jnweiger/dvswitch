@@ -709,8 +709,18 @@ void mixer::run_mixer()
     dec->release_buffer = raw_frame_release_buffer;
     dec->reget_buffer = raw_frame_reget_buffer;
 
-    auto_codec encoder(auto_codec_open_encoder(CODEC_ID_DVVIDEO));
+    auto_codec encoder(avcodec_alloc_context());
     AVCodecContext * enc = encoder.get();
+    if (!enc)
+	throw std::bad_alloc();
+    // Set some input parameters early to satisfy
+    // dvvideo_init_encoder() that the input will match some DV
+    // profile.  It doesn't matter if we change these later.
+    enc->width = 720;
+    enc->height = 576;
+    enc->pix_fmt = PIX_FMT_YUV420P;
+    auto_codec_open_encoder(encoder, CODEC_ID_DVVIDEO);
+
     {
 	// Try to use one thread per CPU, up to a limit of 8
 	int enc_thread_count =
