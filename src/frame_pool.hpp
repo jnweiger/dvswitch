@@ -11,8 +11,8 @@
 // Memory pool for frame buffers.  This should make frame
 // (de)allocation relatively cheap.
 
-class dv_frame;
-class raw_frame;
+struct dv_frame;
+struct raw_frame;
 
 // Reference-counting pointers to frames
 typedef std::tr1::shared_ptr<dv_frame> dv_frame_ptr;
