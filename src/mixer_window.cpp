@@ -11,6 +11,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include <libintl.h>
+
 #include <gdk/gdkkeysyms.h>
 #include <gtkmm/entry.h>
 #include <gtkmm/main.h>
@@ -60,15 +62,15 @@
 mixer_window::mixer_window(mixer & mixer, connector & connector)
     : mixer_(mixer),
       connector_(connector),
-      file_menu_item_("_File", true),
+      file_menu_item_(gettext("_File"), true),
       quit_menu_item_(Gtk::StockID("gtk-quit")),
-      settings_menu_item_("_Settings", true),
-      format_menu_item_("_Format", true),
-      sources_menu_item_("_Sources", true),
+      settings_menu_item_(gettext("_Settings"), true),
+      format_menu_item_(gettext("_Format"), true),
+      sources_menu_item_(gettext("_Sources"), true),
       record_button_("gtk-media-record"),
       cut_button_("gtk-cut"),
-      none_button_(effect_group_, "No effect"),
-      pip_button_(effect_group_, "_Pic-in-pic", true),
+      none_button_(effect_group_, gettext("No effect")),
+      pip_button_(effect_group_, gettext("_Pic-in-pic"), true),
       apply_button_("gtk-apply"),
       vu_meter_(-56, 0),
       pri_video_source_id_(0),
@@ -159,7 +161,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
     display_.show();
 
     osd_.add(display_);
-    osd_.set_status("STOP", "gtk-media-stop");
+    osd_.set_status(gettext("STOP"), "gtk-media-stop");
     osd_.show();
 
     selector_.set_border_width(gui_standard_spacing);
@@ -258,9 +260,9 @@ void mixer_window::toggle_record() throw()
     mixer_.enable_record(flag);
     cut_button_.set_sensitive(flag);
     if (flag)
-	osd_.set_status("RECORD", "gtk-media-record", 2);
+	osd_.set_status(gettext("RECORD"), "gtk-media-record", 2);
     else
-	osd_.set_status("STOP", "gtk-media-stop");
+	osd_.set_status(gettext("STOP"), "gtk-media-stop");
 }
 
 void mixer_window::set_pri_video_source(mixer::source_id id)

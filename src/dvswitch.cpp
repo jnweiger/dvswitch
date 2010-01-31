@@ -12,6 +12,9 @@
 
 #include <getopt.h>
 
+#include <locale.h>
+#include <libintl.h>
+
 #include <gtkmm/main.h>
 #include <sigc++/functors/slot.h>
 
@@ -56,6 +59,9 @@ Usage: " << progname << " [gtk-options] \\\n\
 
 int main(int argc, char **argv)
 {
+    setlocale(LC_ALL, "");
+    bindtextdomain("dvswitch", SHAREDIR "/locale");
+    textdomain("dvswitch");
     try
     {
 	dvswitch_read_config(handle_config);

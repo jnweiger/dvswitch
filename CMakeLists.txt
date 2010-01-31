@@ -7,6 +7,7 @@ endif(COMMAND cmake_policy)
 project(DVSWITCH CXX C)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
+include(FindGettext)
 include(FindPkgConfig)
 pkg_check_modules(ALSA REQUIRED alsa)
 pkg_check_modules(GTKMM REQUIRED gtkmm-2.4)
@@ -63,6 +64,7 @@ add_subdirectory(data)
 add_subdirectory(doc)
 add_subdirectory(src)
 add_subdirectory(tests)
+add_subdirectory(po)
 
 install(FILES ChangeLog
         DESTINATION ${docdir}/dvswitch)
