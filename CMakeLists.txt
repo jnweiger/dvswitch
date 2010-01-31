@@ -28,7 +28,6 @@ find_package(LiveMedia REQUIRED)
 # Cope with recent move of ffmpeg headers into subdirectories
 set(LIBAVCODEC_INCLUDE_DIRS ${LIBAVCODEC_INCLUDE_DIRS} ${LIBAVCODEC_INCLUDEDIR}/libavcodec)
 
-set(CMAKE_INSTALL_PREFIX "" CACHE INTERNAL "") # we don't use this
 set(prefix /usr/local
     CACHE PATH "Installation prefix")
 set(bindir ${prefix}/bin
@@ -39,6 +38,8 @@ set(docdir ${sharedir}/doc
     CACHE PATH "Documentation installation directory")
 set(mandir ${sharedir}/man
     CACHE PATH "Manual page installation directory")
+# Some modules require this
+set(CMAKE_INSTALL_PREFIX "${prefix}" CACHE INTERNAL "")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wextra")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++98 -Wall -Wextra")
