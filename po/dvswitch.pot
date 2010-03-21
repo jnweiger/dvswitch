@@ -5,15 +5,51 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: dvswitch 0.9\n"
+"Project-Id-Version: dvswitch 0.9~alpha\n"
 "Report-Msgid-Bugs-To: dvswitch-devel@lists.debian.org\n"
-"POT-Creation-Date: 2010-03-08 00:10+0000\n"
+"POT-Creation-Date: 2010-04-03 23:33+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
+
+#: src/format_dialog.cpp:17
+msgid "Format Settings"
+msgstr ""
+
+#: src/format_dialog.cpp:18
+msgid "Video system"
+msgstr ""
+
+#: src/format_dialog.cpp:19
+msgid "Video frame aspect ratio"
+msgstr ""
+
+#: src/format_dialog.cpp:20
+msgid "Audio sample rate"
+msgstr ""
+
+#: src/format_dialog.cpp:32 src/format_dialog.cpp:47 src/format_dialog.cpp:57
+msgid "Automatic"
+msgstr ""
+
+#: src/format_dialog.cpp:33
+msgid "625 lines, 50 Hz (PAL)"
+msgstr ""
+
+#: src/format_dialog.cpp:34
+msgid "525 lines, 60 Hz (NTSC)"
+msgstr ""
+
+#: src/format_dialog.cpp:48
+msgid "Normal (4:3)"
+msgstr ""
+
+#: src/format_dialog.cpp:49
+msgid "Wide (16:9)"
+msgstr ""
 
 #: src/mixer_window.cpp:65
 msgid "_File"

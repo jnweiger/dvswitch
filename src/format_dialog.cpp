@@ -7,15 +7,17 @@
 
 #include <gtkmm/stockid.h>
 
+#include <libintl.h>
+
 #include "format_dialog.hpp"
 #include "gui.hpp"
 
 format_dialog::format_dialog(Gtk::Window & parent,
 			     mixer::format_settings settings)
-    : Dialog("Format Settings", parent, /*modal=*/true),
-      system_label_("Video system"),
-      frame_aspect_label_("Video frame aspect ratio"),
-      sample_rate_label_("Audio sample rate")
+    : Dialog(gettext("Format Settings"), parent, /*modal=*/true),
+      system_label_(gettext("Video system")),
+      frame_aspect_label_(gettext("Video frame aspect ratio")),
+      sample_rate_label_(gettext("Audio sample rate"))
 {
     add_button(Gtk::StockID("gtk-apply"), 1);
     add_button(Gtk::StockID("gtk-cancel"), 0);
@@ -27,9 +29,9 @@ format_dialog::format_dialog(Gtk::Window & parent,
     system_label_.show();
     box->add(system_label_);
 
-    system_combo_.append_text("Automatic");
-    system_combo_.append_text("625 lines, 50 Hz (PAL)");
-    system_combo_.append_text("525 lines, 60 Hz (NTSC)");
+    system_combo_.append_text(gettext("Automatic"));
+    system_combo_.append_text(gettext("625 lines, 50 Hz (PAL)"));
+    system_combo_.append_text(gettext("525 lines, 60 Hz (NTSC)"));
     if (settings.system == &dv_system_625_50)
 	system_combo_.set_active(1);
     else if (settings.system == &dv_system_525_60)
@@ -42,9 +44,9 @@ format_dialog::format_dialog(Gtk::Window & parent,
     frame_aspect_label_.show();
     box->add(frame_aspect_label_);
 
-    frame_aspect_combo_.append_text("Automatic");
-    frame_aspect_combo_.append_text("Normal (4:3)");
-    frame_aspect_combo_.append_text("Wide (16:9)");
+    frame_aspect_combo_.append_text(gettext("Automatic"));
+    frame_aspect_combo_.append_text(gettext("Normal (4:3)"));
+    frame_aspect_combo_.append_text(gettext("Wide (16:9)"));
     frame_aspect_combo_.set_active(1 + settings.frame_aspect);
     frame_aspect_combo_.show();
     box->add(frame_aspect_combo_);
@@ -52,7 +54,7 @@ format_dialog::format_dialog(Gtk::Window & parent,
     sample_rate_label_.show();
     box->add(sample_rate_label_);
 
-    sample_rate_combo_.append_text("Automatic");
+    sample_rate_combo_.append_text(gettext("Automatic"));
     sample_rate_combo_.append_text("48 kHz");
     sample_rate_combo_.append_text("32 kHz");
     sample_rate_combo_.set_active(1 + settings.sample_rate);
