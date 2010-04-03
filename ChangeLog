@@ -16,6 +16,7 @@ dvswitch (0.9~alpha) UNRELEASED; urgency=low
     transitive by default - Debian bug #554310
   * Remove support for 44.1 kHz audio
   * Internationalize and add Dutch translation, thanks to Wouter Verhelst
+  * Add update-po target for updating translation files
 
  -- Ben Hutchings <ben@decadent.org.uk>  Sun, 01 Mar 2009 03:16:30 +0000
 
