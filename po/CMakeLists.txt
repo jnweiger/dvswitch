@@ -8,7 +8,7 @@ add_custom_target(
   update-po
   COMMAND xgettext -p po -o dvswitch.pot --package-name=dvswitch
           --package-version=${PACKAGE_VERSION}
-          --msgid-bugs-address=dvswitch-devel@lists.debian.org
+          --msgid-bugs-address=dvswitch-devel@lists.alioth.debian.org
           src/*.c src/*.cpp
   COMMAND sed -i "'1,4c\\
 # DVswitch\\
