@@ -117,6 +117,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
     record_button_.set_mode(/*draw_indicator=*/false);
     record_button_.signal_toggled().connect(
 	sigc::mem_fun(*this, &mixer_window::toggle_record));
+    record_button_.set_sensitive(false);
     record_button_.show();
 
     cut_button_.set_sensitive(false);
@@ -406,6 +407,8 @@ bool mixer_window::update(Glib::IOCondition) throw()
 	    mixed_raw = mixed_raw_;
 	    mixed_raw_.reset();
 	}
+
+	record_button_.set_sensitive(mixer_.can_record());
 
 	if (mixed_raw)
 	    display_.put_frame(mixed_raw);

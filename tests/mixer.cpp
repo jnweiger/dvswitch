@@ -55,7 +55,7 @@ int main()
     mixer the_mixer;
     mixer::source_settings dummy_settings;
     the_mixer.add_source(new dummy_source, dummy_settings);
-    the_mixer.add_sink(new dummy_sink(sink_count));
+    the_mixer.add_sink(new dummy_sink(sink_count), false);
     for (;;)
     {
 	if (source_count - sink_count < 8)

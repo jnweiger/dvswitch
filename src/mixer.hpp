@@ -136,8 +136,8 @@ public:
 
     // Interface for sinks
     // Register and unregister sinks
-    sink_id add_sink(sink *);
-    void remove_sink(sink_id);
+    sink_id add_sink(sink *, bool will_record);
+    void remove_sink(sink_id, bool will_record);
 
     // Interface for monitors
     void set_monitor(monitor *);
@@ -154,6 +154,8 @@ public:
 			  bool timed,
 			  unsigned int ms,
 			  uint8_t scale=0);
+
+    bool can_record() const;
 
     // Mixer interface
     format_settings get_format() const;
@@ -221,6 +223,7 @@ private:
 
     boost::mutex sink_mutex_; // controls access to the following
     std::vector<sink *> sinks_;
+    unsigned recorders_count_;
 
     monitor * monitor_;
 };

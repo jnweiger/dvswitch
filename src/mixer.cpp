@@ -43,6 +43,7 @@ mixer::mixer()
       clock_thread_(boost::bind(&mixer::run_clock, this)),
       mixer_state_(run_state_wait),
       mixer_thread_(boost::bind(&mixer::run_mixer, this)),
+      recorders_count_(0),
       monitor_(0)
 {
     format_.system = NULL;
@@ -169,17 +170,24 @@ void mixer::put_frame(source_id id, const dv_frame_ptr & frame)
 		  << " due to full queue\n";
 }
 
-mixer::sink_id mixer::add_sink(sink * sink)
+mixer::sink_id mixer::add_sink(sink * sink, bool will_record)
 {
     boost::mutex::scoped_lock lock(sink_mutex_);
     // XXX We may want to be able to reuse sink slots.
     sinks_.push_back(sink);
+    if (will_record)
+	++recorders_count_;
     return sinks_.size() - 1;
 }
 
-void mixer::remove_sink(sink_id id)
+void mixer::remove_sink(sink_id id, bool will_record)
 {
     boost::mutex::scoped_lock lock(sink_mutex_);
+    if (will_record)
+    {
+	assert(recorders_count_ != 0);
+	--recorders_count_;
+    }
     sinks_.at(id) = 0;
 }
 
@@ -222,6 +230,12 @@ void mixer::cut()
 {
     boost::mutex::scoped_lock lock(source_mutex_);
     settings_.cut_before = true;
+}
+
+bool mixer::can_record() const
+{
+    // Not locking: an incorrect result isn't a big issue here, but speed is
+    return recorders_count_ != 0;
 }
 
 namespace

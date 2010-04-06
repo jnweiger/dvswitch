@@ -555,12 +555,12 @@ server::sink_connection::sink_connection(server & server, auto_fd socket,
       frame_pos_(0),
       overflowed_(false)
 {
-    sink_id_ = server_.mixer_.add_sink(this);
+    sink_id_ = server_.mixer_.add_sink(this, will_record);
 }
 
 server::sink_connection::~sink_connection()
 {
-    server_.mixer_.remove_sink(sink_id_);
+    server_.mixer_.remove_sink(sink_id_, will_record_);
 }
 
 server::connection::send_status server::sink_connection::do_send()
