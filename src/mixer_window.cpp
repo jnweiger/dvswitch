@@ -123,7 +123,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
     command_sep_.show();
 
     none_button_.set_mode(/*draw_indicator=*/false);
-    none_button_.set_sensitive(true);
+    none_button_.set_sensitive(false);
     none_button_.signal_clicked().connect(
 	sigc::mem_fun(this, &mixer_window::cancel_effect));
     none_button_.add_accelerator("activate",
@@ -134,7 +134,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
     none_button_.show();
 
     pip_button_.set_mode(/*draw_indicator=*/false);
-    pip_button_.set_sensitive(true);
+    pip_button_.set_sensitive(false);
     pip_button_.signal_clicked().connect(
 	sigc::mem_fun(this, &mixer_window::begin_pic_in_pic));
     pip_button_.show();
@@ -355,7 +355,10 @@ bool mixer_window::update(Glib::IOCondition) throw()
 	    vu_meter_.set_levels(levels);
 	}
 
-	selector_.set_source_count(source_dv.size());
+	std::size_t count = source_dv.size();
+	selector_.set_source_count(count);
+	none_button_.set_sensitive(count >= 1);
+	pip_button_.set_sensitive(count >= 2);
 
 	// Update the thumbnail displays of sources.  If a new mixed frame
 	// arrives while we were doing this, return to the event loop.
