@@ -71,12 +71,15 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
       cut_button_("gtk-cut"),
       none_button_(effect_group_, gettext("No effect")),
       pip_button_(effect_group_, gettext("_Pic-in-pic"), true),
+      fade_button_(effect_group_, gettext("Fa_de"), true),
+      fade_value_(300, 15000, 100),
       apply_button_("gtk-apply"),
       vu_meter_(-56, 0),
       pri_video_source_id_(0),
       sec_video_source_id_(0),
       pip_active_(false),
       pip_pending_(false),
+      progress_active_(false),
       wakeup_pipe_(O_NONBLOCK, O_NONBLOCK),
       next_source_id_(0)
 {
@@ -139,6 +142,16 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
 	sigc::mem_fun(this, &mixer_window::begin_pic_in_pic));
     pip_button_.show();
 
+    fade_button_.set_mode(/*draw_indicator=*/false);
+    fade_button_.set_sensitive(false);
+    fade_button_.signal_clicked().connect(
+        sigc::mem_fun(this, &mixer_window::begin_fade));
+    fade_button_.show();
+
+    fade_value_.set_value(2000.0);
+    fade_value_.set_sensitive(false);
+    fade_value_.show();
+
     apply_button_.set_sensitive(false);
     apply_button_.signal_clicked().connect(
 	sigc::mem_fun(this, &mixer_window::apply_effect));
@@ -153,6 +166,8 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
 				  Gdk::ModifierType(0),
 				  Gtk::AccelFlags(0));
     apply_button_.show();
+
+    progress_.show();
 
     meter_sep_.show();
 
@@ -181,6 +196,9 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
     command_box_.pack_start(none_button_, Gtk::PACK_SHRINK);
     command_box_.pack_start(pip_button_, Gtk::PACK_SHRINK);
     command_box_.pack_start(apply_button_, Gtk::PACK_SHRINK);
+    command_box_.pack_start(fade_button_, Gtk::PACK_SHRINK);
+    command_box_.pack_start(fade_value_, Gtk::PACK_SHRINK);
+    command_box_.pack_start(progress_, Gtk::PACK_SHRINK);
     command_box_.pack_start(meter_sep_, Gtk::PACK_EXPAND_PADDING);
     command_box_.pack_start(vu_meter_, Gtk::PACK_EXPAND_WIDGET);
     command_box_.show();
@@ -208,9 +226,11 @@ void mixer_window::cancel_effect()
 {
     pip_pending_ = false;
     pip_active_ = false;
+    fade_pending_ = false;
     mixer_.set_video_mix(mixer_.create_video_mix_simple(pri_video_source_id_));
     display_.set_selection_enabled(false);
     apply_button_.set_sensitive(false);
+    fade_value_.set_sensitive(false);
 }
 
 void mixer_window::begin_pic_in_pic()
@@ -218,6 +238,37 @@ void mixer_window::begin_pic_in_pic()
     pip_pending_ = true;
     display_.set_selection_enabled(true);
     apply_button_.set_sensitive(true);
+}
+
+void mixer_window::begin_fade()
+{
+    fade_pending_ = true;
+    fade_value_.set_sensitive(true);
+    // pic-in-pic doesn't actually work well with fade ATM, but at least try to
+    // handle it to some degree
+    if (pip_pending_)
+    {
+	pip_pending_ = false;
+	display_.set_selection_enabled(false);
+	apply_button_.set_sensitive(false);
+    }
+}
+
+void mixer_window::effect_status(int min, int cur, int max, bool more)
+{
+    if (fade_pending_)
+    {
+	if (!more)
+	{
+	    pri_video_source_id_ = fade_target_;
+	    mixer_.set_video_mix(
+		mixer_.create_video_mix_simple(pri_video_source_id_));
+	    progress_active_ = false;
+	    return;
+	}
+	progress_val_ = ((double)(cur - min)) / ((double)(max - min));
+	progress_active_ = true;
+    }
 }
 
 void mixer_window::apply_effect()
@@ -267,6 +318,18 @@ void mixer_window::toggle_record() throw()
 
 void mixer_window::set_pri_video_source(mixer::source_id id)
 {
+    // If the fade is active, apply the transition rather than switching the
+    // primary source.
+    if (fade_pending_)
+    {
+	fade_target_ = id;
+	mixer_.set_video_mix(
+	    mixer_.create_video_mix_fade(pri_video_source_id_, fade_target_,
+					 true, int(fade_value_.get_value())));
+        pip_active_ = false;
+	return;
+    }
+
     pri_video_source_id_ = id;
 
     // If the secondary source is becoming the primary source, cancel
@@ -359,6 +422,7 @@ bool mixer_window::update(Glib::IOCondition) throw()
 	selector_.set_source_count(count);
 	none_button_.set_sensitive(count >= 1);
 	pip_button_.set_sensitive(count >= 2);
+	fade_button_.set_sensitive(count >= 2);
 
 	// Update the thumbnail displays of sources.  If a new mixed frame
 	// arrives while we were doing this, return to the event loop.
@@ -386,6 +450,17 @@ bool mixer_window::update(Glib::IOCondition) throw()
     catch (std::exception & e)
     {
 	std::cerr << "ERROR: Failed to update window: " << e.what() << "\n";
+    }
+
+    if (progress_active_)
+    {
+	progress_.set_fraction(progress_val_);
+	progress_.set_sensitive(true);
+    }
+    else
+    {
+	progress_.set_fraction(0.0);
+	progress_.set_sensitive(false);
     }
 
     return true; // call again

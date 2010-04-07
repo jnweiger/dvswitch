@@ -119,6 +119,7 @@ public:
 				mix_settings,
 				const dv_frame_ptr & mixed_dv,
 				const raw_frame_ptr & mixed_raw) = 0;
+	virtual void effect_status(int min, int cur, int max, bool more) = 0;
     };
 
     mixer();
@@ -147,6 +148,12 @@ public:
     create_video_mix_pic_in_pic(source_id pri_source_id,
 				source_id sec_source_id,
 				rectangle dest_region);
+    static std::tr1::shared_ptr<video_mix>
+    create_video_mix_fade(source_id pri_source_id,
+			  source_id sec_source_id,
+			  bool timed,
+			  unsigned int ms,
+			  uint8_t scale=0);
 
     // Mixer interface
     format_settings get_format() const;
@@ -164,6 +171,7 @@ public:
 private:
     class video_mix_pic_in_pic;
     class video_mix_simple;
+    class video_mix_fade;
 
     // Source data.  We want to allow a bit of leeway in the input
     // pipeline before we have to drop or repeat a frame.  At the

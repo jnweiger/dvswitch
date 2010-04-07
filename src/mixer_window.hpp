@@ -18,6 +18,8 @@
 #include <gtkmm/separator.h>
 #include <gtkmm/togglebutton.h>
 #include <gtkmm/window.h>
+#include <gtkmm/progressbar.h>
+#include <gtkmm/scale.h>
 
 #include "auto_pipe.hpp"
 #include "dv_display_widget.hpp"
@@ -42,6 +44,7 @@ public:
 private:
     void cancel_effect();
     void begin_pic_in_pic();
+    void begin_fade();
     void apply_effect();
     void open_format_dialog();
     void open_sources_dialog();
@@ -57,6 +60,7 @@ private:
 			    mixer::mix_settings,
 			    const dv_frame_ptr & mixed_dv,
 			    const raw_frame_ptr & mixed_raw);
+    virtual void effect_status(int min, int cur, int max, bool more);
 
     mixer & mixer_;
     connector & connector_;
@@ -78,7 +82,10 @@ private:
     Gtk::RadioButtonGroup effect_group_;
     Gtk::RadioButton none_button_;
     Gtk::RadioButton pip_button_;
+    Gtk::RadioButton fade_button_;
+    Gtk::HScale fade_value_;
     Gtk::Button apply_button_;
+    Gtk::ProgressBar progress_;
     Gtk::HSeparator meter_sep_;
     vu_meter vu_meter_;
     status_overlay osd_;
@@ -88,6 +95,10 @@ private:
     mixer::source_id pri_video_source_id_, sec_video_source_id_;
     bool pip_active_;
     bool pip_pending_;
+    bool fade_pending_;
+    bool progress_active_;
+    double progress_val_;
+    mixer::source_id fade_target_;
 
     auto_pipe wakeup_pipe_;
 

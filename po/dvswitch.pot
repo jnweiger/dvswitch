@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: dvswitch 0.9~alpha\n"
 "Report-Msgid-Bugs-To: dvswitch-devel@lists.alioth.debian.org\n"
-"POT-Creation-Date: 2010-04-04 00:56+0100\n"
+"POT-Creation-Date: 2010-04-07 04:40+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -75,10 +75,14 @@ msgstr ""
 msgid "_Pic-in-pic"
 msgstr ""
 
-#: src/mixer_window.cpp:164 src/mixer_window.cpp:265
+#: src/mixer_window.cpp:74
+msgid "Fa_de"
+msgstr ""
+
+#: src/mixer_window.cpp:179 src/mixer_window.cpp:316
 msgid "STOP"
 msgstr ""
 
-#: src/mixer_window.cpp:263
+#: src/mixer_window.cpp:314
 msgid "RECORD"
 msgstr ""

@@ -6,24 +6,20 @@ msgid ""
 msgstr ""
 "Project-Id-Version: dvswitch 0.9\n"
 "Report-Msgid-Bugs-To: dvswitch-devel@lists.alioth.debian.org\n"
-"POT-Creation-Date: 2010-04-04 00:56+0100\n"
+"POT-Creation-Date: 2010-04-07 04:40+0100\n"
 "PO-Revision-Date: 2010-01-31 19:40+0100\n"
 "Last-Translator: Wouter Verhelst <w@uter.be>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/format_dialog.cpp:17
-msgid "Format Settings"
-msgstr "Formaat-instellingen"
+#: src/format_dialog.cpp:34
+msgid "525 lines, 60 Hz (NTSC)"
+msgstr "525 lijnen, 60 Hz (NTSC)"
 
-#: src/format_dialog.cpp:18
-msgid "Video system"
-msgstr "Video-systeem"
-
-#: src/format_dialog.cpp:19
-msgid "Video frame aspect ratio"
-msgstr "Beeldverhouding"
+#: src/format_dialog.cpp:33
+msgid "625 lines, 50 Hz (PAL)"
+msgstr "625 lijnen, 50 Hz (PAL)"
 
 #: src/format_dialog.cpp:20
 msgid "Audio sample rate"
@@ -33,17 +29,37 @@ msgstr "Sample-frequentie"
 msgid "Automatic"
 msgstr "Automatisch"
 
-#: src/format_dialog.cpp:33
-msgid "625 lines, 50 Hz (PAL)"
-msgstr "625 lijnen, 50 Hz (PAL)"
+#: src/mixer_window.cpp:74
+msgid "Fa_de"
+msgstr "_Mengen"
 
-#: src/format_dialog.cpp:34
-msgid "525 lines, 60 Hz (NTSC)"
-msgstr "525 lijnen, 60 Hz (NTSC)"
+#: src/format_dialog.cpp:17
+msgid "Format Settings"
+msgstr "Formaat-instellingen"
+
+#: src/mixer_window.cpp:72
+msgid "No effect"
+msgstr "Geen effect"
 
 #: src/format_dialog.cpp:48
 msgid "Normal (4:3)"
 msgstr "Normaal (4:3)"
+
+#: src/mixer_window.cpp:314
+msgid "RECORD"
+msgstr "OPNEMEN"
+
+#: src/mixer_window.cpp:179 src/mixer_window.cpp:316
+msgid "STOP"
+msgstr "STOP"
+
+#: src/format_dialog.cpp:19
+msgid "Video frame aspect ratio"
+msgstr "Beeldverhouding"
+
+#: src/format_dialog.cpp:18
+msgid "Video system"
+msgstr "Video-systeem"
 
 #: src/format_dialog.cpp:49
 msgid "Wide (16:9)"
@@ -53,30 +69,18 @@ msgstr "Breedbeeld (16:9)"
 msgid "_File"
 msgstr "_Bestand"
 
-#: src/mixer_window.cpp:67
-msgid "_Settings"
-msgstr "_Instellingen"
-
 #: src/mixer_window.cpp:68
 msgid "_Format"
 msgstr "_Formaat"
-
-#: src/mixer_window.cpp:69
-msgid "_Sources"
-msgstr "_Bronnen"
-
-#: src/mixer_window.cpp:72
-msgid "No effect"
-msgstr "Geen effect"
 
 #: src/mixer_window.cpp:73
 msgid "_Pic-in-pic"
 msgstr "B_eeld-in-beeld"
 
-#: src/mixer_window.cpp:164 src/mixer_window.cpp:265
-msgid "STOP"
-msgstr "STOP"
+#: src/mixer_window.cpp:67
+msgid "_Settings"
+msgstr "_Instellingen"
 
-#: src/mixer_window.cpp:263
-msgid "RECORD"
-msgstr "OPNEMEN"
+#: src/mixer_window.cpp:69
+msgid "_Sources"
+msgstr "_Bronnen"

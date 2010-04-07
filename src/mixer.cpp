@@ -33,8 +33,9 @@ struct mixer::video_mix
 {
     virtual void validate(const mixer &) = 0;
     virtual void set_active(const mixer &, bool active) = 0;
-    virtual void apply(const mix_data &, const auto_codec &,
+    virtual bool apply(const mix_data &, const auto_codec &,
 		       raw_frame_ptr &, dv_frame_ptr &) = 0;
+    virtual void status(mixer::monitor * monitor) = 0;
 };
 
 mixer::mixer()
@@ -593,8 +594,9 @@ public:
 private:
     virtual void validate(const mixer &);
     virtual void set_active(const mixer &, bool active);
-    virtual void apply(const mix_data &, const auto_codec &,
+    virtual bool apply(const mix_data &, const auto_codec &,
 		       raw_frame_ptr &, dv_frame_ptr &);
+    virtual void status(mixer::monitor *) {}
     source_id source_id_;
 };
 
@@ -611,13 +613,14 @@ void mixer::video_mix_simple::set_active(const mixer & mixer, bool active)
 	    active ? source_active_video : source_active_none);
 }
 
-void mixer::video_mix_simple::apply(const mix_data & m, const auto_codec &,
+bool mixer::video_mix_simple::apply(const mix_data & m, const auto_codec &,
 				    raw_frame_ptr &, dv_frame_ptr & mixed_dv)
 {
     const dv_frame_ptr & source_dv = m.source_frames[source_id_];
 
     if (source_dv && dv_frame_system(source_dv.get()) == m.format.system)
 	mixed_dv = source_dv;
+    return false;
 }
 
 // Picture-in-picture video mix - replaces some region of primary source with
@@ -635,8 +638,9 @@ public:
 private:
     virtual void validate(const mixer &);
     virtual void set_active(const mixer &, bool active);
-    virtual void apply(const mix_data &, const auto_codec &,
+    virtual bool apply(const mix_data &, const auto_codec &,
 		       raw_frame_ptr &, dv_frame_ptr &);
+    virtual void status(mixer::monitor *) {}
     source_id pri_source_id_, sec_source_id_;
     rectangle dest_region_;
 };
@@ -658,7 +662,7 @@ void mixer::video_mix_pic_in_pic::set_active(const mixer & mixer, bool active)
 	    active ? source_active_video : source_active_none);
 }
 
-void mixer::video_mix_pic_in_pic::apply(const mix_data & m,
+bool mixer::video_mix_pic_in_pic::apply(const mix_data & m,
 					const auto_codec & decoder,
 					raw_frame_ptr & mixed_raw,
 					dv_frame_ptr &)
@@ -682,6 +686,113 @@ void mixer::video_mix_pic_in_pic::apply(const mix_data & m,
 	    make_raw_frame_ref(sec_source_raw),
 	    raw_frame_system(sec_source_raw.get())->active_region);
     }
+    return false;
+}
+
+// Fade video mix - performs a linear interpolation of the values of both
+// sources on an 8-bit scale. Useful for fading.
+
+class mixer::video_mix_fade : public video_mix
+{
+public:
+    video_mix_fade(source_id pri_source_id,
+		   source_id sec_source_id,
+		   bool timed, unsigned int ms,
+		   uint8_t scale=0)
+	: pri_source_id_(pri_source_id),
+	  sec_source_id_(sec_source_id),
+	  timed_(timed),
+	  scale_(scale),
+	  bucketsize_(ms / 255),
+	  modulo_(0),
+	  ms_per_frame_(0)
+    {}
+    uint8_t get_scale() { return scale_; };
+
+private:
+    virtual void validate(const mixer &);
+    virtual void set_active(const mixer &, bool active);
+    virtual bool apply(const mix_data &, const auto_codec &, raw_frame_ptr &, dv_frame_ptr &);
+    virtual void status(mixer::monitor * monitor);
+
+    source_id pri_source_id_, sec_source_id_;
+    bool timed_;
+    uint8_t scale_;
+    int bucketsize_;
+    int modulo_;
+    int ms_per_frame_;
+};
+
+void mixer::video_mix_fade::validate(const mixer & mixer)
+{
+    if (pri_source_id_ >= mixer.sources_.size() ||
+	sec_source_id_ >= mixer.sources_.size())
+	throw std::range_error("video source id out of range");
+    if (!bucketsize_ && timed_)
+	throw std::range_error("timeout too short");
+}
+
+void mixer::video_mix_fade::set_active(const mixer & mixer, bool active)
+{
+    if (mixer.sources_[pri_source_id_].src)
+	mixer.sources_[pri_source_id_].src->set_active(
+	    active ? source_active_video : source_active_none);
+    if (mixer.sources_[sec_source_id_].src)
+	mixer.sources_[sec_source_id_].src->set_active(
+	    active ? source_active_video : source_active_none);
+}
+
+void mixer::video_mix_fade::status(mixer::monitor * monitor)
+{
+    monitor->effect_status(0, scale_, 255, timed_);
+}
+
+bool mixer::video_mix_fade::apply(const mix_data & m,
+				  const auto_codec & decoder,
+				  raw_frame_ptr & mixed_raw,
+				  dv_frame_ptr &)
+{
+    bool retval = false;
+    const dv_frame_ptr & pri_source_dv = m.source_frames[pri_source_id_];
+    const dv_frame_ptr & sec_source_dv = m.source_frames[sec_source_id_];
+
+    if (timed_)
+    {
+	int val;
+	int step;
+
+	retval = true;
+	if (!ms_per_frame_)
+	    ms_per_frame_ = ((1000 * m.format.system->frame_rate_denom) /
+			     m.format.system->frame_rate_numer);
+	val = modulo_ + ms_per_frame_;
+	step = val / bucketsize_;
+	modulo_ = val % bucketsize_;
+	if ((scale_ + step) >= 255)
+	{
+	    timed_ = false;
+	    scale_ = 255;
+	}
+	else
+	{
+	    scale_ += step;
+	}
+    }
+    if (pri_source_dv &&
+	dv_frame_system(pri_source_dv.get()) == m.format.system &&
+	sec_source_dv &&
+	dv_frame_system(sec_source_dv.get()) == m.format.system)
+    {
+	// Decode sources
+	mixed_raw = decode_video_frame(decoder, pri_source_dv);
+	raw_frame_ptr sec_source_raw =
+	    decode_video_frame(decoder, sec_source_dv);
+
+	// Mix raw video
+	video_effect_fade(make_raw_frame_ref(mixed_raw),
+			  make_raw_frame_ref(sec_source_raw), scale_);
+    }
+    return retval;
 }
 
 std::tr1::shared_ptr<mixer::video_mix> mixer::create_video_mix_simple(source_id id)
@@ -695,6 +806,15 @@ mixer::create_video_mix_pic_in_pic(source_id pri_source_id,
 {
     return std::tr1::shared_ptr<mixer::video_mix>(
 	new video_mix_pic_in_pic(pri_source_id, sec_source_id, dest_region));
+}
+
+std::tr1::shared_ptr<mixer::video_mix>
+mixer::create_video_mix_fade(source_id pri_source_id,
+			     source_id sec_source_id, bool timed,
+			     unsigned int ms, uint8_t scale)
+{
+    return std::tr1::shared_ptr<mixer::video_mix>(
+        new video_mix_fade(pri_source_id, sec_source_id, timed, ms, scale));
 }
 
 void mixer::run_mixer()
@@ -759,7 +879,8 @@ void mixer::run_mixer()
 	dv_frame_ptr mixed_dv;
 	raw_frame_ptr mixed_raw;
 
-	m->settings.video_mix->apply(*m, decoder, mixed_raw, mixed_dv);
+	if (m->settings.video_mix->apply(*m, decoder, mixed_raw, mixed_dv))
+	    m->settings.video_mix->status(monitor_);
 
 	if (mixed_raw)
 	{

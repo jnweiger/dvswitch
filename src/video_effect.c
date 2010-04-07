@@ -267,3 +267,41 @@ void video_effect_pic_in_pic(struct raw_frame_ref dest,
 	}
     }
 }
+
+void video_effect_fade(struct raw_frame_ref dest,
+		       struct raw_frame_ref sec,
+		       uint8_t scale)
+{
+    int x, y, plane;
+    uint8_t *ptr_d, *ptr_s;
+    uint16_t tmp;
+    int width, height;
+
+    int chroma_shift_horiz, chroma_shift_vert;
+    avcodec_get_chroma_sub_sample(dest.pix_fmt,
+				  &chroma_shift_horiz, &chroma_shift_vert);
+
+    width = FRAME_WIDTH;
+    height = dest.height;
+    for (plane = 0; plane < 3; plane++)
+    {
+	ptr_d = (dest.planes.data[plane]);
+	ptr_s = (sec.planes.data[plane]);
+	if (plane == 1)
+	{
+	    width >>= chroma_shift_horiz;
+	    height >>= chroma_shift_vert;
+	}
+        for (y = 0; y < height; y++)
+        {
+	    for (x = 0; x < width; x++)
+	    {
+		tmp = scale * (*ptr_s - *ptr_d);
+		*ptr_d += (uint8_t)(tmp >> 8);
+		ptr_d++; ptr_s++;
+	    }
+	    ptr_d += dest.planes.linesize[plane] - width;
+	    ptr_s += dest.planes.linesize[plane] - width;
+        }
+    }
+}
