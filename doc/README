@@ -9,10 +9,11 @@ technical conferences that require live mixing for streams and/or
 recording.
 
 Currently DVswitch can combine audio from one source with video from
-another and can combine two video streams with a picture-in-picture
-effect.  Further mixing effects are planned.  It works solely with the
-DV format since almost all camcorders support this and it allows for
-low latency display and cutting.
+another, can combine two video streams with a picture-in-picture
+effect, and can apply a fading transition from one video stream to
+another.  Further mixing effects are planned.  It works solely with the
+DV format since almost all camcorders support this and it allows for low
+latency display and cutting.
 
 Since DV cameras must be connected to computers via Firewire cables of
 limited length, DVswitch is divided into several different programs
@@ -106,11 +107,12 @@ keystrokes:
 
 1 to 9          select the video source
 Alt-1 to Alt-9  select the audio source
-P               picture-in-picture
+P               picture-in-picture (in English locales)
+D		enable fade transition (in English locales)
 R               start/stop recording (in English locales)
 T               cut recording (in English locales)
 Return/Enter    apply effect
-Escape          cancel area selection
+Escape          cancel any (pending) effects
 Ctrl-Q          quit
 
 Video and audio sources can also be selected using the buttons beside
@@ -152,8 +154,10 @@ the recording commands.
 Applying effects
 ----------------
 
-Currently the only mixing effect is picture-in-picture.  To apply this
-effect:
+Currently two effects are implemented: picture-in-picture, and a
+time-based fading transition.
+
+To apply the picture-in-picture effect:
 
 1. Select the primary video source by pressing its number key or
    clicking the 'A' button next to its thumbnail
@@ -167,3 +171,23 @@ effect:
 5. Press Return/Enter
 
 To cancel the effect, press Escape.
+
+For fading:
+
+1. Select the video source to transition from by pressing its number key
+   or clicking the 'A' button next to its thumbnail
+2. Enable the fade effect by pressing D
+3. Select a timeout for the fade effect by using the slider below the
+   fade button. This slider has a millisecond resolution, but note that
+   of course the effect has a resolution of one frame. The default
+   timeout is set to two seconds.
+4. Select the video source to transition to by pressing its number key
+   or clicking the 'A' button next to its thumbnail
+
+The fade effect will remain active until the 'No effect' button is
+activated (either by using the mouse or by hitting 'Escape'), or the
+picture-in-picture effect is enabled.
+
+It is not currently possible to combine effects; if a fading transition
+is started while the picture-in-picture effect is active, then the
+latter will be disabled when the fading transition is started.
