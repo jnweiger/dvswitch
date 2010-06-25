@@ -2,10 +2,7 @@
 #include <cstring>
 #include <iostream>
 
-extern "C" {
-#include <avcodec.h>
-}
-
+#include "avcodec_wrap.h"
 #include "video_effect.h"
 
 const uint32_t source_colour = 0xfefefe, dest_colour = 0x000000, pad_colour = 0xbadbad;

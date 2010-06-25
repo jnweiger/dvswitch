@@ -14,6 +14,7 @@ dvswitch (0.9~alpha) UNRELEASED; urgency=low
     transitive by default - Debian bug #554310
   * Remove support for 44.1 kHz audio
   * Add update-po target for updating translation files
+  * Fix build failure with ffmpeg 0.6
 
   [ Carl Karsten ]
   * Add peak level indicators to VU-meter
