@@ -408,7 +408,10 @@ bool mixer_window::update(Glib::IOCondition) throw()
 	    mixed_raw_.reset();
 	}
 
-	record_button_.set_sensitive(mixer_.can_record());
+	bool can_record = mixer_.can_record();
+	record_button_.set_sensitive(can_record);
+	if (record_button_.get_active())
+	    record_button_.set_active(can_record);
 
 	if (mixed_raw)
 	    display_.put_frame(mixed_raw);
