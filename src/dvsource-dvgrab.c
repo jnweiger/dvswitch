@@ -20,6 +20,7 @@
 
 static struct option options[] = {
     {"card",     1, NULL, 'c'},
+    {"guid",	  1, NULL, 'g'},
     {"firewire", 0, NULL, 'F'},
     {"v4l2",     0, NULL, 'V'},
     {"host",     1, NULL, 'h'},
@@ -39,6 +40,7 @@ enum mode {
 static enum mode mode = mode_unknown;
 static char * device_name = NULL;
 static char * firewire_card = NULL;
+static char * firewire_guid = NULL;
 static char * mixer_host = NULL;
 static char * mixer_port = NULL;
 static int do_tally = 0;
@@ -90,7 +92,7 @@ static void handle_config(const char * name, const char * value)
 static void usage(const char * progname)
 {
     static const char firewire_args[] =
-	"[-c CARD-NUMBER | DEVICE]";
+	"[-c CARD-NUMBER | DEVICE] [-g GUID]";
     static const char v4l2_args[] = "[DEVICE]";
     static const char other_args[] =
 	"[-t] [-v] [-h HOST] [-p PORT]";
@@ -177,13 +179,17 @@ int main(int argc, char ** argv)
     /* Parse arguments. */
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "c:h:p:tv", options, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "c:g:h:p:tv", options, NULL)) != -1)
     {
 	switch (opt)
 	{
 	case 'c':
 	    free(firewire_card);
 	    firewire_card = strdup(optarg);
+	    break;
+	case 'g':
+	    free(firewire_guid);
+	    firewire_guid = strdup(optarg);
 	    break;
 	case 'F':
 	    mode = mode_firewire;
@@ -288,7 +294,7 @@ int main(int argc, char ** argv)
 
     /* Run dvgrab with the socket as stdout. */
 
-    char * dvgrab_argv[7];
+    char * dvgrab_argv[9];
     char ** argp = dvgrab_argv;
     *argp++ = "dvgrab";
     if (mode == mode_v4l2)
@@ -302,6 +308,11 @@ int main(int argc, char ** argv)
     {
 	*argp++ = "-card";
 	*argp++ = firewire_card;
+    }
+    if (firewire_guid)
+    {
+	*argp++ = "-guid";
+	*argp++ = firewire_guid;
     }
     *argp++ = "-noavc";
     *argp++ = "-";
