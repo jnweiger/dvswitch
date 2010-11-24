@@ -6,6 +6,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string>
 #include <string.h>
 #include <vector>
 
@@ -33,10 +34,10 @@ static option options[] = {
     {NULL,          0, NULL, 0}
 };
 
-static char * fw_port_name = NULL;
-static char * listen_host = NULL;
-static char * listen_port = NULL;
-static int verbose = 0;
+static std::string fw_port_name("0");
+static std::string listen_host;
+static std::string listen_port;
+static bool verbose = false;
 
 static unsigned long long total_len;
 static unsigned int dropped_packets;
@@ -52,20 +53,11 @@ static void handle_config(const char * name, const char * value)
 {
     if (strcmp(name, "FIREWIRE_CARD") == 0 ||
 	strcmp(name, "FIREWIRE_DEVICE") == 0)
-    {
-	free(fw_port_name);
-	fw_port_name = strdup(value);
-    }
+	fw_port_name = value;
     else if (strcmp(name, "LISTEN_HOST") == 0)
-    {
-	free(listen_host);
-	listen_host = strdup(value);
-    }
+	listen_host = value;
     else if (strcmp(name, "LISTEN_PORT") == 0)
-    {
-	free(listen_port);
-	listen_port = strdup(value);
-    }
+	listen_port = value;
 }
 
 static void usage(const char *progname)
@@ -156,17 +148,13 @@ receive(raw1394handle_t /*handle*/,
     return RAW1394_ISO_OK;
 }
 
-static int select_fw_port(raw1394handle_t handle, const char * name)
+static int select_fw_port(raw1394handle_t handle, const std::string & name)
 {
-    int n_ports, n_ports_again, i;
-    std::vector<raw1394_portinfo> ports;
-    char * end;
-
-    n_ports = raw1394_get_port_info(handle, NULL, 0);
+    int n_ports = raw1394_get_port_info(handle, NULL, 0);
+    std::vector<raw1394_portinfo> ports(n_ports);
     if (n_ports > 0)
     {
-	ports.resize(n_ports);
-	n_ports_again = raw1394_get_port_info(handle, &ports[0], n_ports);
+	int n_ports_again = raw1394_get_port_info(handle, &ports[0], n_ports);
 	if (n_ports > n_ports_again)
 	{
 	    n_ports = n_ports_again;
@@ -179,26 +167,20 @@ static int select_fw_port(raw1394handle_t handle, const char * name)
 	return -1;
     }
 
-    if (name)
-    {
-	// Try converting name to an integer
-	i = strtoul(name, &end, 10);
+    // Try converting name to an integer
+    char * end;
+    int i = strtoul(name.c_str(), &end, 10);
 
-	// If we didn't convert the whole string, assume it really is a name
-	if (*end)
-	    for (i = 0; i != n_ports; ++i)
-		if (!strcmp(name, ports[i].name))
-		    break;
+    // If we didn't convert the whole string, assume it really is a name
+    if (*end)
+	for (i = 0; i != n_ports; ++i)
+	    if (name == ports[i].name)
+		break;
 
-	if (i >= n_ports)
-	{
-	    fprintf(stderr, "ERROR: %s: not found\n", name);
-	    return -1;
-	}
-    }
-    else
+    if (i >= n_ports)
     {
-	i = 0;
+	fprintf(stderr, "ERROR: %s: not found\n", name.c_str());
+	return -1;
     }
 
     printf("INFO: Reading from Firewire port %s\n", ports[i].name);
@@ -225,19 +207,16 @@ int main(int argc, char ** argv)
 	switch (opt)
 	{
 	case 'c':
-	    free(fw_port_name);
-	    fw_port_name = strdup(optarg);
+	    fw_port_name = optarg;
 	    break;
 	case 'h':
-	    free(listen_host);
-	    listen_host = strdup(optarg);
+	    listen_host = optarg;
 	    break;
 	case 'p':
-	    free(listen_port);
-	    listen_port = strdup(optarg);
+	    listen_port = optarg;
 	    break;
 	case 'v':
-	    verbose = 1;
+	    verbose = true;
 	    break;
 	case 'H': // --help
 	    usage(argv[0]);
@@ -249,10 +228,7 @@ int main(int argc, char ** argv)
     }
 
     if (optind != argc)
-    {
-	free(fw_port_name);
-	fw_port_name = strdup(argv[optind++]);
-    }
+	fw_port_name = argv[optind++];
 
     if (optind != argc)
     {
