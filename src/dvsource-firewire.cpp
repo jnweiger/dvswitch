@@ -2,6 +2,7 @@
 // See the file "COPYING" for licence details.
 // Source that reads from a Firewire (IEEE 1394) channel
 
+#include <algorithm>
 #include <assert.h>
 #include <signal.h>
 #include <stdio.h>
@@ -14,16 +15,37 @@
 #include <poll.h>
 #include <unistd.h>
 
+#include <liveMedia.hh>
+#include <BasicUsageEnvironment.hh>
+#include <GroupsockHelper.hh>
+
 #include <libraw1394/raw1394.h>
 
+#include "auto_handle.hpp"
 #include "config.h"
 #include "dif.h"
+#include "os_error.hpp"
 #include "protocol.h"
 #include "socket.h"
 
 // IEC 61883 parameters
 #define CIF_HEADER_SIZE 8
 #define CIF_PACKET_SIZE (6 * DIF_BLOCK_SIZE)
+
+struct auto_raw1394_closer
+{
+    void operator()(raw1394handle_t handle) const
+    {
+	if (handle)
+	    raw1394_destroy_handle(handle);
+    }
+};
+struct auto_raw1394_factory
+{
+    raw1394handle_t operator()() const { return 0; }
+};
+typedef auto_handle<raw1394handle_t, auto_raw1394_closer,
+		    auto_raw1394_factory> auto_raw1394;
 
 static option options[] = {
     {"card",        1, NULL, 'c'},
@@ -38,16 +60,6 @@ static std::string fw_port_name("0");
 static std::string listen_host;
 static std::string listen_port;
 static bool verbose = false;
-
-static unsigned long long total_len;
-static unsigned int dropped_packets;
-static unsigned int dropped_frames;
-static unsigned int complete_frames;
-
-static unsigned int seq_count;
-static unsigned int next_seq_num;
-static unsigned int next_block_num;
-static unsigned char frame_buf[DIF_MAX_FRAME_SIZE];
 
 static void handle_config(const char * name, const char * value)
 {
@@ -68,93 +80,72 @@ static void usage(const char *progname)
 	    progname);
 }
 
-static enum raw1394_iso_disposition
-receive(raw1394handle_t /*handle*/,
-	unsigned char * data,
-	unsigned int len,
-	unsigned char /*channel*/,
-	unsigned char /*tag*/,
-	unsigned char /*sy*/,
-	unsigned int /*cycle*/,
-	unsigned int dropped)
+class firewire_source : public FramedSource
 {
-    total_len += len;
-    dropped_packets += dropped;
+public:
+    firewire_source(UsageEnvironment & env, const std::string & port_name);
+    virtual ~firewire_source();
 
-    if (len == CIF_HEADER_SIZE + CIF_PACKET_SIZE)
-    {
-	unsigned int seq_num, typed_block_num, block_num;
+private:
+    virtual Boolean isDVVideoStreamFramer() const { return True; };
+    virtual void doGetNextFrame();
 
-	data += CIF_HEADER_SIZE;
+    bool try_open();
 
-	// Find position of these blocks in the sequence
-	seq_num = data[1] >> 4;
-	typed_block_num = data[2];
-	block_num = -1;
-	switch (data[0] >> 5)
-	{
-	case 0:
-	    // Header: position 0
-	    if (typed_block_num == 0)
-		block_num = 0;
-	    break;
-	case 3:
-	    // Audio: position 6 or 102
-	    if (typed_block_num < 9)
-		block_num = 6 + typed_block_num * 16;
-	    break;
-	case 4:
-	    // Video: any other position divisible by 6
-	    if (typed_block_num < 135)
-		block_num = 7 + typed_block_num + typed_block_num / 15;
-	    break;
-	}
+    static void raw_poll(void * opaque, int);
+    static enum raw1394_iso_disposition
+    raw_receive(raw1394handle_t handle,
+		unsigned char * data, unsigned int len,
+		unsigned char channel, unsigned char tag,
+		unsigned char sy, unsigned int cycle,
+		unsigned int dropped);
+    void receive(unsigned char * data, unsigned int len, unsigned int dropped);
 
-	// Are these the blocks we're expecting?
-	if (seq_num == next_seq_num && block_num == next_block_num)
-	{
-	    // Set sequence count from the first block of the frame
-	    if (seq_num == 0 && block_num == 0)
-		seq_count = dv_buffer_system(data)->seq_count;
+    std::string port_name_;
+    auto_raw1394 handle_;
 
-	    // Append blocks to frame
-	    memcpy(frame_buf + ((seq_num * DIF_BLOCKS_PER_SEQUENCE + block_num)
-				* DIF_BLOCK_SIZE),
-		   data, CIF_PACKET_SIZE);
+    unsigned long long total_len_;
+    unsigned int dropped_packets_;
 
-	    // Advance position in sequence
-	    next_block_num = block_num + CIF_PACKET_SIZE / DIF_BLOCK_SIZE;
-	    if (next_block_num == DIF_BLOCKS_PER_SEQUENCE)
-	    {
-		// Advance to next sequence
-		next_block_num = 0;
-		++next_seq_num;
-		if (next_seq_num == seq_count)
-		{
-		    // Finish frame
-		    ++complete_frames;
-		    next_seq_num = 0;
-		}
-	    }
-	}
-	else if (next_seq_num != 0 || next_block_num != 0)
-	{
-	    ++dropped_frames;
-	    next_seq_num = 0;
-	    next_block_num = 0;
-	}
-    }
+    unsigned int seq_count_;
+    unsigned int next_seq_num_;
+    unsigned int next_block_num_;
+};
 
-    return RAW1394_ISO_OK;
+firewire_source::firewire_source(UsageEnvironment & env,
+				 const std::string & port_name)
+    : FramedSource(env), port_name_(port_name),
+      total_len_(0), dropped_packets_(0),
+      seq_count_(0), next_seq_num_(0), next_block_num_(0)
+{
 }
 
-static int select_fw_port(raw1394handle_t handle, const std::string & name)
+firewire_source::~firewire_source()
 {
-    int n_ports = raw1394_get_port_info(handle, NULL, 0);
+    if (handle_.get())
+	envir().taskScheduler().turnOffBackgroundReadHandling(
+	    raw1394_get_fd(handle_.get()));
+
+    if (verbose)
+    {
+	printf("INFO: Total length received: %llu\n", total_len_);
+	printf("INFO: Dropped packets: %u\n", dropped_packets_);
+    }
+}
+
+bool firewire_source::try_open()
+{
+    auto_raw1394 handle(raw1394_new_handle());
+    if (!handle.get())
+	return false;
+    raw1394_set_userdata(handle.get(), this);
+
+    int n_ports = raw1394_get_port_info(handle.get(), NULL, 0);
     std::vector<raw1394_portinfo> ports(n_ports);
     if (n_ports > 0)
     {
-	int n_ports_again = raw1394_get_port_info(handle, &ports[0], n_ports);
+	int n_ports_again =
+	    raw1394_get_port_info(handle.get(), &ports[0], n_ports);
 	if (n_ports > n_ports_again)
 	{
 	    n_ports = n_ports_again;
@@ -164,30 +155,153 @@ static int select_fw_port(raw1394handle_t handle, const std::string & name)
     if (n_ports == 0)
     {
 	fprintf(stderr, "ERROR: No Firewire ports accessible\n");
-	return -1;
+	return false;
     }
 
     // Try converting name to an integer
     char * end;
-    int i = strtoul(name.c_str(), &end, 10);
+    int i = strtoul(port_name_.c_str(), &end, 10);
 
     // If we didn't convert the whole string, assume it really is a name
     if (*end)
 	for (i = 0; i != n_ports; ++i)
-	    if (name == ports[i].name)
+	    if (port_name_ == ports[i].name)
 		break;
 
     if (i >= n_ports)
     {
-	fprintf(stderr, "ERROR: %s: not found\n", name.c_str());
-	return -1;
+	fprintf(stderr, "ERROR: %s: not found\n", port_name_.c_str());
+	return false;
     }
 
-    printf("INFO: Reading from Firewire port %s\n", ports[i].name);
-    return i;
+    if (verbose)
+	printf("INFO: Reading from Firewire port %s\n", ports[i].name);
+
+    if (raw1394_set_port(handle.get(), i))
+    {
+	perror("raw1394_set_port");
+	return false;
+    }
+
+    if (raw1394_iso_recv_init(handle.get(), raw_receive, /*buf_packets=*/ 600,
+			      /*max_packet_size=*/
+			      CIF_HEADER_SIZE + CIF_PACKET_SIZE + 8,
+			      /*channel=*/ 63,
+			      /*mode=*/ RAW1394_DMA_DEFAULT,
+			      /*irq_interval=*/ 100))
+    {
+	perror("raw1394_iso_recv_init");
+	return false;
+    }
+
+    if (raw1394_iso_recv_start(handle.get(), -1, -1, -1))
+    {
+	perror("raw1394_iso_recv_start");
+	return false;
+    }
+
+    envir().taskScheduler().turnOnBackgroundReadHandling(
+	raw1394_get_fd(handle.get()), raw_poll, this);
+    handle_ = handle;
+    return true;
 }
 
-static volatile sig_atomic_t received_sigint;
+void firewire_source::doGetNextFrame()
+{
+    if (!handle_.get() && !try_open())
+	handleClosure(this);
+}
+
+void firewire_source::raw_poll(void * opaque, int)
+{
+    firewire_source * source = static_cast<firewire_source *>(opaque);
+    if (raw1394_loop_iterate(source->handle_.get()) < 0)
+	handleClosure(source);
+}
+
+enum raw1394_iso_disposition
+firewire_source::raw_receive(raw1394handle_t handle,
+			     unsigned char * data, unsigned int len,
+			     unsigned char /*channel*/, unsigned char /*tag*/,
+			     unsigned char /*sy*/, unsigned int /*cycle*/,
+			     unsigned int dropped)
+{
+    firewire_source * source =
+	static_cast<firewire_source *>(raw1394_get_userdata(handle));
+    source->receive(data, len, dropped);
+    return RAW1394_ISO_OK;
+}
+
+void firewire_source::receive(unsigned char * data, unsigned int len,
+			      unsigned int dropped)
+{
+    total_len_ += len;
+    dropped_packets_ += dropped;
+
+    if (len == CIF_HEADER_SIZE + CIF_PACKET_SIZE)
+    {
+	data += CIF_HEADER_SIZE;
+
+	assert(fMaxSize >= CIF_PACKET_SIZE);
+	fFrameSize = CIF_PACKET_SIZE;
+	memcpy(fTo, data, CIF_PACKET_SIZE);
+	fNumTruncatedBytes = 0;
+	FramedSource::afterGetting(this);
+    }
+}
+
+class firewire_subsession : public OnDemandServerMediaSubsession
+{
+public:
+    firewire_subsession(UsageEnvironment & env, const std::string & port_name);
+
+private:
+    virtual FramedSource * createNewStreamSource(unsigned clientSessionId,
+						 unsigned & estBitrate);
+    virtual RTPSink * createNewRTPSink(Groupsock * rtpGroupsock,
+				       unsigned char rtpPayloadTypeIfDynamic,
+				       FramedSource * inputSource);
+    virtual const char * getAuxSDPLine(RTPSink * rtpSink,
+				       FramedSource * inputSource);
+
+    std::string port_name_;
+};
+
+firewire_subsession::firewire_subsession(UsageEnvironment & env,
+					 const std::string & port_name)
+    : OnDemandServerMediaSubsession(env, /*reuseFirstSource=*/ False),
+      port_name_(port_name)
+{
+}
+
+FramedSource *
+firewire_subsession::createNewStreamSource(unsigned /*clientSessionId*/,
+					   unsigned & estBitrate)
+{
+    firewire_source * source = new firewire_source(envir(), port_name_);
+    estBitrate = 29000; // kbps
+    return DVVideoStreamFramer::createNew(envir(), source,
+					  /*sourceIsSeekable=*/ False);
+}
+
+RTPSink *
+firewire_subsession::createNewRTPSink(Groupsock * rtpGroupsock,
+				      unsigned char rtpPayloadTypeIfDynamic,
+				      FramedSource * /*inputSource*/)
+{
+    return DVVideoRTPSink::createNew(envir(), rtpGroupsock,
+				     rtpPayloadTypeIfDynamic);
+}
+
+const char * firewire_subsession::getAuxSDPLine(RTPSink * rtpSink,
+						FramedSource * inputSource)
+{
+    return static_cast<DVVideoRTPSink *>(rtpSink)->
+	auxSDPLineFromFramer(static_cast<DVVideoStreamFramer *>(inputSource));
+}
+
+// Should be volatile sig_atomic_t, but liveMedia insists on char...
+static char received_sigint;
 
 static void handle_sigint(int)
 {
@@ -249,67 +363,33 @@ int main(int argc, char ** argv)
 	return 1;
     }
 
-    raw1394handle_t handle = raw1394_new_handle();
-    if (!handle)
+    // Set up liveMedia framework
+    BasicTaskScheduler * sched = BasicTaskScheduler::createNew();
+    BasicUsageEnvironment * env = BasicUsageEnvironment::createNew(*sched);
+    RTSPServer * server = RTSPServer::createNew(*env, 8554, NULL);
+    if (server == NULL)
     {
-	perror("raw1394_new_handle");
+	*env << "Failed to create RTSP server: " << env->getResultMsg() << "\n";
 	return 1;
     }
 
-    int fw_port_index = select_fw_port(handle, fw_port_name);
-    if (fw_port_index < 0)
-	return 1;
+    // Set up session
+    std::string stream_name("firewire");
+    stream_name.append(fw_port_name);
+    std::string stream_desc("DV stream from Firewire port ");
+    stream_desc.append(fw_port_name);
+    ServerMediaSession * sms =
+	ServerMediaSession::createNew(*env, stream_name.c_str(),
+				      stream_desc.c_str(), stream_desc.c_str());
+    sms->addSubsession(new firewire_subsession(*env, fw_port_name));
+    server->addServerMediaSession(sms);
 
-    if (raw1394_set_port(handle, fw_port_index))
-    {
-	perror("raw1394_set_port");
-	return 1;
-    }
-
-    if (raw1394_iso_recv_init(handle, receive, /*buf_packets=*/ 600,
-			      /*max_packet_size=*/
-			      CIF_HEADER_SIZE + CIF_PACKET_SIZE + 8,
-			      /*channel=*/ 63,
-			      /*mode=*/ RAW1394_DMA_DEFAULT,
-			      /*irq_interval=*/ 100))
-    {
-	perror("raw1394_iso_recv_init");
-	return 1;
-    }
-
-    if (raw1394_iso_recv_start(handle, -1, -1, -1))
-    {
-	perror("raw1394_iso_recv_start");
-	return 1;
-    }
-
+    // Loop until SIGINT received
     if (verbose)
-	printf("INFO: Running\n");
+	printf("INFO: Serving at rtsp://*:8554/%s\n", stream_name.c_str());
+    sched->doEventLoop(&received_sigint);
 
-    // Loop until I/O failure or SIGINT received
-    for (;;)
-    {
-	pollfd poll_fds[] = {
-	    { raw1394_get_fd(handle), POLLIN, 0 }
-	};
-
-	if (poll(poll_fds, 1, -1) < 0 ||
-	    poll_fds[0].revents & (POLLHUP | POLLERR) ||
-	    raw1394_loop_iterate(handle) < 0 ||
-	    received_sigint)
-	    break;
-    }
-
-    raw1394_iso_stop(handle);
-    raw1394_iso_shutdown(handle);
-
-    if (verbose)
-    {
-	printf("INFO: Total length received: %llu\n", total_len);
-	printf("INFO: Dropped packets: %u\n", dropped_packets);
-	printf("INFO: Dropped frames: %u\n", dropped_frames);
-	printf("INFO: Complete frames: %u\n", complete_frames);
-    }
+    env->reclaim();
 
     return 0;
 }
