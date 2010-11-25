@@ -123,8 +123,14 @@ firewire_source::firewire_source(UsageEnvironment & env,
 firewire_source::~firewire_source()
 {
     if (handle_.get())
+    {
 	envir().taskScheduler().turnOffBackgroundReadHandling(
 	    raw1394_get_fd(handle_.get()));
+
+	// libraw1394 does *not* automatically close the file descriptor
+	// used for isochronous I/O on the new (Juju) firewire stack
+	raw1394_iso_shutdown(handle_.get());
+    }
 
     if (verbose)
     {
@@ -197,6 +203,7 @@ bool firewire_source::try_open()
     if (raw1394_iso_recv_start(handle.get(), -1, -1, -1))
     {
 	perror("raw1394_iso_recv_start");
+	raw1394_iso_shutdown(handle.get()); // see comment on destructor
 	return false;
     }
 
