@@ -17,6 +17,11 @@ target_link_libraries(dvsource-file pthread rt)
 
 add_executable(dvsource-dvgrab dvsource-dvgrab.c ${common_sources})
 
+add_executable(dvsource-firewire-rtsp dvsource-firewire.cpp os_error.cpp
+  ${common_sources})
+target_link_libraries(dvsource-firewire-rtsp pthread raw1394
+  ${LiveMedia_LIBRARIES})
+
 add_executable(dvsource-alsa dvsource-alsa.c dif_audio.c ${common_sources})
 target_link_libraries(dvsource-alsa m ${ALSA_LIBRARIES})
 

@@ -37,6 +37,7 @@ public:
     auto_handle & operator=(auto_handle & other)
 	{
 	    reset(other.release());
+	    return *this;
 	}
     ~auto_handle()
 	{
