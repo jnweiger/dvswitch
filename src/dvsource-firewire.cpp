@@ -269,7 +269,7 @@ private:
 
 firewire_subsession::firewire_subsession(UsageEnvironment & env,
 					 const std::string & port_name)
-    : OnDemandServerMediaSubsession(env, /*reuseFirstSource=*/ False),
+    : OnDemandServerMediaSubsession(env, /*reuseFirstSource=*/ True),
       port_name_(port_name)
 {
 }
