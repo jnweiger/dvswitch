@@ -372,6 +372,7 @@ int main(int argc, char ** argv)
 	*env << "Failed to create RTSP server: " << env->getResultMsg() << "\n";
 	return 1;
     }
+    OutPacketBuffer::maxSize = DIF_MAX_FRAME_SIZE;
 
     // Set up session
     std::string stream_name("firewire");
