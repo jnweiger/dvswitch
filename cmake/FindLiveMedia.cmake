@@ -37,7 +37,7 @@ if(NOT LiveMedia_INCLUDEDIR)
     endif(LiveMedia_FIND_REQUIRED)
 endif(NOT LiveMedia_INCLUDEDIR)
 
-foreach(library_name BasicUsageEnvironment groupsock liveMedia UsageEnvironment)
+foreach(library_name liveMedia groupsock UsageEnvironment BasicUsageEnvironment)
     # Forget previous library_path
     set(library_path "library_path-NOTFOUND" CACHE INTERNAL "")
     if(LiveMedia_BUILDDIR)

@@ -1,4 +1,5 @@
 // Copyright 2010 Ben Hutchings.
+// Copyright 2010 Live Networks, Inc.
 // See the file "COPYING" for licence details.
 // Source that reads from a Firewire (IEEE 1394) channel
 
@@ -15,6 +16,7 @@
 #include <poll.h>
 #include <unistd.h>
 
+#include "DVVideoStreamFramer.hh"
 #include <liveMedia.hh>
 #include <BasicUsageEnvironment.hh>
 #include <GroupsockHelper.hh>
@@ -87,12 +89,12 @@ public:
     virtual ~firewire_source();
 
 private:
-    virtual Boolean isDVVideoStreamFramer() const { return True; };
     virtual void doGetNextFrame();
 
     bool try_open();
 
     static void raw_poll(void * opaque, int);
+    void poll();
     static enum raw1394_iso_disposition
     raw_receive(raw1394handle_t handle,
 		unsigned char * data, unsigned int len,
@@ -103,21 +105,19 @@ private:
 
     std::string port_name_;
     auto_raw1394 handle_;
+    std::vector<char> overspill_;
 
     unsigned long long total_len_;
     unsigned int dropped_packets_;
-
-    unsigned int seq_count_;
-    unsigned int next_seq_num_;
-    unsigned int next_block_num_;
+    unsigned int other_packets_;
 };
 
 firewire_source::firewire_source(UsageEnvironment & env,
 				 const std::string & port_name)
     : FramedSource(env), port_name_(port_name),
-      total_len_(0), dropped_packets_(0),
-      seq_count_(0), next_seq_num_(0), next_block_num_(0)
+      total_len_(0), dropped_packets_(0), other_packets_(0)
 {
+    overspill_.reserve(DIF_MAX_FRAME_SIZE); // gah
 }
 
 firewire_source::~firewire_source()
@@ -136,6 +136,7 @@ firewire_source::~firewire_source()
     {
 	printf("INFO: Total length received: %llu\n", total_len_);
 	printf("INFO: Dropped packets: %u\n", dropped_packets_);
+	printf("INFO: Other packets: %u\n", other_packets_);
     }
 }
 
@@ -207,8 +208,6 @@ bool firewire_source::try_open()
 	return false;
     }
 
-    envir().taskScheduler().turnOnBackgroundReadHandling(
-	raw1394_get_fd(handle.get()), raw_poll, this);
     handle_ = handle;
     return true;
 }
@@ -216,14 +215,40 @@ bool firewire_source::try_open()
 void firewire_source::doGetNextFrame()
 {
     if (!handle_.get() && !try_open())
+    {
 	handleClosure(this);
+	return;
+    }
+
+    fFrameSize = std::min<unsigned int>(overspill_.size(), fMaxSize);
+    fNumTruncatedBytes = fFrameSize - overspill_.size();
+
+    if (fFrameSize)
+    {
+	memcpy(fTo, overspill_.data(), fFrameSize);
+	overspill_.clear();
+	FramedSource::afterGetting(this);
+	return;
+    }
+
+    envir().taskScheduler().turnOnBackgroundReadHandling(
+	raw1394_get_fd(handle_.get()), raw_poll, this);
 }
 
 void firewire_source::raw_poll(void * opaque, int)
 {
-    firewire_source * source = static_cast<firewire_source *>(opaque);
-    if (raw1394_loop_iterate(source->handle_.get()) < 0)
-	handleClosure(source);
+    static_cast<firewire_source *>(opaque)->poll();
+}
+
+void firewire_source::poll()
+{
+    envir().taskScheduler().turnOffBackgroundReadHandling(
+	raw1394_get_fd(handle_.get()));
+
+    if (raw1394_loop_iterate(handle_.get()) < 0)
+	handleClosure(this);
+    else
+	FramedSource::afterGetting(this);
 }
 
 enum raw1394_iso_disposition
@@ -245,15 +270,28 @@ void firewire_source::receive(unsigned char * data, unsigned int len,
     total_len_ += len;
     dropped_packets_ += dropped;
 
-    if (len == CIF_HEADER_SIZE + CIF_PACKET_SIZE)
+    if (len != CIF_HEADER_SIZE + CIF_PACKET_SIZE)
+    {
+	++other_packets_;
+    }
+    else
     {
 	data += CIF_HEADER_SIZE;
 
-	assert(fMaxSize >= CIF_PACKET_SIZE);
-	fFrameSize = CIF_PACKET_SIZE;
-	memcpy(fTo, data, CIF_PACKET_SIZE);
-	fNumTruncatedBytes = 0;
-	FramedSource::afterGetting(this);
+	if (fFrameSize + CIF_PACKET_SIZE <= fMaxSize)
+	{
+	    memcpy(fTo, data, CIF_PACKET_SIZE);
+	    fTo += CIF_PACKET_SIZE;
+	    fFrameSize += CIF_PACKET_SIZE;
+	}
+	else if (overspill_.size() + CIF_PACKET_SIZE <= overspill_.capacity())
+	{
+	    overspill_.insert(overspill_.end(), data, data + CIF_PACKET_SIZE);
+	}
+	else
+	{
+	    fNumTruncatedBytes += CIF_PACKET_SIZE;
+	}
     }
 }
 
@@ -272,6 +310,7 @@ private:
 				       FramedSource * inputSource);
 
     std::string port_name_;
+    std::vector<char> sdp_line_;
 };
 
 firewire_subsession::firewire_subsession(UsageEnvironment & env,
@@ -287,8 +326,8 @@ firewire_subsession::createNewStreamSource(unsigned /*clientSessionId*/,
 {
     firewire_source * source = new firewire_source(envir(), port_name_);
     estBitrate = 29000; // kbps
-    return DVVideoStreamFramer::createNew(envir(), source,
-					  /*sourceIsSeekable=*/ False);
+    return DVVideoStreamFramer2::createNew(envir(), source,
+					   /*sourceIsSeekable=*/ False);
 }
 
 RTPSink *
@@ -303,8 +342,26 @@ firewire_subsession::createNewRTPSink(Groupsock * rtpGroupsock,
 const char * firewire_subsession::getAuxSDPLine(RTPSink * rtpSink,
 						FramedSource * inputSource)
 {
-    return static_cast<DVVideoRTPSink *>(rtpSink)->
-	auxSDPLineFromFramer(static_cast<DVVideoStreamFramer *>(inputSource));
+    // We should be able to call DVVideoRTPSink::getAuxSDPLine, but
+    // that only works with the original DVVideoStreamFramer.  So, we
+    // copy that code here.
+
+    DVVideoStreamFramer2 * framer =
+	static_cast<DVVideoStreamFramer2 *>(inputSource);
+    const char * profile_name = framer->profileName();
+
+    if (!profile_name)
+	return NULL;
+
+    static const char * sdp_format = "a=fmtp:%d encode=%s;audio=bundled\r\n";
+    unsigned sdp_size = strlen(sdp_format)
+	+ 3 // max payload format code length
+	+ strlen(profile_name);
+    sdp_line_.resize(sdp_size + 1);
+    sprintf(sdp_line_.data(), sdp_format, rtpSink->rtpPayloadType(),
+	    profile_name);
+
+    return sdp_line_.data();
 }
 
 // Should be volatile sig_atomic_t, but liveMedia insists on char...

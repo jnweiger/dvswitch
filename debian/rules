@@ -9,8 +9,7 @@ endif
 export CXXFLAGS := $(CFLAGS)
 
 ifneq (,$(findstring parallel,$(DEB_BUILD_OPTIONS)))
-comma := ,
-MAKEFLAGS += $(subst parallel=,-j,$(filter parallel=%,$(subst $(comma), ,$(DEB_BUILD_OPTIONS))))
+MAKEFLAGS += $(subst parallel=,-j,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
 # cmake coloured output can get messy quickly...
 export COLOR := off
 endif
