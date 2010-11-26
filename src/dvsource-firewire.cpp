@@ -107,12 +107,14 @@ private:
 
     unsigned long long total_len_;
     unsigned int dropped_packets_;
+    unsigned int unready_receives_;
+    unsigned int other_packets_;
 };
 
 firewire_source::firewire_source(UsageEnvironment & env,
 				 const std::string & port_name)
     : FramedSource(env), port_name_(port_name),
-      total_len_(0), dropped_packets_(0)
+      total_len_(0), dropped_packets_(0), unready_receives_(0), other_packets_(0)
 {
 }
 
@@ -132,6 +134,8 @@ firewire_source::~firewire_source()
     {
 	printf("INFO: Total length received: %llu\n", total_len_);
 	printf("INFO: Dropped packets: %u\n", dropped_packets_);
+	printf("INFO: Packets received while unready: %u\n", unready_receives_);
+	printf("INFO: Other packets: %u\n", other_packets_);
     }
 }
 
@@ -241,7 +245,15 @@ void firewire_source::receive(unsigned char * data, unsigned int len,
     total_len_ += len;
     dropped_packets_ += dropped;
 
-    if (fTo && len == CIF_HEADER_SIZE + CIF_PACKET_SIZE)
+    if (!fTo)
+    {
+	++unready_receives_;
+    }
+    else if (len != CIF_HEADER_SIZE + CIF_PACKET_SIZE)
+    {
+	++other_packets_;
+    }
+    else
     {
 	data += CIF_HEADER_SIZE;
 
@@ -251,10 +263,6 @@ void firewire_source::receive(unsigned char * data, unsigned int len,
 	fTo = NULL;
 
 	FramedSource::afterGetting(this);
-    }
-    else
-    {
-	++dropped_packets_;
     }
 }
 
