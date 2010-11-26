@@ -107,17 +107,12 @@ private:
 
     unsigned long long total_len_;
     unsigned int dropped_packets_;
-
-    unsigned int seq_count_;
-    unsigned int next_seq_num_;
-    unsigned int next_block_num_;
 };
 
 firewire_source::firewire_source(UsageEnvironment & env,
 				 const std::string & port_name)
     : FramedSource(env), port_name_(port_name),
-      total_len_(0), dropped_packets_(0),
-      seq_count_(0), next_seq_num_(0), next_block_num_(0)
+      total_len_(0), dropped_packets_(0)
 {
 }
 
