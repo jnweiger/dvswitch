@@ -150,6 +150,7 @@ void DVVideoStreamFramer2::afterGettingFrame(void* clientData, unsigned frameSiz
 #endif
 
 void DVVideoStreamFramer2::afterGettingFrame1(unsigned frameSize, unsigned numTruncatedBytes) {
+  unsigned framePos = fFrameSize;
   if (fOurProfile == NULL && frameSize >= DV_SAVED_INITIAL_BLOCKS_SIZE) {
     // (Try to) parse this data enough to figure out its profile.
     // We assume that the data begins on a (80-byte) block boundary, but not necessarily on a (150-block) sequence boundary.
@@ -176,21 +177,63 @@ void DVVideoStreamFramer2::afterGettingFrame1(unsigned frameSize, unsigned numTr
 	    break;
 	  }
 	}
-	if (fTo) {
-	  // Discard data before start of frame
-	  fTo -= fFrameSize;
-	  fFrameSize = 0;
-	  frameSize = data + frameSize - ptr;
-	  memmove(fTo, ptr, frameSize);
-	}
+	framePos = 0;
 	break; // because we found a correct sequence header (even if we don't happen to define a profile for it)
       }
     }
+  }
+  else if (fTo != NULL && frameSize >= DV_DIF_BLOCK_SIZE) {
+    // Find position of these blocks in the sequence
+    int seqNum = fTo[1] >> 4, typedBlockNum = fTo[2], blockNum = -1;
+    switch (fTo[0] >> 5) {
+    case 0:
+      // Header
+      if (typedBlockNum == 0)
+	blockNum = 0;
+      break;
+    case 1:
+      // Subcode
+      if (typedBlockNum < 2)
+	blockNum = 1 + typedBlockNum;
+      break;
+    case 2:
+      // VAUX
+      if (typedBlockNum < 3)
+	blockNum = 3 + typedBlockNum;
+      break;
+    case 3:
+      // Audio
+      if (typedBlockNum < 9)
+	blockNum = 6 + typedBlockNum * 16;
+      break;
+    case 4:
+      // Video
+      if (typedBlockNum < 135)
+	blockNum = 7 + typedBlockNum + typedBlockNum / 15;
+      break;
+    }
+    if (blockNum >= 0)
+      framePos = ((seqNum * DV_NUM_BLOCKS_PER_SEQUENCE + blockNum) *
+		  DV_DIF_BLOCK_SIZE);
   }
 
   if (fTo != NULL) { // There is a downstream object; complete delivery to it (or read more data, if necessary)
     unsigned const totFrameSize
       = fOurProfile != NULL ? ((DVVideoProfile const*)fOurProfile)->dvFrameSize : DV_SMALLEST_POSSIBLE_FRAME_SIZE;
+    if (framePos != fFrameSize && framePos + frameSize <= totFrameSize) {
+      // Realign frame
+      fTo -= fFrameSize;
+      // Shift data
+      memmove(fTo + framePos, fTo + fFrameSize, frameSize);
+      // If this is the next frame, discard previous frame
+      if (framePos < fFrameSize)
+	fFrameSize = 0;
+      // Fill gap with no-data (all-ones)
+      memset(fTo + fFrameSize, 0xff, framePos - fFrameSize);
+      fTo += framePos;
+      fFrameSize = framePos;
+    }
+
     fFrameSize += frameSize;
     fTo += frameSize;
 
