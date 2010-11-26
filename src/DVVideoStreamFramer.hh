@@ -27,7 +27,8 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 
 #define DV_DIF_BLOCK_SIZE 80
 #define DV_NUM_BLOCKS_PER_SEQUENCE 150
-#define DV_SAVED_INITIAL_BLOCKS_SIZE (6*DV_DIF_BLOCK_SIZE)
+#define DV_SAVED_INITIAL_BLOCKS_SIZE ((DV_NUM_BLOCKS_PER_SEQUENCE+6-1)*DV_DIF_BLOCK_SIZE)
+    /* enough data to ensure that it contains an intact 6-block header (which occurs at the start of a 150-block sequence) */
 
 class DVVideoStreamFramer;
 
