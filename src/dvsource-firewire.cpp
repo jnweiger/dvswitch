@@ -87,7 +87,6 @@ public:
     virtual ~firewire_source();
 
 private:
-    virtual Boolean isDVVideoStreamFramer() const { return True; };
     virtual void doGetNextFrame();
 
     bool try_open();
