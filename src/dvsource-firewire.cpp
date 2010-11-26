@@ -15,6 +15,7 @@
 #include <poll.h>
 #include <unistd.h>
 
+#include "DVVideoStreamFramer.hh"
 #include <liveMedia.hh>
 #include <BasicUsageEnvironment.hh>
 #include <GroupsockHelper.hh>
@@ -276,6 +277,7 @@ private:
 				       FramedSource * inputSource);
 
     std::string port_name_;
+    std::vector<char> sdp_line_;
 };
 
 firewire_subsession::firewire_subsession(UsageEnvironment & env,
@@ -291,8 +293,8 @@ firewire_subsession::createNewStreamSource(unsigned /*clientSessionId*/,
 {
     firewire_source * source = new firewire_source(envir(), port_name_);
     estBitrate = 29000; // kbps
-    return DVVideoStreamFramer::createNew(envir(), source,
-					  /*sourceIsSeekable=*/ False);
+    return DVVideoStreamFramer2::createNew(envir(), source,
+					   /*sourceIsSeekable=*/ False);
 }
 
 RTPSink *
@@ -307,8 +309,26 @@ firewire_subsession::createNewRTPSink(Groupsock * rtpGroupsock,
 const char * firewire_subsession::getAuxSDPLine(RTPSink * rtpSink,
 						FramedSource * inputSource)
 {
-    return static_cast<DVVideoRTPSink *>(rtpSink)->
-	auxSDPLineFromFramer(static_cast<DVVideoStreamFramer *>(inputSource));
+    // We should be able to call DVVideoRTPSink::getAuxSDPLine, but
+    // that only works with the original DVVideoStreamFramer.  So, we
+    // copy that code here.
+
+    DVVideoStreamFramer2 * framer =
+	static_cast<DVVideoStreamFramer2 *>(inputSource);
+    const char * profile_name = framer->profileName();
+
+    if (!profile_name)
+	return NULL;
+
+    static const char * sdp_format = "a=fmtp:%d encode=%s;audio=bundled\r\n";
+    unsigned sdp_size = strlen(sdp_format)
+	+ 3 // max payload format code length
+	+ strlen(profile_name);
+    sdp_line_.resize(sdp_size + 1);
+    sprintf(sdp_line_.data(), sdp_format, rtpSink->rtpPayloadType(),
+	    profile_name);
+
+    return sdp_line_.data();
 }
 
 // Should be volatile sig_atomic_t, but liveMedia insists on char...
