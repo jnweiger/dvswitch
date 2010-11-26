@@ -244,15 +244,20 @@ void firewire_source::receive(unsigned char * data, unsigned int len,
     total_len_ += len;
     dropped_packets_ += dropped;
 
-    if (len == CIF_HEADER_SIZE + CIF_PACKET_SIZE)
+    if (fTo && len == CIF_HEADER_SIZE + CIF_PACKET_SIZE)
     {
 	data += CIF_HEADER_SIZE;
 
-	assert(fMaxSize >= CIF_PACKET_SIZE);
-	fFrameSize = CIF_PACKET_SIZE;
-	memcpy(fTo, data, CIF_PACKET_SIZE);
-	fNumTruncatedBytes = 0;
+	fFrameSize = std::min<unsigned int>(CIF_PACKET_SIZE, fMaxSize);
+	fNumTruncatedBytes = CIF_PACKET_SIZE - fFrameSize;
+	memcpy(fTo, data, fFrameSize);
+	fTo = NULL;
+
 	FramedSource::afterGetting(this);
+    }
+    else
+    {
+	++dropped_packets_;
     }
 }
 
