@@ -1,4 +1,5 @@
 // Copyright 2010 Ben Hutchings.
+// Copyright 2010 Live Networks, Inc.
 // See the file "COPYING" for licence details.
 // Source that reads from a Firewire (IEEE 1394) channel
 
