@@ -33,7 +33,7 @@ binary-arch : install-stamp
 	dh_strip
 	dh_shlibdeps
 	dh_installchangelogs -a ChangeLog
-	dh_installdocs -a -A doc/README
+	dh_installdocs -a -A doc/README doc/examples
 	dh_compress -a
 	dh_fixperms -a
 	dh_installdeb -a
