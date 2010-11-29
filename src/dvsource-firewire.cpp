@@ -13,8 +13,6 @@
 #include <vector>
 
 #include <getopt.h>
-#include <poll.h>
-#include <unistd.h>
 
 #include "DVVideoStreamFramer.hh"
 #include <liveMedia.hh>
@@ -26,9 +24,6 @@
 #include "auto_handle.hpp"
 #include "config.h"
 #include "dif.h"
-#include "os_error.hpp"
-#include "protocol.h"
-#include "socket.h"
 
 // IEC 61883 parameters
 #define CIF_HEADER_SIZE 8
