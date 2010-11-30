@@ -48,4 +48,11 @@ int main()
     assert(buf.back() == 2);
     assert(buf.size() == 1);
     assert(!buf.empty() && !buf.full());
+    ring_buffer<int> buf3(0);
+    swap(buf2, buf3);
+    assert(buf2.empty());
+    assert(buf3.front() == 2);
+    assert(buf3.back() == 2);
+    assert(buf3.size() == 1);
+    assert(!buf3.empty() && !buf3.full());
 }

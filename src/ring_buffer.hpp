@@ -6,10 +6,17 @@
 #ifndef DVSWITCH_RING_BUFFER_HPP
 #define DVSWITCH_RING_BUFFER_HPP
 
+#include <algorithm>
 #include <cassert>
 #include <new>
 
 #include <tr1/type_traits>
+
+template<typename T>
+class ring_buffer;
+
+template<typename T>
+void swap(ring_buffer<T> & left, ring_buffer<T> & right);
 
 template<typename T>
 class ring_buffer
@@ -37,6 +44,8 @@ public:
     // Writer functions
     void push(const T &);
     const T & back() const;
+
+    friend void swap<T>(ring_buffer & left, ring_buffer & right);
 
 private:
     std::size_t capacity_, front_, back_;
@@ -113,6 +122,16 @@ const T & ring_buffer<T>::back() const
 {
     assert(!empty());
     return buffer_[(back_ - 1) % capacity_];
+}
+
+template<typename T>
+void swap(ring_buffer<T> & left, ring_buffer<T> & right)
+{
+    using std::swap;
+    swap(left.capacity_, right.capacity_);
+    swap(left.front_, right.front_);
+    swap(left.back_, right.back_);
+    swap(left.buffer_, right.buffer_);
 }
 
 #endif // !defined(DVSWITCH_RING_BUFFER_HPP)
