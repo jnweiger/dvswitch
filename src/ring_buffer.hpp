@@ -46,8 +46,16 @@ template<typename T, std::size_t N>
 ring_buffer<T, N>::ring_buffer(const ring_buffer & other)
     : front_(0), back_(0)
 {
-    for (std::size_t i = other.front_; i != other.back_; ++i)
-	push(reinterpret_cast<const T *>(&other.buffer_)[i % N]);
+    try
+    {
+	for (std::size_t i = other.front_; i != other.back_; ++i)
+	    push(reinterpret_cast<const T *>(&other.buffer_)[i % N]);
+    }
+    catch (...)
+    {
+	while (!empty())
+	    pop();
+    }
 }
 
 template<typename T, std::size_t N>
