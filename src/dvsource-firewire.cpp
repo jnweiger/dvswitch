@@ -85,6 +85,9 @@ static int setup_tally_pipe()
 	case 0:
 	    close(pipefd[1]);
 	    execl(tally_script.c_str(), (char*)NULL);
+	    // only returns in case of error
+	    perror("ERROR: exec");
+	    return -1;
 	default:
 	    close(pipefd[0]);
 	    tally_pipe_fd = pipefd[1];
