@@ -15,8 +15,10 @@
 #include <getopt.h>
 #include <poll.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "DVVideoStreamFramer.hh"
+#include "tally_rtsp_server.hpp"
 #include <liveMedia.hh>
 #include <BasicUsageEnvironment.hh>
 #include <GroupsockHelper.hh>
@@ -53,6 +55,7 @@ static option options[] = {
     {"card",        1, NULL, 'c'},
     {"listen-host", 1, NULL, 'h'},
     {"listen-port", 1, NULL, 'p'},
+    {"tally-script",1, NULL, 't'},
     {"verbose",     0, NULL, 'v'},
     {"help",        0, NULL, 'H'},
     {NULL,          0, NULL, 0}
@@ -61,7 +64,36 @@ static option options[] = {
 static std::string fw_port_name("0");
 static std::string listen_host;
 static std::string listen_port;
+static std::string tally_script;
+static int tally_pipe_fd = -1;
 static bool verbose = false;
+
+static int setup_tally_pipe()
+{
+    int pipefd[2];
+
+    if (pipe(pipefd))
+    {
+        perror("ERROR: pipe");
+	return -1;
+    }
+    switch (fork())
+    {
+        case -1:
+	    perror("ERROR: fork");
+	    return -1;
+	case 0:
+	    close(pipefd[1]);
+	    execl(tally_script.c_str(), (char*)NULL);
+	default:
+	    close(pipefd[0]);
+	    tally_pipe_fd = pipefd[1];
+	    fcntl(tally_pipe_fd, F_SETFL, O_NONBLOCK);
+	    break;
+    }
+
+    return 0;
+}
 
 static void handle_config(const char * name, const char * value)
 {
@@ -393,6 +425,9 @@ int main(int argc, char ** argv)
 	case 'p':
 	    listen_port = optarg;
 	    break;
+	case 't':
+	    tally_script = optarg;
+	    break;
 	case 'v':
 	    verbose = true;
 	    break;
@@ -427,10 +462,25 @@ int main(int argc, char ** argv)
 	return 1;
     }
 
+    if (tally_script.length())
+    {
+        if (setup_tally_pipe())
+	{
+	    return 1;
+	}
+    }
     // Set up liveMedia framework
     BasicTaskScheduler * sched = BasicTaskScheduler::createNew();
     BasicUsageEnvironment * env = BasicUsageEnvironment::createNew(*sched);
-    RTSPServer * server = RTSPServer::createNew(*env, 8554, NULL);
+    RTSPServer * server;
+    if (tally_pipe_fd >= 0)
+    {
+	server = tally_rtsp_server::createNew(tally_pipe_fd, *env, 8554, NULL);
+    }
+    else
+    {
+        server = RTSPServer::createNew(*env, 8554, NULL);
+    }
     if (server == NULL)
     {
 	*env << "Failed to create RTSP server: " << env->getResultMsg() << "\n";
