@@ -1,11 +1,15 @@
+/*
+ * Copyright 2011 Wouter Verhelst
+ * See the file "COPYING" for license details.
+ */
 #include "tally_rtsp_server.hpp"
 
 #include <time.h>
 
 /*
  * The dateHeader() function was copied shamelessly from the liveMedia
- * sources (modulo winCE #ifdefs). For some unfathomable reason, this function
- * is not exported.
+ * sources (modulo winCE #ifdefs), which is Copyright 2010 Live Networks, Inc.
+ * For some unfathomable reason, this function is not exported.
  */
 static char const* dateHeader() {
   static char buf[200];
@@ -55,7 +59,7 @@ tally_rtsp_server::RTSPClientSession::~RTSPClientSession()
 }
 
 void
-tally_rtsp_server::RTSPClientSession::handleCmd_SET_PARAMETER(ServerMediaSubsession* subsession, char const* cseq, char const* fullRequestStr)
+tally_rtsp_server::RTSPClientSession::handleCmd_SET_PARAMETER(ServerMediaSubsession* subsession __attribute__((unused)), char const* cseq, char const* fullRequestStr)
 {
     enum tally newstate;
     const char* tallyloc;

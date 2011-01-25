@@ -1,3 +1,7 @@
+/*
+ * Copyright 2011 Wouter Verhelst
+ * See the file "COPYING" for license details
+ */
 #ifndef INC_TALLY_RTSP_SERVER_HPP
 #define INC_TALLY_RTSP_SERVER_HPP
 
