@@ -24,9 +24,12 @@ tally_rtsp_server::tally_rtsp_server(int pipefd, bool verbose, UsageEnvironment&
     : RTSPServer(env, ourSocket, ourPort, authDatabase, reclamationTestSeconds),
       pipefd_(pipefd), tally_state_(TALLY_OFF), verbose_(verbose)
 {
-    write(pipefd_, "TALLY: off\n", 11);
     if (verbose)
     	printf("INFO: initializing tally to off\n");
+    if (write(pipefd_, "TALLY: off\n", 11) < 0 && verbose)
+    {
+        perror("write to pipe");
+    }
 }
 
 tally_rtsp_server::~tally_rtsp_server()
@@ -72,6 +75,11 @@ tally_rtsp_server::RTSPClientSession::handleCmd_SET_PARAMETER(ServerMediaSubsess
     if (!tallyloc) {
     	snprintf((char*)fResponseBuffer, sizeof(fResponseBuffer), "RTSP/1.0 200 OK\r\nCSeq: %s\r\n%sSession: %08X\r\n\r\n", cseq, dateHeader(), fOurSessionId);
     }
+    char* ptr;
+    if ((ptr = (char*)strchr(tallyloc, '\r')))
+    {
+        *ptr = '\0';
+    }
     if (strstr(tallyloc, "on"))
     {
         newstate = TALLY_ON;
@@ -101,9 +109,12 @@ tally_rtsp_server::RTSPClientSession::handleCmd_SET_PARAMETER(ServerMediaSubsess
     if (newstate != server_.tally_state_)
     {
         std::string tmp(tallyloc);
+	tmp += "\n";
         server_.tally_state_ = newstate;
-        tmp += "\n";
-	write(server_.pipefd_, tmp.c_str(), tmp.length());
+	if(write(server_.pipefd_, tmp.c_str(), tmp.length()) < 0 && server_.verbose_)
+	{
+	    perror("write to pipe");
+	}
     }
     snprintf((char*)fResponseBuffer, sizeof(fResponseBuffer),
         "RTSP/1.0 200 OK\r\nCSeq: %s\r\n%sSession: %08X\r\n\r\n",
