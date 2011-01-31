@@ -415,7 +415,7 @@ int main(int argc, char ** argv)
     // Parse arguments.
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "c:v", options, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "c:t:v", options, NULL)) != -1)
     {
 	switch (opt)
 	{
@@ -478,10 +478,12 @@ int main(int argc, char ** argv)
     RTSPServer * server;
     if (tally_pipe_fd >= 0)
     {
-	server = tally_rtsp_server::createNew(tally_pipe_fd, *env, 8554, NULL);
+	server = tally_rtsp_server::createNew(tally_pipe_fd, verbose, *env, 8554, NULL);
     }
     else
     {
+        if (verbose)
+	    printf("INFO: no tally light support (not enabled or pipe failed)\n");
         server = RTSPServer::createNew(*env, 8554, NULL);
     }
     if (server == NULL)

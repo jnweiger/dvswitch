@@ -18,25 +18,27 @@ static char const* dateHeader() {
   return buf;
 }
 
-tally_rtsp_server::tally_rtsp_server(int pipefd, UsageEnvironment& env, int ourSocket, Port ourPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds)
+tally_rtsp_server::tally_rtsp_server(int pipefd, bool verbose, UsageEnvironment& env, int ourSocket, Port ourPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds)
     : RTSPServer(env, ourSocket, ourPort, authDatabase, reclamationTestSeconds),
-      pipefd_(pipefd), tally_state_(TALLY_OFF)
+      pipefd_(pipefd), tally_state_(TALLY_OFF), verbose_(verbose)
 {
     write(pipefd_, "TALLY: off\n", 11);
+    if (verbose)
+    	printf("INFO: initializing tally to off\n");
 }
 
 tally_rtsp_server::~tally_rtsp_server()
 {
 }
 
-tally_rtsp_server* tally_rtsp_server::createNew(int pipefd, UsageEnvironment& env, Port ourPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds)
+tally_rtsp_server* tally_rtsp_server::createNew(int pipefd, bool verbose, UsageEnvironment& env, Port ourPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds)
 {
     int ourSocket = -1;
     do
     {
         ourSocket = setUpOurSocket(env, ourPort);
 	if (ourSocket == -1) break;
-        return new tally_rtsp_server(pipefd, env, ourSocket, ourPort, authDatabase, reclamationTestSeconds);
+        return new tally_rtsp_server(pipefd, verbose, env, ourSocket, ourPort, authDatabase, reclamationTestSeconds);
     } while (0);
 
     if (ourSocket != -1) ::closeSocket(ourSocket);
@@ -71,14 +73,20 @@ tally_rtsp_server::RTSPClientSession::handleCmd_SET_PARAMETER(ServerMediaSubsess
     if (strstr(tallyloc, "on"))
     {
         newstate = TALLY_ON;
+	if (server_.verbose_)
+	    printf("Enabling tally light\n");
     }
     else if (strstr(tallyloc, "off"))
     {
         newstate = TALLY_OFF;
+	if (server_.verbose_)
+	    printf("Disabling tally light\n");
     }
     else if (strstr(tallyloc, "cue"))
     {
         newstate = TALLY_CUE;
+	if (server_.verbose_)
+	    printf("Enabling cue light\n");
     }
     else
     {

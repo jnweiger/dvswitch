@@ -12,9 +12,9 @@
 class tally_rtsp_server: public RTSPServer
 {
 public:
-    static tally_rtsp_server* createNew(int pipefd, UsageEnvironment& env, Port ourPort=554, UserAuthenticationDatabase* authDatabase=NULL, unsigned reclamationTestSeconds=65);
+    static tally_rtsp_server* createNew(int pipefd, bool verbose, UsageEnvironment& env, Port ourPort=554, UserAuthenticationDatabase* authDatabase=NULL, unsigned reclamationTestSeconds=65);
 protected:
-    tally_rtsp_server(int pipefd, UsageEnvironment& env, int ourSocket, Port ourPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds);
+    tally_rtsp_server(int pipefd, bool verbose, UsageEnvironment& env, int ourSocket, Port ourPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds);
     virtual ~tally_rtsp_server();
     virtual RTSPServer::RTSPClientSession* createNewClientSession(unsigned sessionId, int clientSocket, struct sockaddr_in clientAddr);
 private:
@@ -24,6 +24,7 @@ private:
         TALLY_OFF,
         TALLY_CUE
     } tally_state_;
+    bool verbose_;
     class RTSPClientSession: public RTSPServer::RTSPClientSession
     {
     public:
