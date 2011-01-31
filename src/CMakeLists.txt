@@ -35,7 +35,7 @@ target_link_libraries(dvswitch m pthread rt X11 Xext Xv
   ${LIBAVUTIL_LIBRARIES} ${LiveMedia_LIBRARIES} ${GETTEXT_LIBRARIES})
 
 install(TARGETS dvsink-command dvsink-files dvsource-file dvsource-dvgrab
-                dvsource-alsa dvswitch
+                dvsource-alsa dvswitch dvsource-firewire-rtsp
         DESTINATION ${bindir})
 install_symlink(dvsource-dvgrab "${bindir}/dvsource-firewire")
 install_symlink(dvsource-dvgrab "${bindir}/dvsource-v4l2-dv")
