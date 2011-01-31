@@ -4,6 +4,8 @@
  */
 #include "tally_rtsp_server.hpp"
 
+#include <string>
+
 #include <time.h>
 
 /*
@@ -98,10 +100,10 @@ tally_rtsp_server::RTSPClientSession::handleCmd_SET_PARAMETER(ServerMediaSubsess
     }
     if (newstate != server_.tally_state_)
     {
-        char tmp[strlen(tallyloc)+2];
+        std::string tmp(tallyloc);
         server_.tally_state_ = newstate;
-        sprintf(tmp, "%s\n", tallyloc);
-	write(server_.pipefd_, tmp, sizeof(tmp));
+        tmp += "\n";
+	write(server_.pipefd_, tmp.c_str(), tmp.length());
     }
     snprintf((char*)fResponseBuffer, sizeof(fResponseBuffer),
         "RTSP/1.0 200 OK\r\nCSeq: %s\r\n%sSession: %08X\r\n\r\n",
