@@ -84,6 +84,11 @@ static int setup_tally_pipe()
 	    return -1;
 	case 0:
 	    close(pipefd[1]);
+	    if (dup2(pipefd[0], 0) < 0)
+	    {
+	        perror("dup2");
+		exit(EXIT_FAILURE);
+	    }
 	    execl(tally_script.c_str(), (char*)NULL);
 	    // only returns in case of error
 	    perror("ERROR: exec");
