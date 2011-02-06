@@ -32,6 +32,16 @@ namespace
 	if (frame)
 	    raw_frame_pool.free(frame);
     }
+
+    boost::mutex pcm_packet_pool_mutex; // controls access to the following
+    boost::object_pool<pcm_packet> pcm_packet_pool(100);
+
+    void free_pcm_packet(pcm_packet * frame)
+    {
+	boost::mutex::scoped_lock lock(pcm_packet_pool_mutex);
+	if (frame)
+	    pcm_packet_pool.free(frame);
+    }
 }
 
 dv_frame_ptr allocate_dv_frame()
@@ -44,4 +54,10 @@ raw_frame_ptr allocate_raw_frame()
 {
     boost::mutex::scoped_lock lock(raw_frame_pool_mutex);
     return raw_frame_ptr(raw_frame_pool.malloc(), free_raw_frame);
+}
+
+pcm_packet_ptr allocate_pcm_packet()
+{
+    boost::mutex::scoped_lock lock(pcm_packet_pool_mutex);
+    return pcm_packet_ptr(pcm_packet_pool.malloc(), free_pcm_packet);
 }
