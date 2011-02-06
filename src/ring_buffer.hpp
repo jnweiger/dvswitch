@@ -23,6 +23,8 @@ public:
     ~ring_buffer();
     ring_buffer & operator=(const ring_buffer &);
 
+    void reset();
+
     std::size_t capacity() const { return capacity_; }
     std::size_t size() const { return back_ - front_; }
     bool empty() const { return front_ == back_; }
@@ -53,9 +55,7 @@ ring_buffer<T>::ring_buffer(const ring_buffer & other)
     }
     catch (...)
     {
-	while (!empty())
-	    pop();
-
+	reset();
 	delete[] reinterpret_cast<char*>(buffer_);
     }
 }
@@ -63,22 +63,26 @@ ring_buffer<T>::ring_buffer(const ring_buffer & other)
 template<typename T>
 ring_buffer<T>::~ring_buffer()
 {
-    while (!empty())
-	pop();
-
+    reset();
     delete[] reinterpret_cast<char*>(buffer_);
 }
 
 template<typename T>
 ring_buffer<T> & ring_buffer<T>::operator=(const ring_buffer & other)
 {
-    while (!empty())
-	pop();
+    reset();
 
     for (std::size_t i = other.front_; i != other.back_; ++i)
 	push(other.buffer_[i % capacity_]);
 
     return *this;
+}
+
+template<typename T>
+void ring_buffer<T>::reset()
+{
+    while (!empty())
+	pop();
 }
 
 template<typename T>
