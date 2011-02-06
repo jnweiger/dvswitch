@@ -51,7 +51,7 @@ static unsigned get_12bit_scale(uint16_t sample)
     return result;
 }
 
-static int16_t decode_12bit(unsigned code)
+static pcm_sample decode_12bit(unsigned code)
 {
     if (code < 0x200)
     {
@@ -77,7 +77,7 @@ static int16_t decode_12bit(unsigned code)
     }
 }
 
-unsigned dv_buffer_get_audio(const uint8_t * buffer, int16_t * samples)
+unsigned dv_buffer_get_audio(const uint8_t * buffer, pcm_sample * samples)
 {
     const struct dv_system * system = dv_buffer_system(buffer);
     const uint8_t * as_pack = buffer + (6 + 3 * 16) * DIF_BLOCK_SIZE + 3;
@@ -91,8 +91,8 @@ unsigned dv_buffer_get_audio(const uint8_t * buffer, int16_t * samples)
 	return 0;
 
     unsigned sample_count =
-	2 * (system->audio_frame_counts[sample_rate_code].min +
-	     (as_pack[1] & 0x3f));
+	PCM_CHANNELS * (system->audio_frame_counts[sample_rate_code].min +
+			(as_pack[1] & 0x3f));
 
     for (unsigned seq = 0;
 	 seq != (quant ? system->seq_count / 2 : system->seq_count);
@@ -136,8 +136,8 @@ unsigned dv_buffer_get_audio(const uint8_t * buffer, int16_t * samples)
 				    i * system->seq_count * 9);
 		    if (pos < sample_count)
 		    {
-			int16_t sample = (block[8 + 2 * i + 1] +
-					  (block[8 + 2 * i] << 8));
+			pcm_sample sample = (block[8 + 2 * i + 1] +
+					     (block[8 + 2 * i] << 8));
 			if (sample == -0x8000)
 			    sample = 0;
 			samples[pos] = sample;
@@ -147,15 +147,15 @@ unsigned dv_buffer_get_audio(const uint8_t * buffer, int16_t * samples)
 	}
     }
 
-    return sample_count / 2;
+    return sample_count / PCM_CHANNELS;
 }
 
 void dv_buffer_get_audio_levels(const uint8_t * buffer, int * levels)
 {
-    int16_t samples[2 * 2000];
+    pcm_sample samples[PCM_CHANNELS * 2000];
     unsigned frame_count = dv_buffer_get_audio(buffer, samples);
 
-    assert(2 * frame_count * sizeof(int16_t) <= sizeof(samples));
+    assert(PCM_CHANNELS * frame_count * sizeof(pcm_sample) <= sizeof(samples));
 
     // Total of squares of samples, so we can calculate average power.  We shift
     // right to avoid overflow.
@@ -164,9 +164,9 @@ void dv_buffer_get_audio_levels(const uint8_t * buffer, int * levels)
 
     for (unsigned i = 0; i != frame_count; ++i)
     {
-	int16_t sample = samples[2 * i];
+	pcm_sample sample = samples[PCM_CHANNELS * i];
 	total_l += ((unsigned)(sample * sample)) >> total_shift;
-	sample = samples[2 * i + 1];
+	sample = samples[PCM_CHANNELS * i + 1];
 	total_r += ((unsigned)(sample * sample)) >> total_shift;
     }
 
@@ -181,7 +181,7 @@ void dv_buffer_get_audio_levels(const uint8_t * buffer, int * levels)
 			 * 10.0));
 }
 
-static unsigned encode_12bit(int16_t sample)
+static unsigned encode_12bit(pcm_sample sample)
 {
     if (sample >= -0x200 && sample <= 0x200)
     {
@@ -217,7 +217,7 @@ void dv_buffer_dub_audio(uint8_t * dest, const uint8_t * source)
 
 void dv_buffer_set_audio(uint8_t * buffer,
 			 enum dv_sample_rate sample_rate_code,
-			 unsigned frame_count, const int16_t * samples)
+			 unsigned frame_count, const pcm_sample * samples)
 {
     const struct dv_system * system = dv_buffer_system(buffer);
 
@@ -226,7 +226,7 @@ void dv_buffer_set_audio(uint8_t * buffer,
 	   frame_count <= system->audio_frame_counts[sample_rate_code].max);
 
     bool use_12bit = sample_rate_code == dv_sample_rate_32k;
-    unsigned sample_count = frame_count * 2; // stereo
+    unsigned sample_count = frame_count * PCM_CHANNELS;
 
     // Each audio block has a 3-byte block id, a 5-byte AAUX
     // pack, and 72 bytes of samples.  Audio block 3 in each
@@ -331,7 +331,7 @@ void dv_buffer_set_audio(uint8_t * buffer,
 		{
 		    unsigned pos = (system->audio_shuffle[seq][block_n] +
 				    i * system->seq_count * 9);
-		    int16_t sample = (pos < sample_count) ? samples[pos] : 0;
+		    pcm_sample sample = (pos < sample_count) ? samples[pos] : 0;
 
 		    *out++ = sample >> 8;
 		    *out++ = sample & 0xff;

@@ -20,6 +20,7 @@
 
 #include "config.h"
 #include "dif.h"
+#include "pcm.h"
 #include "protocol.h"
 #include "socket.h"
 
@@ -175,14 +176,14 @@ static void dv_buffer_fill_dummy(uint8_t * buf, const struct dv_system * system)
 static void transfer_frames(struct transfer_params * params)
 {
     static uint8_t buf[DIF_MAX_FRAME_SIZE];
-    static const unsigned channel_count = 2;
     unsigned avail_count = 0;
     unsigned serial_num = 0;
 
     const snd_pcm_uframes_t buffer_size =
 	(params->delay_size >= 2000 ? params->delay_size : 2000)
 	+ params->hw_frame_count - 1;
-    int16_t * samples = malloc(sizeof(int16_t) * channel_count * buffer_size);
+    pcm_sample * samples =
+	malloc(sizeof(pcm_sample) * PCM_CHANNELS * buffer_size);
 
     dv_buffer_fill_dummy(buf, params->system);
 
@@ -195,7 +196,7 @@ static void transfer_frames(struct transfer_params * params)
 	while (avail_count < params->delay_size || avail_count < frame_count)
 	{
 	    snd_pcm_sframes_t rc = snd_pcm_readi(params->pcm,
-						 samples + channel_count * avail_count,
+						 samples + PCM_CHANNELS * avail_count,
 						 params->hw_frame_count);
 	    if (rc < 0)
 	    {
@@ -223,8 +224,9 @@ static void transfer_frames(struct transfer_params * params)
 	    exit(1);
 	}
 
-	memmove(samples, samples + channel_count * frame_count,
-		sizeof(int16_t) * channel_count * (avail_count - frame_count));
+	memmove(samples, samples + PCM_CHANNELS * frame_count,
+		sizeof(pcm_sample) * PCM_CHANNELS *
+		(avail_count - frame_count));
 	avail_count -= frame_count;
 	++serial_num;
     }

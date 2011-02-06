@@ -5,12 +5,14 @@
 
 #include <gtkmm/drawingarea.h>
 
+#include "pcm.h"
+
 class vu_meter : public Gtk::DrawingArea
 {
 public:
     vu_meter(int minimum, int maximum);
 
-    static const int channel_count = 2;
+    static const int channel_count = PCM_CHANNELS;
 
     void set_levels(const int * levels);
 
