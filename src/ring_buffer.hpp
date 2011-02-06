@@ -1,7 +1,7 @@
-// Copyright 2007 Ben Hutchings.
+// Copyright 2007, 2011 Ben Hutchings.
 // See the file "COPYING" for licence details.
 
-// Class template for fixed-size ring buffers
+// Class template for ring buffers
 
 #ifndef DVSWITCH_RING_BUFFER_HPP
 #define DVSWITCH_RING_BUFFER_HPP
@@ -11,21 +11,22 @@
 
 #include <tr1/type_traits>
 
-template<typename T, std::size_t N>
+template<typename T>
 class ring_buffer
 {
 public:
-    ring_buffer()
-	: front_(0), back_(0)
+    explicit ring_buffer(std::size_t capacity)
+	: capacity_(capacity), front_(0), back_(0),
+	  buffer_(reinterpret_cast<T *>(new char[sizeof(T) * capacity_]))
     {}
     ring_buffer(const ring_buffer &);
     ~ring_buffer();
     ring_buffer & operator=(const ring_buffer &);
 
-    std::size_t capacity() const { return N; }
+    std::size_t capacity() const { return capacity_; }
     std::size_t size() const { return back_ - front_; }
     bool empty() const { return front_ == back_; }
-    bool full() const { return back_ - front_ == N; }
+    bool full() const { return back_ - front_ == capacity_; }
 
     // Reader functions
     void pop();
@@ -36,75 +37,78 @@ public:
     const T & back() const;
 
 private:
-    std::size_t front_, back_;
-    typename std::tr1::aligned_storage<sizeof(T) * N,
-				       std::tr1::alignment_of<T>::value>::type
-    buffer_;
+    std::size_t capacity_, front_, back_;
+    T * buffer_;
 };
 
-template<typename T, std::size_t N>
-ring_buffer<T, N>::ring_buffer(const ring_buffer & other)
-    : front_(0), back_(0)
+template<typename T>
+ring_buffer<T>::ring_buffer(const ring_buffer & other)
+    : capacity_(other.capacity_), front_(0), back_(0),
+      buffer_(reinterpret_cast<T *>(new char[sizeof(T) * capacity_]))
 {
     try
     {
 	for (std::size_t i = other.front_; i != other.back_; ++i)
-	    push(reinterpret_cast<const T *>(&other.buffer_)[i % N]);
+	    push(other.buffer_[i % capacity_]);
     }
     catch (...)
     {
 	while (!empty())
 	    pop();
+
+	delete[] reinterpret_cast<char*>(buffer_);
     }
 }
 
-template<typename T, std::size_t N>
-ring_buffer<T, N>::~ring_buffer()
+template<typename T>
+ring_buffer<T>::~ring_buffer()
 {
     while (!empty())
 	pop();
+
+    delete[] reinterpret_cast<char*>(buffer_);
 }
 
-template<typename T, std::size_t N>
-ring_buffer<T, N> & ring_buffer<T, N>::operator=(const ring_buffer & other)
+template<typename T>
+ring_buffer<T> & ring_buffer<T>::operator=(const ring_buffer & other)
 {
     while (!empty())
 	pop();
 
     for (std::size_t i = other.front_; i != other.back_; ++i)
-	push(reinterpret_cast<const T *>(&other.buffer_)[i % N]);
+	push(other.buffer_[i % capacity_]);
 
     return *this;
 }
 
-template<typename T, std::size_t N>
-void ring_buffer<T, N>::pop()
+template<typename T>
+void ring_buffer<T>::pop()
 {
     assert(!empty());
-    reinterpret_cast<T *>(&buffer_)[front_ % N].~T();
+    buffer_[front_ % capacity_].~T();
     ++front_;
 }
 
-template<typename T, std::size_t N>
-const T & ring_buffer<T, N>::front() const
+template<typename T>
+const T & ring_buffer<T>::front() const
 {
     assert(!empty());
-    return reinterpret_cast<const T *>(&buffer_)[front_ % N];
+    return buffer_[front_ % capacity_];
 }
 
-template<typename T, std::size_t N>
-void ring_buffer<T, N>::push(const T & value)
+template<typename T>
+void ring_buffer<T>::push(const T & value)
 {
     assert(!full());
-    new (reinterpret_cast<T *>(&buffer_) + back_ % N) T(value);
+    new (&buffer_[back_ % capacity_]) T(value);
     ++back_;
 }
 
-template<typename T, std::size_t N>
-const T & ring_buffer<T, N>::back() const
+template<typename T>
+const T & ring_buffer<T>::back() const
 {
     assert(!empty());
-    return reinterpret_cast<const T *>(&buffer_)[(back_ - 1) % N];
+    return buffer_[(back_ - 1) % capacity_];
 }
 
 #endif // !defined(DVSWITCH_RING_BUFFER_HPP)

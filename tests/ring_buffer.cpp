@@ -6,7 +6,7 @@
 
 int main()
 {
-    ring_buffer<int, 2> buf;
+    ring_buffer<int> buf(2);
     assert(buf.size() == 0);
     assert(buf.empty());
     buf.push(1);
@@ -24,7 +24,7 @@ int main()
     assert(buf.back() == 2);
     assert(buf.size() == 1);
     assert(!buf.empty() && !buf.full());
-    ring_buffer<int, 2> buf2(buf);
+    ring_buffer<int> buf2(buf);
     assert(buf2.front() == 2);
     assert(buf2.back() == 2);
     assert(buf2.size() == 1);

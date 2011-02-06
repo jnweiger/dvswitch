@@ -184,8 +184,8 @@ private:
     static const std::size_t full_queue_len = target_queue_len * 2;
     struct source_data
     {
-	source_data() : src(NULL) {}
-	ring_buffer<dv_frame_ptr, full_queue_len> frames;
+	source_data() : frames(full_queue_len), src(NULL) {}
+	ring_buffer<dv_frame_ptr> frames;
 	source * src;
     };
 
@@ -215,7 +215,7 @@ private:
     boost::thread clock_thread_;
 
     boost::mutex mixer_mutex_; // controls access to the following
-    ring_buffer<mix_data, 10> mixer_queue_;
+    ring_buffer<mix_data> mixer_queue_;
     run_state mixer_state_;
     boost::condition mixer_state_cond_;
 

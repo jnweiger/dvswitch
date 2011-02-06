@@ -161,7 +161,7 @@ private:
     std::size_t frame_pos_;
 
     boost::mutex mutex_; // controls access to the following
-    ring_buffer<queue_elem, 30> queue_;
+    ring_buffer<queue_elem> queue_;
     bool overflowed_;
 };
 
@@ -553,6 +553,7 @@ server::sink_connection::sink_connection(server & server, auto_fd socket,
       will_record_(will_record),
       is_recording_(false),
       frame_pos_(0),
+      queue_(30),
       overflowed_(false)
 {
     sink_id_ = server_.mixer_.add_sink(this, will_record);

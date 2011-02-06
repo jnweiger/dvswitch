@@ -41,6 +41,7 @@ struct mixer::video_mix
 mixer::mixer()
     : clock_state_(run_state_wait),
       clock_thread_(boost::bind(&mixer::run_clock, this)),
+      mixer_queue_(10),
       mixer_state_(run_state_wait),
       mixer_thread_(boost::bind(&mixer::run_mixer, this)),
       recorders_count_(0),
