@@ -1,0 +1,41 @@
+.\" dvsource-jack.1 written by Robin Gareus <robin@gareus.org>
+.mso www.tmac
+.TH DVSOURCE-JACK 1 "25 March 2011"
+.SH NAME
+dvsource-jack \- jack audio source for DVswitch
+.SH SYNOPSIS
+.HP
+.B dvsource-jack
+.RI [ OPTIONS ]
+.RB [ \-s " ntsc|pal]
+.SH DESCRIPTION
+.LP
+\fBdvsource-jack\fR uses JACK to capture audio and sends it to
+DVswitch together with a dummy video stream.
+.SH OPTIONS
+\fB\-h\fR, \fB\-\-host=\fIHOST\fR
+.TP
+\fB\-p\fR, \fB\-\-port=\fIPORT\fR
+.RS
+Specify the network address on which DVswitch is listening.  The host
+address may be specified by name or as an IPv4 or IPv6 literal.
+.RE
+.TP
+\fB\-s\fR, \fB\-\-system=\fRntsc|pal
+.RS
+Specify the video system to use.  This must match the system used by
+DVswitch.  The default is "pal".
+.RE
+.TP
+\fB-d\fR, \fB--delay\fR=\fIDELAY\fR
+.RS
+Specify the time by which audio should be delayed, in seconds.
+The delays in live audio and video sources need to be closely
+matched in order that the audio and video signals will be
+synchronised in the output of DVswitch.  The default is 0.2.
+.RE
+.SH AUTHOR
+Robin Gareus <robin@gareus.org>.
+.SH SEE ALSO
+http://jackaudio.org/,
+/usr/share/doc/dvswitch/README
