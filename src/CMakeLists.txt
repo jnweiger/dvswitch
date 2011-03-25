@@ -1,8 +1,8 @@
 include(Symlink)
 
 add_definitions(${ALSA_CFLAGS_OTHER} ${GTKMM_CFLAGS_OTHER} ${LIBAVCODEC_CFLAGS_OTHER})
-include_directories(${ALSA_INCLUDE_DIRS} ${GTKMM_INCLUDE_DIRS} ${LIBAVCODEC_INCLUDE_DIRS} ${LiveMedia_INCLUDE_DIRS} ${GETTEXT_INCLUDE_DIR})
-link_directories(${ALSA_LIBRARY_DIRS} ${GTKMM_LIBRARY_DIRS} ${LIBAVCODEC_LIBRARY_DIRS})
+include_directories(${JACK_INCLUDE_DIRS} ${ALSA_INCLUDE_DIRS} ${GTKMM_INCLUDE_DIRS} ${LIBAVCODEC_INCLUDE_DIRS} ${LiveMedia_INCLUDE_DIRS} ${GETTEXT_INCLUDE_DIR})
+link_directories(${JACK_LIBRARY_DIRS} ${ALSA_LIBRARY_DIRS} ${GTKMM_LIBRARY_DIRS} ${LIBAVCODEC_LIBRARY_DIRS})
 
 add_definitions(-DSHAREDIR="\\"${sharedir}\\"")
 
@@ -24,6 +24,12 @@ target_link_libraries(dvsource-firewire-rtsp pthread raw1394
 
 add_executable(dvsource-alsa dvsource-alsa.c dif_audio.c ${common_sources})
 target_link_libraries(dvsource-alsa m ${ALSA_LIBRARIES})
+
+add_executable(dvsource-jack dvsource-jack.c dif_audio.c ${common_sources})
+set_target_properties(dvsource-jack PROPERTIES COMPILE_FLAGS -DUSE_JACK)
+#target_definitions(dvsource-jack -DUSE_JACK)
+
+target_link_libraries(dvsource-jack m ${JACK_LIBRARIES})
 
 add_executable(dvswitch dvswitch.cpp mixer.cpp frame_timer.c
   mixer_window.cpp dv_display_widget.cpp dv_selector_widget.cpp

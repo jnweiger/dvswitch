@@ -215,9 +215,22 @@ void dv_buffer_dub_audio(uint8_t * dest, const uint8_t * source)
     }
 }
 
+#ifdef USE_JACK
+/* JACK - 32 bit float samples */
+#warning USING UNTESTED JACK INTERFACE
+#include <jack/jack.h>
+#define dvs_pcm_sample_t jack_default_audio_sample_t
+#define DV_PCM_CONVERT_TO_S16(S) ((int16_t) rintf(S*32767.0))
+#else
+/* ALSA - 16 bit PCM samples */
+#warning USING ALSA INTERFACE :)
+#define dvs_pcm_sample_t pcm_sample
+#define DV_PCM_CONVERT_TO_S16(S) (S)
+#endif
+
 void dv_buffer_set_audio(uint8_t * buffer,
 			 enum dv_sample_rate sample_rate_code,
-			 unsigned frame_count, const pcm_sample * samples)
+			 unsigned frame_count, const dvs_pcm_sample_t * samples)
 {
     const struct dv_system * system = dv_buffer_system(buffer);
 
@@ -313,12 +326,12 @@ void dv_buffer_set_audio(uint8_t * buffer,
 		    unsigned pos = (system->audio_shuffle[seq][block_n] +
 				    i * system->seq_count * 9);
 		    unsigned code1 =
-			(pos < sample_count) ? encode_12bit(samples[pos]) : 0;
+			(pos < sample_count) ? encode_12bit(DV_PCM_CONVERT_TO_S16(samples[pos])) : 0;
 		    pos = (system->audio_shuffle[
 			       seq + system->seq_count / 2][block_n] +
 			   i * system->seq_count * 9);
 		    unsigned code2 =
-			(pos < sample_count) ? encode_12bit(samples[pos]) : 0;
+			(pos < sample_count) ? encode_12bit(DV_PCM_CONVERT_TO_S16(samples[pos])) : 0;
 
 		    *out++ = code1 >> 4;
 		    *out++ = code2 >> 4;
@@ -331,7 +344,7 @@ void dv_buffer_set_audio(uint8_t * buffer,
 		{
 		    unsigned pos = (system->audio_shuffle[seq][block_n] +
 				    i * system->seq_count * 9);
-		    pcm_sample sample = (pos < sample_count) ? samples[pos] : 0;
+		    pcm_sample sample = (pos < sample_count) ? DV_PCM_CONVERT_TO_S16(samples[pos]) : 0;
 
 		    *out++ = sample >> 8;
 		    *out++ = sample & 0xff;
