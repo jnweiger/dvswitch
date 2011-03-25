@@ -37,6 +37,7 @@ static struct option options[] = {
 
 static char * mixer_host = NULL;
 static char * mixer_port = NULL;
+static int terminate = 0;
 
 static void handle_config(const char * name, const char * value)
 {
@@ -69,10 +70,11 @@ struct transfer_params {
     jack_nframes_t                j_sample_rate;
     unsigned int                  j_channel_count;
 
+    pthread_t reader_thread_id;
     pthread_mutex_t reader_thread_lock;
     pthread_cond_t  buffer_ready;
     int             activated;
-    long overruns; // TODO - print count on increment and exit.
+    long overruns; 
 
     jack_nframes_t          delay_size;
 
@@ -132,12 +134,7 @@ void close_jack(struct transfer_params * params) {
     params->j_client = NULL;
     params->j_in = NULL;
     params->j_input_ports = NULL;
-
-#if 0
-    //TODO: stop transfer thread before freeing ringbuffer
-    if (params->rb) jack_ringbuffer_free(params->rb);
-    params->rb = NULL;
-#endif
+    terminate = 1;
 }
 
 void j_on_shutdown (void *arg) {
@@ -151,7 +148,7 @@ void j_on_shutdown (void *arg) {
  */
 int init_jack(struct transfer_params * params)
 {
-    // XXX TODO use client_name etc, from params
+    // TODO use client_name etc, from params
     char * client_name = "dvsource";
     const char * server_name = NULL;
     jack_options_t options = JackNullOption;
@@ -342,22 +339,23 @@ static void dv_buffer_fill_dummy(uint8_t * buf, const struct dv_system * system)
     }
 }
 
-static void transfer_frames(struct transfer_params * params)
+void *transfer_frames(void *arg)
 {
+    struct transfer_params *params = (struct transfer_params*) arg;
     static uint8_t buf[DIF_MAX_FRAME_SIZE];
     unsigned serial_num = 0;
 
     dv_buffer_fill_dummy(buf, params->system);
 
-    //pthread_setcanceltype (PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+    pthread_setcanceltype (PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
     pthread_mutex_lock (&params->reader_thread_lock);
 
     /* enable jack processing/buffering now. -- sync point */
     params->activated = 1;
     jack_nframes_t allocsize = 0;
-    void *framebuf;
+    void *framebuf = NULL;
 
-    for (;;)
+    while (!terminate)
     {
 	const unsigned frame_count =
 	    params->system->audio_frame_counts[params->sample_rate_code].std_cycle[
@@ -372,8 +370,7 @@ static void transfer_frames(struct transfer_params * params)
 	    printf("[re] allocated framebuffer: %lu bytes \n", (long int)bytes_per_frame);
 	}
 
-	// TODO: add delay.. don't read too soon
-	while ( params->activated &&
+	while (params->activated &&
 		   (jack_ringbuffer_read_space (params->rb) >= bytes_per_frame + params->delay_size)) {
 
 	    jack_ringbuffer_read (params->rb, framebuf, bytes_per_frame);
@@ -391,7 +388,10 @@ static void transfer_frames(struct transfer_params * params)
 	/* wait until process() signals more data */
 	pthread_cond_wait (&params->buffer_ready, &params->reader_thread_lock);
     }
+    close(params->sock);
+    params->activated = 0;
     free (framebuf);
+    pthread_mutex_unlock(&params->reader_thread_lock);
 }
 
 int main(int argc, char ** argv)
@@ -525,10 +525,31 @@ int main(int argc, char ** argv)
     }
     printf("INFO: Connected.\n");
 
-    transfer_frames(&params);
+    pthread_create(&params.reader_thread_id, NULL, transfer_frames, &params);
+    pthread_yield();
 
-    close(params.sock);
+    /* TODO: interactively wait here (inc/dec delay, quit, etc) */
+    while (!terminate) sleep (1);
 
+    /* terminate and clean up*/
+
+    close_jack(&params);
+
+    if(params.activated) {
+	terminate = 1;
+	if(pthread_mutex_trylock(&params.reader_thread_lock) == 0) {
+	    pthread_cond_signal(&params.buffer_ready);
+	    pthread_mutex_unlock(&params.reader_thread_lock);
+	}
+	pthread_join(params.reader_thread_id, NULL);
+    }
+
+    //close(params.sock);
+    if (params.rb) jack_ringbuffer_free(params.rb);
+
+    printf("bye. and BTW: there were %li buffer overruns\n", params.overruns);
+
+    exit(0);
     return 0;
 }
 /* vim:sw=4 ts=8 sts=4 */
