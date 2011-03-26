@@ -552,4 +552,4 @@ int main(int argc, char ** argv)
     exit(0);
     return 0;
 }
-/* vim:sw=4 ts=8 sts=4 */
+/* vim: set sw=4 ts=8 sts=4: */

@@ -216,14 +216,13 @@ void dv_buffer_dub_audio(uint8_t * dest, const uint8_t * source)
 }
 
 #ifdef USE_JACK
-/* JACK - 32 bit float samples */
-#warning USING UNTESTED JACK INTERFACE
+/* JACK - 32 bit float samples -
+ * used w/ -DUSE_JACK by dvsource-jack.c */
 #include <jack/jack.h>
 #define dvs_pcm_sample_t jack_default_audio_sample_t
 #define DV_PCM_CONVERT_TO_S16(S) ((int16_t) rintf(S*32767.0))
 #else
 /* ALSA - 16 bit PCM samples */
-#warning USING ALSA INTERFACE :)
 #define dvs_pcm_sample_t pcm_sample
 #define DV_PCM_CONVERT_TO_S16(S) (S)
 #endif

@@ -98,6 +98,7 @@ const struct dv_system * dv_buffer_system(const uint8_t * buffer)
 unsigned dv_buffer_get_audio(const uint8_t * buffer, pcm_sample * samples);
 
 #ifdef USE_JACK
+/* used w/ -DUSE_JACK by dvsource-jack.c */
 #include <jack/jack.h>
 #define dvs_pcm_sample_t jack_default_audio_sample_t
 #else
