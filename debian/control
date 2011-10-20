@@ -2,7 +2,7 @@ Source: dvswitch
 Maintainer: Ben Hutchings <ben@decadent.org.uk>
 Section: video
 Priority: extra
-Build-Depends: debhelper (>= 5), libasound2-dev, libavcodec-dev, pkg-config, libgtkmm-2.4-dev, libboost-dev, libboost-thread-dev, libxv-dev, cmake, liblivemedia-dev (>= 2010.01.15-0)
+Build-Depends: debhelper (>= 5), libasound2-dev, libavcodec-dev, pkg-config, libgtkmm-2.4-dev, libboost-dev, libboost-thread-dev, libxv-dev, cmake, liblivemedia-dev (>= 2010.01.15-0), libraw1394-dev
 Standards-Version: 3.8.0
 Vcs-Browser: http://svn.debian.org/wsvn/dvswitch/trunk/
 Vcs-Svn: svn://svn.debian.org/svn/dvswitch/trunk
