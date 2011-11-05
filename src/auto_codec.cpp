@@ -42,22 +42,32 @@ void auto_codec_open_decoder(const auto_codec & context, CodecID codec_id)
     os_check_error("avcodec_open", -avcodec_open(context.get(), codec));
 }
 
-auto_codec auto_codec_open_encoder(CodecID codec_id)
+auto_codec auto_codec_open_encoder(CodecID codec_id, int thread_count)
 {
     auto_codec result(avcodec_alloc_context());
     if (!result.get())
 	throw std::bad_alloc();
-    auto_codec_open_encoder(result, codec_id);
+    auto_codec_open_encoder(result, codec_id, thread_count);
     return result;
 }
 
-void auto_codec_open_encoder(const auto_codec & context, CodecID codec_id)
+void auto_codec_open_encoder(const auto_codec & context, CodecID codec_id,
+			     int thread_count)
 {
     boost::mutex::scoped_lock lock(avcodec_mutex);
     AVCodec * codec = avcodec_find_encoder(codec_id);
     if (!codec)
 	throw os_error("avcodec_find_encoder", ENOENT);
+#if LIBAVCODEC_VERSION_MAJOR > 52 || \
+    (LIBAVCODEC_VERSION_MAJOR == 52 && LIBAVCODEC_VERSION_MINOR >= 111)
+    context.get()->thread_count = thread_count;
+    context.get()->thread_type = FF_THREAD_SLICE;
     os_check_error("avcodec_open", -avcodec_open(context.get(), codec));
+#else
+    os_check_error("avcodec_open", -avcodec_open(context.get(), codec));
+    if (avcodec_thread_init(context.get(), thread_count))
+	throw std::runtime_error("avcodec_thread_init failed");
+#endif
 }
 
 void auto_codec_closer::operator()(AVCodecContext * context) const

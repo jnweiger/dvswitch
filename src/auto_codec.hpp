@@ -23,7 +23,7 @@ auto_codec;
 
 auto_codec auto_codec_open_decoder(CodecID);
 void auto_codec_open_decoder(const auto_codec &, CodecID);
-auto_codec auto_codec_open_encoder(CodecID);
-void auto_codec_open_encoder(const auto_codec &, CodecID);
+auto_codec auto_codec_open_encoder(CodecID, int thread_count=1);
+void auto_codec_open_encoder(const auto_codec &, CodecID, int thread_count=1);
 
 #endif // !INC_AUTO_CODEC_HPP
