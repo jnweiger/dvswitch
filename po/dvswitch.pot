@@ -7,10 +7,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: dvswitch 0.9~alpha\n"
 "Report-Msgid-Bugs-To: dvswitch-devel@lists.alioth.debian.org\n"
-"POT-Creation-Date: 2010-04-07 04:40+0100\n"
+"POT-Creation-Date: 2011-11-05 18:46+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -67,22 +68,34 @@ msgstr ""
 msgid "_Sources"
 msgstr ""
 
-#: src/mixer_window.cpp:72
+#: src/mixer_window.cpp:74
 msgid "No effect"
 msgstr ""
 
-#: src/mixer_window.cpp:73
+#: src/mixer_window.cpp:75
 msgid "_Pic-in-pic"
 msgstr ""
 
-#: src/mixer_window.cpp:74
+#: src/mixer_window.cpp:76
 msgid "Fa_de"
 msgstr ""
 
-#: src/mixer_window.cpp:179 src/mixer_window.cpp:316
+#: src/mixer_window.cpp:95
+msgid "_Record"
+msgstr ""
+
+#: src/mixer_window.cpp:98
+msgid "Cu_t"
+msgstr ""
+
+#: src/mixer_window.cpp:101
+msgid "_Apply"
+msgstr ""
+
+#: src/mixer_window.cpp:195 src/mixer_window.cpp:332
 msgid "STOP"
 msgstr ""
 
-#: src/mixer_window.cpp:314
+#: src/mixer_window.cpp:330
 msgid "RECORD"
 msgstr ""
