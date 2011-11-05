@@ -79,15 +79,15 @@ msgstr "_Mengen"
 
 #: src/mixer_window.cpp:95
 msgid "_Record"
-msgstr ""
+msgstr "Op_nemen"
 
 #: src/mixer_window.cpp:98
 msgid "Cu_t"
-msgstr ""
+msgstr "_Knippen"
 
 #: src/mixer_window.cpp:101
 msgid "_Apply"
-msgstr ""
+msgstr "Toe_passen"
 
 #: src/mixer_window.cpp:195 src/mixer_window.cpp:332
 msgid "STOP"
