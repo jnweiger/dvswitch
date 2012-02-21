@@ -364,7 +364,7 @@ void *transfer_frames(void *arg)
 
 	const jack_nframes_t bytes_per_frame = frame_count * sizeof(jack_default_audio_sample_t) * params->j_channel_count;
 
-	if (bytes_per_frame != allocsize) {
+	if (bytes_per_frame > allocsize) {
 	    allocsize = bytes_per_frame;
 	    if (framebuf) free(framebuf);
 	    framebuf = malloc (bytes_per_frame);
@@ -393,6 +393,7 @@ void *transfer_frames(void *arg)
     params->activated = 0;
     free (framebuf);
     pthread_mutex_unlock(&params->reader_thread_lock);
+    return (NULL);
 }
 
 int main(int argc, char ** argv)
@@ -493,7 +494,7 @@ int main(int argc, char ** argv)
     }
     else
     {
-	fprintf(stderr, "%s: delays do not work that way!\n", argv[0]);
+	fprintf(stderr, "%s: delay parameter must be positive.\n", argv[0]);
 	close_jack(&params);
 	return 2;
     }
