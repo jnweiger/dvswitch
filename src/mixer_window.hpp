@@ -77,7 +77,9 @@ private:
     Gtk::HBox upper_box_;
     Gtk::VBox command_box_;
     Gtk::ToggleButton record_button_;
+    Gtk::Image record_icon_;
     Gtk::Button cut_button_;
+    Gtk::Image cut_icon_;
     Gtk::HSeparator command_sep_;
     Gtk::RadioButtonGroup effect_group_;
     Gtk::RadioButton none_button_;
@@ -85,6 +87,7 @@ private:
     Gtk::RadioButton fade_button_;
     Gtk::HScale fade_value_;
     Gtk::Button apply_button_;
+    Gtk::Image apply_icon_;
     Gtk::ProgressBar progress_;
     Gtk::HSeparator meter_sep_;
     vu_meter vu_meter_;

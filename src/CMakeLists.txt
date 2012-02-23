@@ -18,7 +18,7 @@ target_link_libraries(dvsource-file pthread rt)
 add_executable(dvsource-dvgrab dvsource-dvgrab.c ${common_sources})
 
 add_executable(dvsource-firewire-rtsp dvsource-firewire.cpp os_error.cpp
-  DVVideoStreamFramer.cpp ${common_sources})
+  DVVideoStreamFramer.cpp tally_rtsp_server.cpp ${common_sources})
 target_link_libraries(dvsource-firewire-rtsp pthread raw1394
   ${LiveMedia_LIBRARIES})
 
@@ -41,7 +41,7 @@ target_link_libraries(dvswitch m pthread rt X11 Xext Xv
   ${LIBAVUTIL_LIBRARIES} ${LiveMedia_LIBRARIES} ${GETTEXT_LIBRARIES})
 
 install(TARGETS dvsink-command dvsink-files dvsource-file dvsource-dvgrab
-                dvsource-alsa dvswitch
+                dvsource-alsa dvswitch dvsource-firewire-rtsp
         DESTINATION ${bindir})
 install_symlink(dvsource-dvgrab "${bindir}/dvsource-firewire")
 install_symlink(dvsource-dvgrab "${bindir}/dvsource-v4l2-dv")

@@ -67,13 +67,16 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
       settings_menu_item_(gettext("_Settings"), true),
       format_menu_item_(gettext("_Format"), true),
       sources_menu_item_(gettext("_Sources"), true),
-      record_button_("gtk-media-record"),
-      cut_button_("gtk-cut"),
+      record_button_(),
+      record_icon_(Gtk::Stock::MEDIA_RECORD, Gtk::ICON_SIZE_BUTTON),
+      cut_button_(),
+      cut_icon_(Gtk::Stock::CUT, Gtk::ICON_SIZE_BUTTON),
       none_button_(effect_group_, gettext("No effect")),
       pip_button_(effect_group_, gettext("_Pic-in-pic"), true),
       fade_button_(effect_group_, gettext("Fa_de"), true),
       fade_value_(300, 15000, 100),
-      apply_button_("gtk-apply"),
+      apply_button_(),
+      apply_icon_(Gtk::Stock::APPLY, Gtk::ICON_SIZE_BUTTON),
       vu_meter_(-56, 0),
       pri_video_source_id_(0),
       sec_video_source_id_(0),
@@ -83,9 +86,21 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
       wakeup_pipe_(O_NONBLOCK, O_NONBLOCK),
       next_source_id_(0)
 {
-    record_button_.set_use_stock();
-    cut_button_.set_use_stock();
-    apply_button_.set_use_stock();
+    // In some locales (e.g., Dutch), the shortcuts of the stock button
+    // labels conflict (e.g., _record -> op_nemen, cu_t -> k_nippen).
+    // So, rather than using stock buttons, use buttons with our own
+    // gettexted strings, and the same stock labels; the look will be
+    // the same, but now the shortcut can be overridden for localized
+    // variants.
+    record_button_.set_label(gettext("_Record"));
+    record_button_.set_use_underline();
+    record_button_.set_image(record_icon_);
+    cut_button_.set_label(gettext("Cu_t"));
+    cut_button_.set_use_underline();
+    cut_button_.set_image(cut_icon_);
+    apply_button_.set_label(gettext("_Apply"));
+    apply_button_.set_use_underline();
+    apply_button_.set_image(apply_icon_);
 
     Glib::RefPtr<Glib::IOSource> pipe_io_source(
 	Glib::IOSource::create(wakeup_pipe_.reader.get(), Glib::IO_IN));

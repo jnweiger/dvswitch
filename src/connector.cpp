@@ -103,9 +103,9 @@ connector::source_connection::~source_connection()
 	subsession_->readSource()->stopGettingFrames();
 }
 
-void connector::source_connection::set_active(mixer::source_activation)
+void connector::source_connection::set_active(mixer::source_activation active)
 {
-    // TODO
+    client_.get()->sendSetParameterCommand(*(session_.get()), NULL, "TALLY", active ? "on" : "off");
 }
 
 void connector::source_connection::handle_frame(
