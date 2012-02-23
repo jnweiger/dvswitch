@@ -89,7 +89,8 @@ struct transfer_params {
 /**
  * jack audio process callback
  */
-int j_process (jack_nframes_t nframes, void *arg) {
+int j_process (jack_nframes_t nframes, void *arg)
+{
     jack_nframes_t c;
     struct transfer_params *params = (struct transfer_params*) arg;
     const unsigned int nports = params->j_channel_count;
@@ -97,7 +98,8 @@ int j_process (jack_nframes_t nframes, void *arg) {
     /* Do nothing until we're ready to begin. */
     if (!params->activated) return 0;
 
-    for(c=0; c< nports; c++) {
+    for(c=0; c< nports; c++)
+    {
 	params->j_in[c] = (jack_default_audio_sample_t*) jack_port_get_buffer(params->j_input_ports[c], nframes);
     }
     //j_latency = jack_port_get_total_latency(params->j_client,j_input_port);
@@ -105,8 +107,10 @@ int j_process (jack_nframes_t nframes, void *arg) {
 
     /* interleave - 32 bit for now */
     jack_nframes_t s;
-    for(s=0; s<nframes; s++) {
-	for(c=0; c< nports; c++) {
+    for(s=0; s<nframes; s++)
+    {
+	for(c=0; c< nports; c++)
+	{
 	    if (jack_ringbuffer_write(params->rb, (char*) &params->j_in[c][s], sizeof(jack_default_audio_sample_t))
 		< sizeof(jack_default_audio_sample_t))
 	    {
@@ -117,7 +121,8 @@ int j_process (jack_nframes_t nframes, void *arg) {
     }
 #if 1
     /* Tell the writer that there is work to do. */
-    if(pthread_mutex_trylock(&params->reader_thread_lock) == 0) {
+    if(pthread_mutex_trylock(&params->reader_thread_lock) == 0)
+    {
 	pthread_cond_signal(&params->buffer_ready);
 	pthread_mutex_unlock(&params->reader_thread_lock);
     }
@@ -125,8 +130,10 @@ int j_process (jack_nframes_t nframes, void *arg) {
   return 0;      
 }
 
-void close_jack(struct transfer_params * params) {
-    if (params->j_client) {
+void close_jack(struct transfer_params * params)
+{
+    if (params->j_client) 
+    {
 	jack_deactivate(params->j_client);
 	jack_client_close (params->j_client);
     }
@@ -138,7 +145,8 @@ void close_jack(struct transfer_params * params) {
     terminate = 1;
 }
 
-void j_on_shutdown (void *arg) {
+void j_on_shutdown (void *arg)
+{
   fprintf(stderr,"recv. shutdown request from jackd.\n");
   close_jack((struct transfer_params *) arg);
 }
@@ -156,17 +164,21 @@ int init_jack(struct transfer_params * params)
 
     jack_status_t status;
     params->j_client = jack_client_open (client_name, options, &status, server_name);
-    if (params->j_client == NULL) {
+    if (params->j_client == NULL)
+    {
 	fprintf (stderr, "jack_client_open() failed, status = 0x%2.0x\n", status);
-    if (status & JackServerFailed) {
-	fprintf (stderr, "Unable to connect to JACK server\n");
+	if (status & JackServerFailed)
+	{
+	    fprintf (stderr, "Unable to connect to JACK server\n");
+	}
+	return -1;
     }
-		return -1;
-    }
-    if (status & JackServerStarted) {
+    if (status & JackServerStarted)
+    {
 	fprintf (stderr, "JACK server started\n");
     }
-    if (status & JackNameNotUnique) {
+    if (status & JackNameNotUnique)
+    {
 	client_name = jack_get_client_name(params->j_client);
 	fprintf (stderr, "unique name `%s' assigned\n", client_name);
     }
@@ -181,7 +193,8 @@ int init_jack(struct transfer_params * params)
 /**
  *
  */
-int jack_portsetup(struct transfer_params * params) {
+int jack_portsetup(struct transfer_params * params)
+{
     jack_nframes_t i;
 
     const unsigned int nports = params->j_channel_count;
@@ -220,16 +233,20 @@ int jack_portsetup(struct transfer_params * params) {
 }
 
 
-int open_jack(struct transfer_params * params) {
-    if (init_jack(params)) {
+int open_jack(struct transfer_params * params)
+{
+    if (init_jack(params))
+    {
 	close_jack(params);
 	return -1;
     }
-  if (jack_portsetup(params)) {
+    if (jack_portsetup(params))
+    {
 	close_jack(params);
 	return -1;
     }
-  if (jack_activate (params->j_client)) {
+    if (jack_activate (params->j_client))
+    {
 	close_jack(params);
 	return -1;
     }
@@ -260,7 +277,8 @@ void *transfer_frames(void *arg)
 
 	const jack_nframes_t bytes_per_frame = frame_count * sizeof(jack_default_audio_sample_t) * params->j_channel_count;
 
-	if (bytes_per_frame > allocsize) {
+	if (bytes_per_frame > allocsize)
+	{
 	    allocsize = bytes_per_frame;
 	    if (framebuf) free(framebuf);
 	    framebuf = malloc (bytes_per_frame);
@@ -268,7 +286,8 @@ void *transfer_frames(void *arg)
 	}
 
 	while (params->activated &&
-		   (jack_ringbuffer_read_space (params->rb) >= bytes_per_frame + params->delay_size)) {
+		   (jack_ringbuffer_read_space (params->rb) >= bytes_per_frame + params->delay_size))
+	{
 
 	    jack_ringbuffer_read (params->rb, framebuf, bytes_per_frame);
 	    dv_buffer_set_audio(buf, params->sample_rate_code, frame_count, framebuf);
@@ -362,7 +381,8 @@ int main(int argc, char ** argv)
 	return 2;
     }
 
-    if (open_jack(&params)) {
+    if (open_jack(&params))
+    {
 	fprintf(stderr, "%s: can not connect to JACK\n", argv[0]);
 	return 2;
     }
@@ -433,9 +453,11 @@ int main(int argc, char ** argv)
 
     close_jack(&params);
 
-    if(params.activated) {
+    if(params.activated)
+    {
 	terminate = 1;
-	if(pthread_mutex_trylock(&params.reader_thread_lock) == 0) {
+	if(pthread_mutex_trylock(&params.reader_thread_lock) == 0)
+	{
 	    pthread_cond_signal(&params.buffer_ready);
 	    pthread_mutex_unlock(&params.reader_thread_lock);
 	}
