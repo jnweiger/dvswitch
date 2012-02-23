@@ -89,7 +89,8 @@ struct transfer_params {
 /**
  * jack audio process callback
  */
-int j_process (jack_nframes_t nframes, void *arg) {
+int j_process (jack_nframes_t nframes, void *arg)
+{
     jack_nframes_t c;
     struct transfer_params *params = (struct transfer_params*) arg;
     const unsigned int nports = params->j_channel_count;
@@ -97,7 +98,8 @@ int j_process (jack_nframes_t nframes, void *arg) {
     /* Do nothing until we're ready to begin. */
     if (!params->activated) return 0;
 
-    for(c=0; c< nports; c++) {
+    for(c=0; c< nports; c++)
+    {
 	params->j_in[c] = (jack_default_audio_sample_t*) jack_port_get_buffer(params->j_input_ports[c], nframes);
     }
     //j_latency = jack_port_get_total_latency(params->j_client,j_input_port);
@@ -105,8 +107,10 @@ int j_process (jack_nframes_t nframes, void *arg) {
 
     /* interleave - 32 bit for now */
     jack_nframes_t s;
-    for(s=0; s<nframes; s++) {
-	for(c=0; c< nports; c++) {
+    for(s=0; s<nframes; s++)
+    {
+	for(c=0; c< nports; c++)
+	{
 	    if (jack_ringbuffer_write(params->rb, (char*) &params->j_in[c][s], sizeof(jack_default_audio_sample_t))
 		< sizeof(jack_default_audio_sample_t))
 	    {
@@ -117,7 +121,8 @@ int j_process (jack_nframes_t nframes, void *arg) {
     }
 #if 1
     /* Tell the writer that there is work to do. */
-    if(pthread_mutex_trylock(&params->reader_thread_lock) == 0) {
+    if(pthread_mutex_trylock(&params->reader_thread_lock) == 0)
+    {
 	pthread_cond_signal(&params->buffer_ready);
 	pthread_mutex_unlock(&params->reader_thread_lock);
     }
@@ -125,8 +130,10 @@ int j_process (jack_nframes_t nframes, void *arg) {
   return 0;      
 }
 
-void close_jack(struct transfer_params * params) {
-    if (params->j_client) {
+void close_jack(struct transfer_params * params)
+{
+    if (params->j_client) 
+    {
 	jack_deactivate(params->j_client);
 	jack_client_close (params->j_client);
     }
@@ -138,7 +145,8 @@ void close_jack(struct transfer_params * params) {
     terminate = 1;
 }
 
-void j_on_shutdown (void *arg) {
+void j_on_shutdown (void *arg)
+{
   fprintf(stderr,"recv. shutdown request from jackd.\n");
   close_jack((struct transfer_params *) arg);
 }
@@ -156,17 +164,21 @@ int init_jack(struct transfer_params * params)
 
     jack_status_t status;
     params->j_client = jack_client_open (client_name, options, &status, server_name);
-    if (params->j_client == NULL) {
+    if (params->j_client == NULL)
+    {
 	fprintf (stderr, "jack_client_open() failed, status = 0x%2.0x\n", status);
-    if (status & JackServerFailed) {
-	fprintf (stderr, "Unable to connect to JACK server\n");
+	if (status & JackServerFailed)
+	{
+	    fprintf (stderr, "Unable to connect to JACK server\n");
+	}
+	return -1;
     }
-		return -1;
-    }
-    if (status & JackServerStarted) {
+    if (status & JackServerStarted)
+    {
 	fprintf (stderr, "JACK server started\n");
     }
-    if (status & JackNameNotUnique) {
+    if (status & JackNameNotUnique)
+    {
 	client_name = jack_get_client_name(params->j_client);
 	fprintf (stderr, "unique name `%s' assigned\n", client_name);
     }
@@ -181,7 +193,8 @@ int init_jack(struct transfer_params * params)
 /**
  *
  */
-int jack_portsetup(struct transfer_params * params) {
+int jack_portsetup(struct transfer_params * params)
+{
     jack_nframes_t i;
 
     const unsigned int nports = params->j_channel_count;
@@ -220,124 +233,24 @@ int jack_portsetup(struct transfer_params * params) {
 }
 
 
-int open_jack(struct transfer_params * params) {
-    if (init_jack(params)) {
+int open_jack(struct transfer_params * params)
+{
+    if (init_jack(params))
+    {
 	close_jack(params);
 	return -1;
     }
-  if (jack_portsetup(params)) {
+    if (jack_portsetup(params))
+    {
 	close_jack(params);
 	return -1;
     }
-  if (jack_activate (params->j_client)) {
+    if (jack_activate (params->j_client))
+    {
 	close_jack(params);
 	return -1;
     }
   return 0;
-}
-
-static void dv_buffer_fill_dummy(uint8_t * buf, const struct dv_system * system)
-{
-    unsigned seq_num, block_num;
-    uint8_t * block = buf;
-
-    for (seq_num = 0; seq_num != system->seq_count; ++seq_num)
-    {
-	for (block_num = 0; block_num != DIF_BLOCKS_PER_SEQUENCE; ++block_num)
-	{
-	    block[1] = (seq_num << 4) | 7;
-
-	    if (block_num == 0)
-	    {
-		// Header
-		block[0] = 0x1f;
-		block[2] = 0;
-
-		memset(block + DIF_BLOCK_ID_SIZE,
-		       0xff, DIF_BLOCK_SIZE - DIF_BLOCK_ID_SIZE);
-
-		// Header pack
-		block[DIF_BLOCK_ID_SIZE] = (system == &dv_system_625_50) ? 0xbf : 0x3f;
-		int apt = 0; // IEC 61834 only for now
-		block[DIF_BLOCK_ID_SIZE + 1] = 0xf8 | apt;
-		block[DIF_BLOCK_ID_SIZE + 2] = 0x78 | apt; // audio valid
-		block[DIF_BLOCK_ID_SIZE + 3] = 0xf8 | apt; // video invalid
-		block[DIF_BLOCK_ID_SIZE + 4] = 0xf8 | apt; // subcode invalid
-	    }
-	    else if (block_num < 3)
-	    {
-		// Subcode
-		block[0] = 0x3f;
-		block[2] = block_num - 1;
-
-		memset(block + DIF_BLOCK_ID_SIZE,
-		       0xff, DIF_BLOCK_SIZE - DIF_BLOCK_ID_SIZE);
-	    }
-	    else if (block_num < 6)
-	    {
-		// VAUX
-		block[0] = 0x56;
-		block[2] = block_num - 3;
-
-		memset(block + DIF_BLOCK_ID_SIZE,
-		       0xff, DIF_BLOCK_SIZE - DIF_BLOCK_ID_SIZE);
-
-		int offset = 0;
-		if (!(seq_num & 1) && block_num == 5)
-		    offset = DIF_BLOCK_ID_SIZE;
-		else if ((seq_num & 1) && block_num == 3)
-		    offset = DIF_BLOCK_ID_SIZE + 9 * DIF_PACK_SIZE;
-		if (offset)
-		{
-		    // VS pack
-		    int dsf = (system == &dv_system_625_50) ? 1 : 0;
-		    block[offset] = 0x60;
-		    block[offset + 3] = 0xc0 | (dsf << 5);
-		    // VSC pack
-		    block[offset + DIF_PACK_SIZE] = 0x61;
-		    block[offset + DIF_PACK_SIZE + 1] = 0x3f;
-		    block[offset + DIF_PACK_SIZE + 2] = 0xc8;
-		    block[offset + DIF_PACK_SIZE + 3] = 0xfc;
-		}
-	    }
-	    else if (block_num % 16 == 6)
-	    {
-		// Audio
-		block[0] = 0x76;
-		block[2] = block_num / 16;
-
-		memset(block + DIF_BLOCK_ID_SIZE, 0xff, DIF_PACK_SIZE);
-		memset(block + DIF_BLOCK_ID_SIZE + DIF_PACK_SIZE,
-		       0, DIF_BLOCK_SIZE - DIF_BLOCK_ID_SIZE - DIF_PACK_SIZE);
-	    }
-	    else
-	    {
-		// Video
-		block[0] = 0x96;
-		block[2] = (block_num - 7) - (block_num - 7) / 16;
-
-		// A macroblock full of black; no need for overspill
-		block[DIF_BLOCK_ID_SIZE] = 0x0f;
-		int i;
-		// 4 luma blocks of 14 bytes
-		for (i = DIF_BLOCK_ID_SIZE + 1; i != DIF_BLOCK_ID_SIZE + 57; i += 14)
-		{
-		    block[i] = 0x90;
-		    block[i + 1] = 0x06;
-		    memset(block + i + 2, 0, 14 - 2);
-		}
-		// 2 chroma blocks of 10 bytes
-		for (; i != DIF_BLOCK_SIZE; i += 10)
-		{
-		    block[i] = 0x00;
-		    block[i + 1] = 0x16;
-		    memset(block + i + 2, 0, 10 - 2);
-		}
-	    }
-
-	    block += DIF_BLOCK_SIZE;
-	}
-    }
 }
 
 void *transfer_frames(void *arg)
@@ -364,7 +277,8 @@ void *transfer_frames(void *arg)
 
 	const jack_nframes_t bytes_per_frame = frame_count * sizeof(jack_default_audio_sample_t) * params->j_channel_count;
 
-	if (bytes_per_frame > allocsize) {
+	if (bytes_per_frame > allocsize)
+	{
 	    allocsize = bytes_per_frame;
 	    if (framebuf) free(framebuf);
 	    framebuf = malloc (bytes_per_frame);
@@ -372,7 +286,8 @@ void *transfer_frames(void *arg)
 	}
 
 	while (params->activated &&
-		   (jack_ringbuffer_read_space (params->rb) >= bytes_per_frame + params->delay_size)) {
+		   (jack_ringbuffer_read_space (params->rb) >= bytes_per_frame + params->delay_size))
+	{
 
 	    jack_ringbuffer_read (params->rb, framebuf, bytes_per_frame);
 	    dv_buffer_set_audio(buf, params->sample_rate_code, frame_count, framebuf);
@@ -466,7 +381,8 @@ int main(int argc, char ** argv)
 	return 2;
     }
 
-    if (open_jack(&params)) {
+    if (open_jack(&params))
+    {
 	fprintf(stderr, "%s: can not connect to JACK\n", argv[0]);
 	return 2;
     }
@@ -537,9 +453,11 @@ int main(int argc, char ** argv)
 
     close_jack(&params);
 
-    if(params.activated) {
+    if(params.activated)
+    {
 	terminate = 1;
-	if(pthread_mutex_trylock(&params.reader_thread_lock) == 0) {
+	if(pthread_mutex_trylock(&params.reader_thread_lock) == 0)
+	{
 	    pthread_cond_signal(&params.buffer_ready);
 	    pthread_mutex_unlock(&params.reader_thread_lock);
 	}

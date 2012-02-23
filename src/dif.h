@@ -118,6 +118,7 @@ void dv_buffer_dub_audio(uint8_t * dest, const uint8_t * source);
 void dv_buffer_silence_audio(uint8_t * buffer,
 			     enum dv_sample_rate sample_rate_code,
 			     unsigned serial_num);
+void dv_buffer_fill_dummy(uint8_t * buf, const struct dv_system * system);
 
 #ifdef __cplusplus
 }
