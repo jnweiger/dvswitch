@@ -1,4 +1,4 @@
-dvswitch (0.9~alpha) UNRELEASED; urgency=low
+dvswitch (0.9~rc1) experimental; urgency=low
 
   [ Ben Hutchings ]
   * Added dvsource-alsa as an audio-only source
@@ -32,6 +32,7 @@ dvswitch (0.9~alpha) UNRELEASED; urgency=low
   * Disable record button if we can't record - Alioth bug #312329
   * Add tally light support to dvsource-firewire-rtsp
   * Install dvsource-firewire-rtsp into .../bin
+  * Take over day-to-day maintenance from Ben
 
   [ Robin Gareus ]
   * Add dvsource-jack, similar to dvsource-alsa but for JACK audio sources
