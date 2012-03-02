@@ -1,8 +1,9 @@
-dvswitch (0.9~alpha-0) UNRELEASED; urgency=low
+dvswitch (0.9~rc1-1) experimental; urgency=low
 
-  * New upstream snapshot
+  [ Wouter Verhelst ]
+  * First release of the 0.9 branch to experimental.
 
- -- Ben Hutchings <ben@decadent.org.uk>  Sun, 24 May 2009 18:24:07 +0100
+ -- Wouter Verhelst <wouter@debian.org>  Tue, 28 Feb 2012 11:01:33 +0100
 
 dvswitch (0.8-2) unstable; urgency=low
 
