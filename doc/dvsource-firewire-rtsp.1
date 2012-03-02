@@ -1,0 +1,60 @@
+.\" dvsource-firewire-rtsp.1 written by Wouter Verhelst
+.mso www.tmac
+.TH DVSOURCE-FIREWIRE-RTSP 1 "2 March 2012"
+.SH NAME
+dvsource-firewire-rtsp \- FireWire (IEEE1394) video source for DVswitch, using RTSP
+.SH SYNOPSIS
+.HP
+.B dvsource-firewire-rtsp
+.RB [ \-t " TALLY-SCRIPT " ] [ \-v ] [ \-c " CARD-NUMBER | DEVICE " ] [ --listen-host " HOST " ] [ --listen-port " PORT " ]
+.SH DESCRIPTION
+.LP
+\fBdvsource-firewire-rtsp\fR creates a DV over RTSP stream for use with
+dvswitch 0.9 or above. Whereas previous versions of dvswitch used a
+protocol specific to dvswitch, version 0.9 introduces the ability to use
+DV over RTSP sources, whereby the source is the server, rather than the
+dvswitch instance. 
+.LP
+While the previous protocol is still supported for the time being,
+in the future dvswitch will move to RTSP as its only supported protocol
+for sources. For now, however, RTSP support is experimental.
+.SH OPTIONS
+.TP
+\fB\-c\fR CARD-NUMBER | DEVICE
+Specify the IEEE1394 card number of video device GUID to use. If not
+specified, \fBdvsource-firewire-rtsp\fR will use the first available
+video device.
+.LP
+\fB--listen-host\fR HOST
+.TP
+\fB--listen-port\fR PORT
+Specify the IP address and port number on which
+\fBdvsource-firewire-rtsp\fR is to listen for client connections. In the
+absense of these options, the default is to on all interfaces on port
+8554.
+.TP
+\fB\-t\fR TALLY-SCRIPT
+Specify the tally script to run. When this option is absent,
+\fBdvsource-firewire-rtsp\fR will ignore tally messages. If specified,
+\fBdvsource-firewire-rtsp\fR will
+.BR
+popen (3)
+.RB
+the specified script, and send it messages of the form
+.RS
+TALLY: on
+.RE
+or
+.RS
+TALLY: off
+.RE
+to specify whether the tally light should be on or off.
+.TP
+\fB-v\fR
+Be verbose. With this, \fBdvsource-firewire-rtsp\fR will output varous
+bits of information, such as the RTSP URL to use, or when clients
+connect or disconnect. Highly recommended during testing.
+.SH AUTHOR
+Ben Hutchings.
+.SH SEE ALSO
+/usr/share/doc/dvswitch/README

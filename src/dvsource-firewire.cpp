@@ -114,7 +114,7 @@ static void handle_config(const char * name, const char * value)
 static void usage(const char *progname)
 {
     fprintf(stderr,
-	    "Usage: %s [-t] [-v] [-c CARD-NUMBER | DEVICE] \\\n"
+	    "Usage: %s [-t TALLY-SCRIPT] [-v] [-c CARD-NUMBER | DEVICE] \\\n"
 	    "           [--listen-host HOST] [--listen-port PORT]\n",
 	    progname);
 }
