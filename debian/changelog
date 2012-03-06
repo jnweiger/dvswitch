@@ -2,6 +2,9 @@ dvswitch (0.9~rc1-1) experimental; urgency=low
 
   [ Wouter Verhelst ]
   * First release of the 0.9 branch to experimental.
+  * Build-Depend on liblivemedia-dev (>= 2012.02.29-2) to avoid API
+    breakage which was accidentally introduced in -1.
+  * Add $SELF to uploaders
 
  -- Wouter Verhelst <wouter@debian.org>  Tue, 28 Feb 2012 11:01:33 +0100
 
