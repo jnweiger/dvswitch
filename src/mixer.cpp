@@ -844,24 +844,8 @@ void mixer::run_mixer()
     dec->release_buffer = raw_frame_release_buffer;
     dec->reget_buffer = raw_frame_reget_buffer;
 
-    auto_codec encoder(avcodec_alloc_context());
-    AVCodecContext * enc = encoder.get();
-    if (!enc)
-	throw std::bad_alloc();
-    // Set some input parameters early to satisfy
-    // dvvideo_init_encoder() that the input will match some DV
-    // profile.  It doesn't matter if we change these later.
-    enc->width = 720;
-    enc->height = 576;
-    enc->pix_fmt = PIX_FMT_YUV420P;
-
-    {
-	// Try to use one thread per CPU, up to a limit of 8
-	int enc_thread_count =
-	    std::min<int>(8, std::max<long>(sysconf(_SC_NPROCESSORS_ONLN), 1));
-	std::cout << "INFO: DV encoder threads: " << enc_thread_count << "\n";
-	auto_codec_open_encoder(encoder, CODEC_ID_DVVIDEO, enc_thread_count);
-    }
+    auto_codec encoder(avcodec_alloc_context3(NULL));
+    AVCodecContext * enc = NULL;
 
     for (;;)
     {
@@ -895,6 +879,20 @@ void mixer::run_mixer()
 	{
 	    // Encode mixed video
 	    const dv_system * system = m->format.system;
+	    if (!enc) {
+		enc = encoder.get();
+		if (!enc)
+		    throw std::bad_alloc();
+		enc->width = system->frame_width;
+		enc->height = system->frame_height;
+		enc->pix_fmt = mixed_raw->pix_fmt;
+
+		// Try to use one thread per CPU, up to a limit of 8
+		int enc_thread_count =
+		    std::min<int>(8, std::max<long>(sysconf(_SC_NPROCESSORS_ONLN), 1));
+		std::cout << "INFO: DV encoder threads: " << enc_thread_count << "\n";
+		auto_codec_open_encoder(encoder, CODEC_ID_DVVIDEO, enc_thread_count);
+	    }
 	    enc->sample_aspect_ratio.num = system->pixel_aspect[m->format.frame_aspect].width;
 	    enc->sample_aspect_ratio.den = system->pixel_aspect[m->format.frame_aspect].height;
 	    // Work around libavcodec's aspect ratio confusion (bug #790)
@@ -902,9 +900,6 @@ void mixer::run_mixer()
 	    enc->sample_aspect_ratio.den *= 41;
 	    enc->time_base.num = system->frame_rate_denom;
 	    enc->time_base.den = system->frame_rate_numer;
-	    enc->width = system->frame_width;
-	    enc->height = system->frame_height;
-	    enc->pix_fmt = mixed_raw->pix_fmt;
 	    mixed_raw->header.pts = serial_num;
   	    mixed_dv = allocate_dv_frame();
 	    int out_size = avcodec_encode_video(enc,
