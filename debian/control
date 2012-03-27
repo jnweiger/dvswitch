@@ -11,7 +11,10 @@ Vcs-Browser: http://anonscm.debian.org/gitweb/?p=dvswitch/dvswitch.git
 
 Package: dvswitch
 Architecture: any
-Depends: ${shlibs:Depends}, gnome-icon-theme
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+ gnome-icon-theme
 Suggests: dvsink, dvsource
 Description: basic video mixer for live DV streams
  dvswitch is a very basic video mixer that receives DV streams from
@@ -23,7 +26,10 @@ Description: basic video mixer for live DV streams
 
 Package: dvsource
 Architecture: any
-Depends: ${shlibs:Depends}, dvgrab
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+ dvgrab
 Description: programs to provide source streams for dvswitch
  This package provides sources for dvswitch:
  .
@@ -40,7 +46,9 @@ Description: programs to provide source streams for dvswitch
 
 Package: dvsink
 Architecture: any
-Depends: ${shlibs:Depends}
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends}
 Description: programs to sink streams from dvswitch
  This packages provides two sinks for dvswitch:
  .
