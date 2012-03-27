@@ -27,7 +27,6 @@ target_link_libraries(dvsource-alsa m ${ALSA_LIBRARIES})
 
 add_executable(dvsource-jack dvsource-jack.c dif_audio.c ${common_sources})
 set_target_properties(dvsource-jack PROPERTIES COMPILE_FLAGS -DUSE_JACK)
-#target_definitions(dvsource-jack -DUSE_JACK)
 
 target_link_libraries(dvsource-jack m ${JACK_LIBRARIES})
 
