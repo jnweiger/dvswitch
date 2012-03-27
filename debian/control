@@ -15,7 +15,7 @@ Depends:
  ${misc:Depends},
  ${shlibs:Depends},
  gnome-icon-theme
-Suggests: dvsink, dvsource
+Recommends: dvsink, dvsource
 Description: basic video mixer for live DV streams
  dvswitch is a very basic video mixer that receives DV streams from
  sources and sends a DV stream to sinks over a TCP/IP network.  It has
