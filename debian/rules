@@ -14,7 +14,11 @@ MAKEFLAGS += $(subst parallel=,-j,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
 export COLOR := off
 endif
 
-build : build/Makefile
+build: build-arch build-indep
+build-arch: build-stamp
+build-indep: build-stamp
+
+build-stamp: build/Makefile
 	$(MAKE) -C build
 
 build/Makefile :
