@@ -1,3 +1,10 @@
+dvswitch (0.9~rc2) UNRELEASED; urgency=low
+
+  [ Wouter Verhelst ]
+  * Don't try to build or install dvsource-alsa on non-Linux.
+
+ -- Wouter Verhelst <wouter@debian.org>  Wed, 28 Mar 2012 00:39:04 +0200
+
 dvswitch (0.9~rc1) experimental; urgency=low
 
   [ Ben Hutchings ]

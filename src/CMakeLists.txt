@@ -22,8 +22,10 @@ add_executable(dvsource-firewire-rtsp dvsource-firewire.cpp os_error.cpp
 target_link_libraries(dvsource-firewire-rtsp pthread raw1394
   ${LiveMedia_LIBRARIES})
 
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 add_executable(dvsource-alsa dvsource-alsa.c dif_audio.c ${common_sources})
 target_link_libraries(dvsource-alsa m ${ALSA_LIBRARIES})
+endif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 
 add_executable(dvsource-jack dvsource-jack.c dif_audio.c ${common_sources})
 set_target_properties(dvsource-jack PROPERTIES COMPILE_FLAGS -DUSE_JACK)
@@ -40,7 +42,11 @@ target_link_libraries(dvswitch m pthread rt X11 Xext Xv
   ${LIBAVUTIL_LIBRARIES} ${LiveMedia_LIBRARIES} ${GETTEXT_LIBRARIES})
 
 install(TARGETS dvsink-command dvsink-files dvsource-file dvsource-dvgrab
-                dvsource-alsa dvswitch dvsource-firewire-rtsp
+                dvswitch dvsource-firewire-rtsp
         DESTINATION ${bindir})
+
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+install(TARGETS dvsource-alsa DESTINATION ${bindir})
+endif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 install_symlink(dvsource-dvgrab "${bindir}/dvsource-firewire")
 install_symlink(dvsource-dvgrab "${bindir}/dvsource-v4l2-dv")
