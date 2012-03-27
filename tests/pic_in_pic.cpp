@@ -268,7 +268,9 @@ void test_format(PixelFormat pix_fmt)
 
 int main()
 {
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(53, 5, 0)
     avcodec_init();
+#endif
     avcodec_register_all();
     test_format(PIX_FMT_YUV420P);
     test_format(PIX_FMT_YUV411P);

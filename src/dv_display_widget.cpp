@@ -86,7 +86,7 @@ namespace
 // dv_display_widget
 
 dv_display_widget::dv_display_widget(int lowres)
-    : decoder_(avcodec_alloc_context()),
+    : decoder_(avcodec_alloc_context3(NULL)),
       decoded_serial_num_(-1),
       shm_busy_(false)
 {

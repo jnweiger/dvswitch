@@ -63,4 +63,18 @@ avcodec_decode_video2(AVCodecContext *avctx, AVFrame *picture,
 
 #endif /* < 52.26.0 */
 
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(53, 5, 0)
+static inline AVCodecContext *
+avcodec_alloc_context3(AVCodec *codec __attribute__((unused)))
+{
+    return avcodec_alloc_context();
+}
+
+static inline int
+avcodec_open2(AVCodecContext *avctx, AVCodec *codec, void **options __attribute__((unused))) 
+{
+    return avcodec_open(avctx, codec);
+}
+#endif /* < 53.5.0 */
+
 #endif /* AVCODEC_WRAP_H */
