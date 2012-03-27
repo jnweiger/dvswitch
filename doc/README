@@ -108,7 +108,7 @@ keystrokes:
 1 to 9          select the video source
 Alt-1 to Alt-9  select the audio source
 P               picture-in-picture (in English locales)
-D		enable fade transition (in English locales)
+D               enable fade transition (in English locales)
 R               start/stop recording (in English locales)
 T               cut recording (in English locales)
 Return/Enter    apply effect
