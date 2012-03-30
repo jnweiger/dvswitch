@@ -19,7 +19,7 @@ status_overlay::status_overlay(bool blinking_bar)
     status_widget_.set_parent(*this);
 
     Gdk::Color colour;
-    colour.set_grey(0); // black
+    colour.set_grey(16*256); // almost-black - some contrast to "real black"
     status_widget_.modify_bg(Gtk::STATE_NORMAL, colour);
     blink_ = false;
 }
