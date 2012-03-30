@@ -7,6 +7,7 @@ else
 CFLAGS += -O2
 endif
 export CXXFLAGS := $(CFLAGS)
+export LDFLAGS := -Wl,--as-needed
 
 ifneq (,$(findstring parallel,$(DEB_BUILD_OPTIONS)))
 MAKEFLAGS += $(subst parallel=,-j,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
