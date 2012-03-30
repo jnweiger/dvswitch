@@ -75,6 +75,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
       none_button_(effect_group_, gettext("No effect")),
       pip_button_(effect_group_, gettext("_Pic-in-pic"), true),
       fade_button_(effect_group_, gettext("Fa_de"), true),
+      fade_label_(gettext("Fade Speed [ms]:")),
       fade_value_(300, 15000, 100),
       apply_button_(),
       apply_icon_(Gtk::Stock::APPLY, Gtk::ICON_SIZE_BUTTON),
@@ -167,7 +168,9 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
 
     fade_value_.set_value(2000.0);
     fade_value_.set_sensitive(false);
+    fade_value_.set_value_pos(Gtk::POS_BOTTOM);
     fade_value_.show();
+    fade_label_.show();
 
     apply_button_.set_sensitive(false);
     apply_button_.signal_clicked().connect(
@@ -184,6 +187,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
 				  Gtk::AccelFlags(0));
     apply_button_.show();
 
+    progress_.set_text(gettext("Fade Progress"));
     progress_.show();
 
     meter_sep_.show();
@@ -214,9 +218,10 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
     command_box_.pack_start(pip_button_, Gtk::PACK_SHRINK);
     command_box_.pack_start(apply_button_, Gtk::PACK_SHRINK);
     command_box_.pack_start(fade_button_, Gtk::PACK_SHRINK);
+    command_box_.pack_start(fade_label_, Gtk::PACK_SHRINK);
     command_box_.pack_start(fade_value_, Gtk::PACK_SHRINK);
     command_box_.pack_start(progress_, Gtk::PACK_SHRINK);
-    command_box_.pack_start(meter_sep_, Gtk::PACK_EXPAND_PADDING);
+    command_box_.pack_start(meter_sep_, Gtk::PACK_SHRINK);
     command_box_.pack_start(vu_meter_, Gtk::PACK_EXPAND_WIDGET);
     command_box_.show();
 

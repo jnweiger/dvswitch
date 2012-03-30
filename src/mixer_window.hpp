@@ -86,6 +86,7 @@ private:
     Gtk::RadioButton none_button_;
     Gtk::RadioButton pip_button_;
     Gtk::RadioButton fade_button_;
+    Gtk::Label fade_label_;
     Gtk::HScale fade_value_;
     Gtk::Button apply_button_;
     Gtk::Image apply_icon_;
