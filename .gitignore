@@ -1,0 +1,11 @@
+build
+debian/dvsink
+debian/dvswitch
+debian/dvsource
+debian/tmp
+debian/*log
+debian/*substvars
+cscope.*
+tags
+debian/files
+*-stamp
