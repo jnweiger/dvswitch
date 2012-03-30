@@ -61,7 +61,7 @@ Depends:
  ${misc:Depends},
  ${shlibs:Depends}
 Description: programs to sink streams from dvswitch
- This packages provides two sinks for dvswitch:
+ This package provides two sinks for dvswitch:
  .
  dvsink-command runs a command with the DV stream on its standard input.
  .
