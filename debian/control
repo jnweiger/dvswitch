@@ -3,7 +3,18 @@ Maintainer: Ben Hutchings <ben@decadent.org.uk>
 Uploaders: Wouter Verhelst <wouter@debian.org>
 Section: video
 Priority: extra
-Build-Depends: debhelper (>= 5), libjack-dev | libjack-jackd2-dev, libasound2-dev, libavcodec-dev, pkg-config, libgtkmm-2.4-dev, libboost-dev, libboost-thread-dev, libxv-dev, cmake, liblivemedia-dev (>= 2012.02.29-2), libraw1394-dev
+Build-Depends: debhelper (>= 5),
+ cmake,
+ libasound2-dev [linux-any],
+ libavcodec-dev,
+ libboost-dev,
+ libboost-thread-dev,
+ libgtkmm-2.4-dev,
+ libjack-dev | libjack-jackd2-dev,
+ liblivemedia-dev (>= 2012.02.29-2),
+ libraw1394-dev,
+ libxv-dev,
+ pkg-config
 Standards-Version: 3.9.3
 Homepage: http://dvswitch.alioth.debian.org/
 Vcs-Git: git://git.debian.org/git/dvswitch/dvswitch.git
