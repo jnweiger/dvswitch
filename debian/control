@@ -4,7 +4,7 @@ Uploaders: Wouter Verhelst <wouter@debian.org>
 Section: video
 Priority: extra
 Build-Depends: debhelper (>= 5), libjack-dev | libjack-jackd2-dev, libasound2-dev, libavcodec-dev, pkg-config, libgtkmm-2.4-dev, libboost-dev, libboost-thread-dev, libxv-dev, cmake, liblivemedia-dev (>= 2012.02.29-2), libraw1394-dev
-Standards-Version: 3.8.0
+Standards-Version: 3.9.3
 Vcs-Browser: http://svn.debian.org/wsvn/dvswitch/trunk/
 Vcs-Svn: svn://svn.debian.org/svn/dvswitch/trunk
 Homepage: http://dvswitch.alioth.debian.org/
