@@ -1,12 +1,58 @@
-This is the Debian package of DVswitch, put together by Ben Hutchings
-<ben@decadent.org.uk>.
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: dvswitch
+Upstream-Contact: dvswitch-devel@lists.alioth.debian.org
+Source: http://alioth.debian.org/projects/dvswitch/
 
-It is based on source from http://alioth.debian.org/projects/dvswitch/
+Files: *
+Copyright:
+ 2005-2010 Ben Hutchings
+License: GPL-2+
 
-DVswitch is:
-Copyright 2005-2009 Ben Hutchings
-Copyright 2008 Petter Reinholdtsen
+Files: src/dv_display_widget.cpp src/dvsink-files.c 
+       src/dvsource-dvgrab.c src/dvsource-file.c src/frame_timer.c
+Copyright:
+ 2007-2009 Ben Hutchings
+ 2008 Petter Reinholdtsen
+License: GPL-2+
 
-DVswitch is licensed under the GNU General Public License (GPL),
-version 2 or later.  On Debian systems the text of the GPL can be
-found in /usr/share/common-licenses/GPL
+Files: src/mixer.cpp
+Copyright:
+ 2007-2009 Ben Hutchings
+ 2008 Petter Reinholdtsen
+ 2009 Wouter Verhelst
+License: GPL-2+
+
+Files: src/tally_rtsp_server.*
+Copyright:
+ 2011 Wouter Verhelst
+License: GPL-2+
+
+Files: src/dvsource-jack.c
+Copyright:
+ 2007-2009 Ben Hutchings
+ 2011 Robin Gareus <robin@gareus.org>
+License: GPL-2+
+
+Files: debian/*
+Copyright:
+ 2005-2009 Ben Hutchings
+ 2011 Wouter Verhelst
+ 2012 Robin Gareus <robin@gareus.org>
+License: GPL-2+
+
+License: GPL-2+
+ This package is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License, or
+ (at your option) any later version.
+ .
+ This package is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+Comment:
+ On Debian systems, the complete text of the GNU General
+ Public License can be found in `/usr/share/common-licenses/GPL-2'.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
