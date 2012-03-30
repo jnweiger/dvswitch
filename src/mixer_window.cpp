@@ -18,6 +18,7 @@
 #include <gtkmm/main.h>
 #include <gtkmm/stock.h>
 #include <gtkmm/stockid.h>
+#include <gtkmm/messagedialog.h>
 
 #include "connector.hpp"
 #include "format_dialog.hpp"
@@ -110,7 +111,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
 
     set_mnemonic_modifier(Gdk::ModifierType(0));
 
-    quit_menu_item_.signal_activate().connect(sigc::ptr_fun(&Gtk::Main::quit));
+    quit_menu_item_.signal_activate().connect(sigc::mem_fun(this, &mixer_window::open_quit_dialog));
     quit_menu_item_.show();
     file_menu_.add(quit_menu_item_);
     file_menu_item_.set_submenu(file_menu_);
@@ -319,6 +320,24 @@ void mixer_window::open_sources_dialog()
 {
     sources_dialog dialog(*this, mixer_, connector_);
     dialog.run();
+}
+
+void mixer_window::open_quit_dialog()
+{
+    Gtk::MessageDialog dialog (*this, gettext("Really quit?"), false, Gtk::MESSAGE_QUESTION, Gtk::BUTTONS_NONE);
+    dialog.add_button(gettext("No, continue running dvswitch."), Gtk::RESPONSE_CANCEL);
+    dialog.add_button(gettext("Yes, exit dvswitch."), Gtk::RESPONSE_YES);
+    dialog.set_default_response(Gtk::RESPONSE_CANCEL);
+    dialog.set_position (Gtk::WIN_POS_CENTER_ON_PARENT);
+    switch (dialog.run())
+    {
+	case Gtk::RESPONSE_ACCEPT:
+	case Gtk::RESPONSE_YES:
+	    Gtk::Main::quit();
+	    break;
+	default:
+	    break;
+    }
 }
 
 void mixer_window::toggle_record() throw()

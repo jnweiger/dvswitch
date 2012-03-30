@@ -48,6 +48,7 @@ private:
     void apply_effect();
     void open_format_dialog();
     void open_sources_dialog();
+    void open_quit_dialog();
 
     void toggle_record() throw();
     bool update(Glib::IOCondition) throw();
