@@ -4,11 +4,13 @@ dvswitch (0.9~rc2) UNRELEASED; urgency=low
   * Don't try to build or install dvsource-alsa on non-Linux.
 
   [ Robin Gareus ]
+  * fast-fades (allow fade effect 40ms..15sec)
+  * ffmpeg API update (for ffmpeg-0.10)
   * dynamic A/B overlay
   * confirm application quit dialog
   * blinking status bar
-  * updated GUI widget aligment, and labels
-  * various updates to debian packaging
+  * updated GUI widget alignment, and labels
+  * various updates to Debian packaging
   * various spelling and formating fixes (doc, man-pages)
 
  -- Wouter Verhelst <wouter@debian.org>  Wed, 28 Mar 2012 00:39:04 +0200
