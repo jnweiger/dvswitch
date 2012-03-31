@@ -232,7 +232,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
     upper_box_.show();
 
     main_box_.pack_start(menu_bar_, Gtk::PACK_SHRINK);
-    main_box_.pack_start(upper_box_, Gtk::PACK_EXPAND_WIDGET);
+    main_box_.pack_start(upper_box_, Gtk::PACK_SHRINK);
     main_box_.pack_start(selector_, Gtk::PACK_EXPAND_PADDING);
     main_box_.show();
     add(main_box_);
