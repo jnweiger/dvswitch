@@ -10,7 +10,7 @@
 class status_overlay : public Gtk::Container
 {
 public:
-    status_overlay();
+    status_overlay(bool blinking_bar = true);
     ~status_overlay();
     void set_status(const Glib::ustring & text,
 		    const Glib::ustring & icon_name,
@@ -27,6 +27,9 @@ private:
     virtual void on_size_request(Gtk::Requisition *);
 
     bool clear();
+    bool blink();
+    bool blink_;
+    bool blinking_bar_;
 
     class status_widget : public Gtk::DrawingArea
     {

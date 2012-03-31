@@ -9,8 +9,9 @@
 const int status_scale = 64;
 #define STATUS_TEXT_HEIGHT "48" // must be a string :-(
 
-status_overlay::status_overlay()
-    : main_widget_(0)
+status_overlay::status_overlay(bool blinking_bar)
+    : main_widget_(0),
+      blinking_bar_(blinking_bar)
 {
     // We do not need a window and do not implement realize()
     set_flags(Gtk::NO_WINDOW);
@@ -20,6 +21,7 @@ status_overlay::status_overlay()
     Gdk::Color colour;
     colour.set_grey(0); // black
     status_widget_.modify_bg(Gtk::STATE_NORMAL, colour);
+    blink_ = false;
 }
 
 status_overlay::~status_overlay()
@@ -33,6 +35,7 @@ void status_overlay::set_status(const Glib::ustring & text,
 {
     status_widget_.set_status(text, icon_name);
     status_widget_.show();
+    blink_ = false;
 
     // Cancel any timer for the previous status
     if (timer_)
@@ -52,6 +55,32 @@ void status_overlay::set_status(const Glib::ustring & text,
 	timer_->connect(sigc::mem_fun(this, &status_overlay::clear));
 	timer_->attach(Glib::MainContext::get_default());
     }
+    else if (blinking_bar_) 
+    {
+	timer_ = Glib::TimeoutSource::create(500);
+	timer_->connect(sigc::mem_fun(this, &status_overlay::blink));
+	timer_->attach(Glib::MainContext::get_default());
+	blink_ = true;
+    }
+}
+
+bool status_overlay::blink()
+{
+    timer_.reset();
+    if (!blink_)
+    {
+	return false;
+    }
+
+    if (status_widget_.get_visible ())
+    {
+	status_widget_.hide();
+    }
+    else
+    {
+	status_widget_.show();
+    }
+    return true;
 }
 
 bool status_overlay::clear()
