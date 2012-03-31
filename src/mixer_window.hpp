@@ -56,6 +56,9 @@ private:
     void set_pri_video_source(mixer::source_id);
     void set_sec_video_source(mixer::source_id);
 
+    void overlay_mix(bool force_set);
+    void overlay_update();
+
     virtual void put_frames(unsigned source_count,
 			    const dv_frame_ptr * source_dv,
 			    mixer::mix_settings,
@@ -88,6 +91,9 @@ private:
     Gtk::RadioButton fade_button_;
     Gtk::Label fade_label_;
     Gtk::HScale fade_value_;
+    Gtk::Label overlay_label_;
+    Gtk::HScale overlay_ab_;
+    Gtk::HSeparator overlay_sep_;
     Gtk::Button apply_button_;
     Gtk::Image apply_icon_;
     Gtk::ProgressBar progress_;
@@ -101,6 +107,7 @@ private:
     bool pip_active_;
     bool pip_pending_;
     bool fade_pending_;
+    bool overlay_active_;
     bool progress_active_;
     double progress_val_;
     mixer::source_id fade_target_;

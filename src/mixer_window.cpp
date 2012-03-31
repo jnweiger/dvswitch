@@ -77,6 +77,8 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
       fade_button_(effect_group_, gettext("Fa_de"), true),
       fade_label_(gettext("Fade Speed [ms]:")),
       fade_value_(300, 15000, 100),
+      overlay_label_(gettext("Overlay A/B:")),
+      overlay_ab_(0, 256, 1),
       apply_button_(),
       apply_icon_(Gtk::Stock::APPLY, Gtk::ICON_SIZE_BUTTON),
       vu_meter_(-56, 0),
@@ -84,6 +86,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
       sec_video_source_id_(0),
       pip_active_(false),
       pip_pending_(false),
+      overlay_active_(false),
       progress_active_(false),
       wakeup_pipe_(O_NONBLOCK, O_NONBLOCK),
       next_source_id_(0)
@@ -166,11 +169,28 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
         sigc::mem_fun(this, &mixer_window::begin_fade));
     fade_button_.show();
 
-    fade_value_.set_value(2000.0);
+    // Note: default value - before overlay patch - was (2000.0)
+    // there are no stacked effects: overlay and fading is exclusive:
+    // starting a fade will cancel the overlay.
+    // a short fade (2-3 frames) can still trick the viewer.
+    // once effect stacking is possible this should likley be set to 
+    // a sane default - i.e 500 ms - 2 seconds is rather long.
+    fade_value_.set_value(100.0);
+
     fade_value_.set_sensitive(false);
     fade_value_.set_value_pos(Gtk::POS_BOTTOM);
     fade_value_.show();
     fade_label_.show();
+
+    overlay_ab_.set_value(0);
+    overlay_ab_.set_draw_value(false);
+    overlay_ab_.set_sensitive(false);
+    overlay_ab_.show();
+    overlay_label_.show();
+    overlay_sep_.show();
+
+    overlay_ab_.signal_value_changed().connect(
+	sigc::mem_fun(this, &mixer_window::overlay_update));
 
     apply_button_.set_sensitive(false);
     apply_button_.signal_clicked().connect(
@@ -221,6 +241,9 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
     command_box_.pack_start(fade_label_, Gtk::PACK_SHRINK);
     command_box_.pack_start(fade_value_, Gtk::PACK_SHRINK);
     command_box_.pack_start(progress_, Gtk::PACK_SHRINK);
+    command_box_.pack_start(overlay_sep_, Gtk::PACK_SHRINK);
+    command_box_.pack_start(overlay_label_, Gtk::PACK_SHRINK);
+    command_box_.pack_start(overlay_ab_, Gtk::PACK_SHRINK);
     command_box_.pack_start(meter_sep_, Gtk::PACK_SHRINK);
     command_box_.pack_start(vu_meter_, Gtk::PACK_EXPAND_WIDGET);
     command_box_.show();
@@ -249,10 +272,12 @@ void mixer_window::cancel_effect()
     pip_pending_ = false;
     pip_active_ = false;
     fade_pending_ = false;
+    overlay_mix(true);
     mixer_.set_video_mix(mixer_.create_video_mix_simple(pri_video_source_id_));
     display_.set_selection_enabled(false);
     apply_button_.set_sensitive(false);
     fade_value_.set_sensitive(false);
+    overlay_ab_.set_sensitive(overlay_active_);
 }
 
 void mixer_window::begin_pic_in_pic()
@@ -265,6 +290,8 @@ void mixer_window::begin_pic_in_pic()
 void mixer_window::begin_fade()
 {
     fade_pending_ = true;
+    overlay_active_ = false;
+    overlay_ab_.set_sensitive(overlay_active_);
     fade_value_.set_sensitive(true);
     // pic-in-pic doesn't actually work well with fade ATM, but at least try to
     // handle it to some degree
@@ -283,8 +310,17 @@ void mixer_window::effect_status(int min, int cur, int max, bool more)
 	if (!more)
 	{
 	    pri_video_source_id_ = fade_target_;
+#ifdef WANT_RESUME_OVERLAY 
+	    // resume A/B overlay after fade A->A'
+	    // this should probably become a runtime-option
+	    // or checkbox or toggle-button
+	    overlay_mix(true);
+#else
+	    // cancel overlay after fade
+	    // fade-effect currently overrides overlay-effect anyway
 	    mixer_.set_video_mix(
 		mixer_.create_video_mix_simple(pri_video_source_id_));
+#endif
 	    progress_active_ = false;
 	    return;
 	}
@@ -303,6 +339,8 @@ void mixer_window::apply_effect()
 
 	pip_pending_ = false;
 	pip_active_ = true;
+	overlay_active_ = false;
+	overlay_ab_.set_sensitive(overlay_active_);
 	mixer_.set_video_mix(
 	    mixer_.create_video_mix_pic_in_pic(
 		pri_video_source_id_, sec_video_source_id_, region));
@@ -367,6 +405,8 @@ void mixer_window::set_pri_video_source(mixer::source_id id)
 	    mixer_.create_video_mix_fade(pri_video_source_id_, fade_target_,
 					 true, int(fade_value_.get_value())));
         pip_active_ = false;
+	overlay_active_ = false;
+	overlay_ab_.set_sensitive(overlay_active_);
 	return;
     }
 
@@ -386,10 +426,12 @@ void mixer_window::set_pri_video_source(mixer::source_id id)
 	mixer_.set_video_mix(
 	    mixer_.create_video_mix_pic_in_pic(
 		pri_video_source_id_, sec_video_source_id_, display_.get_selection()));
+	overlay_active_ = false;
+	overlay_ab_.set_sensitive(overlay_active_);
     }
     else
     {
-	mixer_.set_video_mix(mixer_.create_video_mix_simple(pri_video_source_id_));
+	overlay_mix(true);
     }
 }
 
@@ -402,6 +444,48 @@ void mixer_window::set_sec_video_source(mixer::source_id id)
 	mixer_.set_video_mix(
 	    mixer_.create_video_mix_pic_in_pic(
 		pri_video_source_id_, sec_video_source_id_, display_.get_selection()));
+	overlay_active_ = false;
+	overlay_ab_.set_sensitive(overlay_active_);
+    }
+    else overlay_mix(false);
+}
+
+void mixer_window::overlay_mix(bool force_set)
+{
+    if (sec_video_source_id_ != pri_video_source_id_)
+    {
+	if (!overlay_active_)
+	{
+	    int fade = overlay_ab_.get_value();
+	    if (fade < 1)
+	    {
+		mixer_.set_video_mix(mixer_.create_video_mix_simple(pri_video_source_id_));
+	    }
+	    else if (fade > 254)
+	    {
+		mixer_.set_video_mix(mixer_.create_video_mix_simple(sec_video_source_id_));
+	    }
+	    else
+	    {
+		mixer_.set_video_mix(mixer_.create_video_mix_fade(pri_video_source_id_, sec_video_source_id_, false, 0, fade));
+	    }
+	}
+	overlay_active_ = true;
+    }
+    else if (overlay_active_ || force_set)
+    {
+	mixer_.set_video_mix(mixer_.create_video_mix_simple(pri_video_source_id_));
+	overlay_active_ = false;
+    }
+    overlay_ab_.set_sensitive(overlay_active_);
+}
+
+void mixer_window::overlay_update()
+{
+    if (overlay_active_)
+    {
+	overlay_active_ = false;
+	overlay_mix(FALSE);
     }
 }
 
