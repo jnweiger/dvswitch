@@ -76,7 +76,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
       pip_button_(effect_group_, gettext("_Pic-in-pic"), true),
       fade_button_(effect_group_, gettext("Fa_de"), true),
       fade_label_(gettext("Fade Speed [ms]:")),
-      fade_value_(300, 15000, 100),
+      fade_value_(40, 15040, 40),
       overlay_label_(gettext("Overlay A/B:")),
       overlay_ab_(0, 256, 1),
       apply_button_(),
@@ -175,7 +175,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
     // a short fade (2-3 frames) can still trick the viewer.
     // once effect stacking is possible this should likley be set to 
     // a sane default - i.e 500 ms - 2 seconds is rather long.
-    fade_value_.set_value(100.0);
+    fade_value_.set_value(100);
 
     fade_value_.set_sensitive(false);
     fade_value_.set_value_pos(Gtk::POS_BOTTOM);

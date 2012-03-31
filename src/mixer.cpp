@@ -718,9 +718,9 @@ public:
 	  sec_source_id_(sec_source_id),
 	  timed_(timed),
 	  scale_(scale),
-	  bucketsize_(ms / 255),
+	  bucketsize_(ms * 1000 / 255),
 	  modulo_(0),
-	  ms_per_frame_(0)
+	  us_per_frame_(0)
     {}
     uint8_t get_scale() { return scale_; };
 
@@ -735,7 +735,7 @@ private:
     uint8_t scale_;
     int bucketsize_;
     int modulo_;
-    int ms_per_frame_;
+    int us_per_frame_;
 };
 
 void mixer::video_mix_fade::validate(const mixer & mixer)
@@ -777,10 +777,10 @@ bool mixer::video_mix_fade::apply(const mix_data & m,
 	int step;
 
 	retval = true;
-	if (!ms_per_frame_)
-	    ms_per_frame_ = ((1000 * m.format.system->frame_rate_denom) /
+	if (!us_per_frame_)
+	    us_per_frame_ = ((1000000 * m.format.system->frame_rate_denom) /
 			     m.format.system->frame_rate_numer);
-	val = modulo_ + ms_per_frame_;
+	val = modulo_ + us_per_frame_;
 	step = val / bucketsize_;
 	modulo_ = val % bucketsize_;
 	if ((scale_ + step) >= 255)
