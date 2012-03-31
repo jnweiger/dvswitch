@@ -30,7 +30,7 @@ endif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 add_executable(dvsource-jack dvsource-jack.c dif_audio.c ${common_sources})
 set_target_properties(dvsource-jack PROPERTIES COMPILE_FLAGS -DUSE_JACK)
 
-target_link_libraries(dvsource-jack m ${JACK_LIBRARIES})
+target_link_libraries(dvsource-jack m pthread ${JACK_LIBRARIES})
 
 add_executable(dvswitch dvswitch.cpp mixer.cpp frame_timer.c
   mixer_window.cpp dv_display_widget.cpp dv_selector_widget.cpp
@@ -42,7 +42,7 @@ target_link_libraries(dvswitch m pthread rt X11 Xext Xv
   ${LIBAVUTIL_LIBRARIES} ${LiveMedia_LIBRARIES} ${GETTEXT_LIBRARIES})
 
 install(TARGETS dvsink-command dvsink-files dvsource-file dvsource-dvgrab
-                dvswitch dvsource-firewire-rtsp
+                dvswitch dvsource-firewire-rtsp dvsource-jack
         DESTINATION ${bindir})
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
