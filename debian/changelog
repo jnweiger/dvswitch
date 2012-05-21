@@ -1,3 +1,9 @@
+dvswitch (0.9-1) unstable; urgency=low
+
+  * Upload to unstable
+
+ -- Wouter Verhelst <wouter@debian.org>  Mon, 21 May 2012 22:53:45 +0200
+
 dvswitch (0.9~rc1-1) experimental; urgency=low
 
   [ Wouter Verhelst ]

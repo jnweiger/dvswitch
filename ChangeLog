@@ -1,4 +1,4 @@
-dvswitch (0.9~rc2) UNRELEASED; urgency=low
+dvswitch (0.9) unstable; urgency=low
 
   [ Wouter Verhelst ]
   * Don't try to build or install dvsource-alsa on non-Linux.
