@@ -43,6 +43,7 @@ target_link_libraries(dvswitch m pthread rt X11 Xext Xv
 
 install(TARGETS dvsink-command dvsink-files dvsource-file dvsource-dvgrab
                 dvswitch dvsource-firewire-rtsp dvsource-jack
+                dvswitch dvsource-firewire-rtsp dvsource-jack
         DESTINATION ${bindir})
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
