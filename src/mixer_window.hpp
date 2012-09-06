@@ -20,6 +20,7 @@
 #include <gtkmm/window.h>
 #include <gtkmm/progressbar.h>
 #include <gtkmm/scale.h>
+#include <gtkmm/frame.h>
 
 #include "auto_pipe.hpp"
 #include "dv_display_widget.hpp"
@@ -44,7 +45,8 @@ public:
 private:
     void cancel_effect();
     void begin_pic_in_pic();
-    void begin_fade();
+    void begin_tfade();
+    void begin_mfade();
     void apply_effect();
     void open_format_dialog();
     void open_sources_dialog();
@@ -85,17 +87,22 @@ private:
     Gtk::Button cut_button_;
     Gtk::Image cut_icon_;
     Gtk::HSeparator command_sep_;
+    Gtk::Frame effects_frame_;
+    Gtk::VBox effects_box_;
     Gtk::RadioButtonGroup effect_group_;
     Gtk::RadioButton none_button_;
     Gtk::RadioButton pip_button_;
-    Gtk::RadioButton fade_button_;
-    Gtk::Label fade_label_;
-    Gtk::HScale fade_value_;
-    Gtk::Label overlay_label_;
-    Gtk::HScale overlay_ab_;
-    Gtk::HSeparator overlay_sep_;
+    Gtk::RadioButton mfade_button_;
+    Gtk::HSeparator transition_sep_;
+    Gtk::RadioButton tfade_button_;
+    Gtk::Label tfade_label_;
+    Gtk::HScale tfade_value_;
+    Gtk::Label mfade_label_;
+    Gtk::HScale mfade_ab_;
     Gtk::Button apply_button_;
     Gtk::Image apply_icon_;
+    Gtk::Frame trans_frame_;
+    Gtk::VBox trans_box_;
     Gtk::ProgressBar progress_;
     Gtk::HSeparator meter_sep_;
     vu_meter vu_meter_;
@@ -106,11 +113,11 @@ private:
     mixer::source_id pri_video_source_id_, sec_video_source_id_;
     bool pip_active_;
     bool pip_pending_;
-    bool fade_pending_;
-    bool overlay_active_;
+    bool tfade_pending_;
+    bool mfade_active_;
     bool progress_active_;
     double progress_val_;
-    mixer::source_id fade_target_;
+    mixer::source_id tfade_target_;
 
     auto_pipe wakeup_pipe_;
 
