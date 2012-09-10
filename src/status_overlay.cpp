@@ -10,8 +10,8 @@ const int status_scale = 64;
 #define STATUS_TEXT_HEIGHT "48" // must be a string :-(
 
 status_overlay::status_overlay(bool blinking_bar)
-    : main_widget_(0),
-      blinking_bar_(blinking_bar)
+    : blinking_bar_(blinking_bar),
+      main_widget_(0)
 {
     // We do not need a window and do not implement realize()
     set_flags(Gtk::NO_WINDOW);
