@@ -178,8 +178,8 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
         sigc::mem_fun(this, &mixer_window::begin_tfade));
     tfade_button_.show();
 
-    // there are no stacked effects: overlay and fading is exclusive:
-    // starting a fade will cancel the overlay.
+    // there are no stacked effects: manual and timed fading is exclusive:
+    // starting a timed fade will cancel the manual one.
     // a short fade (2-3 frames) can still trick the viewer.
     // once effect stacking is possible this should likley be set to 
     // a sane default - i.e 500 ms - 2 seconds is rather long.
@@ -197,7 +197,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
     mfade_label_.show();
 
     mfade_ab_.signal_value_changed().connect(
-	sigc::mem_fun(this, &mixer_window::overlay_update));
+	sigc::mem_fun(this, &mixer_window::mfade_update));
 
     apply_button_.set_sensitive(false);
     apply_button_.signal_clicked().connect(
@@ -290,17 +290,18 @@ void mixer_window::cancel_effect()
     pip_pending_ = false;
     pip_active_ = false;
     tfade_pending_ = false;
-    overlay_mix(true);
+    mfade_active_ = false;
     mixer_.set_video_mix(mixer_.create_video_mix_simple(pri_video_source_id_));
     display_.set_selection_enabled(false);
     apply_button_.set_sensitive(false);
     tfade_value_.set_sensitive(false);
-    mfade_ab_.set_sensitive(mfade_active_);
 }
 
 void mixer_window::begin_pic_in_pic()
 {
     pip_pending_ = true;
+    mfade_active_ = false;
+    tfade_pending_ = false;
     display_.set_selection_enabled(true);
     apply_button_.set_sensitive(true);
 }
@@ -309,7 +310,6 @@ void mixer_window::begin_tfade()
 {
     tfade_pending_ = true;
     mfade_active_ = false;
-    mfade_ab_.set_sensitive(mfade_active_);
     tfade_value_.set_sensitive(true);
     // pic-in-pic doesn't actually work well with fade ATM, but at least try to
     // handle it to some degree
@@ -323,6 +323,16 @@ void mixer_window::begin_tfade()
 
 void mixer_window::begin_mfade()
 {
+    mfade_active_ = true;
+    tfade_pending_ = false;
+    if (pip_pending_)
+    {
+    	pip_pending_ = false;
+	display_.set_selection_enabled(false);
+	apply_button_.set_sensitive(false);
+    }
+    pip_active_ = false;
+    mfade_mix();
 }
 
 void mixer_window::effect_status(int min, int cur, int max, bool more)
@@ -332,17 +342,10 @@ void mixer_window::effect_status(int min, int cur, int max, bool more)
 	if (!more)
 	{
 	    pri_video_source_id_ = tfade_target_;
-#ifdef WANT_RESUME_OVERLAY 
-	    // resume A/B overlay after fade A->A'
-	    // this should probably become a runtime-option
-	    // or checkbox or toggle-button
-	    overlay_mix(true);
-#else
-	    // cancel overlay after fade
-	    // fade-effect currently overrides overlay-effect anyway
+	    // cancel manual fade after timed one
+	    // timed fade effect currently overrides manual fade effect anyway
 	    mixer_.set_video_mix(
 		mixer_.create_video_mix_simple(pri_video_source_id_));
-#endif
 	    progress_active_ = false;
 	    return;
 	}
@@ -362,7 +365,6 @@ void mixer_window::apply_effect()
 	pip_pending_ = false;
 	pip_active_ = true;
 	mfade_active_ = false;
-	mfade_ab_.set_sensitive(mfade_active_);
 	mixer_.set_video_mix(
 	    mixer_.create_video_mix_pic_in_pic(
 		pri_video_source_id_, sec_video_source_id_, region));
@@ -418,6 +420,24 @@ void mixer_window::toggle_record() throw()
 
 void mixer_window::set_pri_video_source(mixer::source_id id)
 {
+    // If the secondary source is becoming the primary source, cancel
+    // the effect rather than mixing it with itself.
+    if (id == sec_video_source_id_)
+    {
+        if (pip_active_ || pip_pending_)
+        {
+	    pip_active_ = false;
+	    none_button_.set_active();
+	}
+	allow_mfade_ = false;
+    }
+    else
+    {
+        allow_mfade_ = true;
+    }
+
+    mfade_mix();
+
     // If the fade is active, apply the transition rather than switching the
     // primary source.
     if (tfade_pending_)
@@ -428,33 +448,25 @@ void mixer_window::set_pri_video_source(mixer::source_id id)
 					 true, int(tfade_value_.get_value())));
         pip_active_ = false;
 	mfade_active_ = false;
-	mfade_ab_.set_sensitive(mfade_active_);
 	return;
     }
 
     pri_video_source_id_ = id;
-
-    // If the secondary source is becoming the primary source, cancel
-    // the effect rather than mixing it with itself.
-    if (pip_active_ && id == sec_video_source_id_)
-    {
-	pip_active_ = false;
-	if (!pip_pending_)
-	    none_button_.set_active();
-    }
 
     if (pip_active_)
     {
 	mixer_.set_video_mix(
 	    mixer_.create_video_mix_pic_in_pic(
 		pri_video_source_id_, sec_video_source_id_, display_.get_selection()));
-	mfade_active_ = false;
-	mfade_ab_.set_sensitive(mfade_active_);
+	return;
     }
-    else
+
+    if (mfade_active_)
     {
-	overlay_mix(true);
+        return;
     }
+    mixer_.set_video_mix(
+    	mixer_.create_video_mix_simple(pri_video_source_id_));
 }
 
 void mixer_window::set_sec_video_source(mixer::source_id id)
@@ -466,17 +478,28 @@ void mixer_window::set_sec_video_source(mixer::source_id id)
 	mixer_.set_video_mix(
 	    mixer_.create_video_mix_pic_in_pic(
 		pri_video_source_id_, sec_video_source_id_, display_.get_selection()));
-	mfade_active_ = false;
-	mfade_ab_.set_sensitive(mfade_active_);
+	allow_mfade_ = false;
     }
-    else overlay_mix(false);
+    if (pri_video_source_id_ != sec_video_source_id_)
+    {
+        allow_mfade_ = true;
+    }
+    else
+    {
+    	allow_mfade_ = false;
+	if (mfade_active_)
+	{
+	    none_button_.set_active();
+	}
+    }
+    mfade_mix();
 }
 
-void mixer_window::overlay_mix(bool force_set)
+void mixer_window::mfade_mix()
 {
     if (sec_video_source_id_ != pri_video_source_id_)
     {
-	if (!mfade_active_)
+	if (mfade_active_)
 	{
 	    int fade = mfade_ab_.get_value();
 	    if (fade < 1)
@@ -492,23 +515,18 @@ void mixer_window::overlay_mix(bool force_set)
 		mixer_.set_video_mix(mixer_.create_video_mix_fade(pri_video_source_id_, sec_video_source_id_, false, 0, fade));
 	    }
 	}
-	mfade_active_ = true;
     }
-    else if (mfade_active_ || force_set)
+    else
     {
 	mixer_.set_video_mix(mixer_.create_video_mix_simple(pri_video_source_id_));
-	mfade_active_ = false;
     }
-    mfade_ab_.set_sensitive(mfade_active_);
+    mfade_ab_.set_sensitive(allow_mfade_);
+    mfade_button_.set_sensitive(allow_mfade_);
 }
 
-void mixer_window::overlay_update()
+void mixer_window::mfade_update()
 {
-    if (mfade_active_)
-    {
-	mfade_active_ = false;
-	overlay_mix(FALSE);
-    }
+    mfade_mix();
 }
 
 void mixer_window::put_frames(unsigned source_count,
@@ -573,7 +591,8 @@ bool mixer_window::update(Glib::IOCondition) throw()
 	selector_.set_source_count(count);
 	none_button_.set_sensitive(count >= 1);
 	pip_button_.set_sensitive(count >= 2);
-	mfade_button_.set_sensitive(count >= 2);
+	tfade_button_.set_sensitive(count >= 2);
+	mfade_button_.set_sensitive((count >= 2) && allow_mfade_);
 
 	// Update the thumbnail displays of sources.  If a new mixed frame
 	// arrives while we were doing this, return to the event loop.

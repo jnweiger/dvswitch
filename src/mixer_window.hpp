@@ -58,8 +58,8 @@ private:
     void set_pri_video_source(mixer::source_id);
     void set_sec_video_source(mixer::source_id);
 
-    void overlay_mix(bool force_set);
-    void overlay_update();
+    void mfade_mix();
+    void mfade_update();
 
     virtual void put_frames(unsigned source_count,
 			    const dv_frame_ptr * source_dv,
@@ -114,6 +114,7 @@ private:
     bool pip_pending_;
     bool tfade_pending_;
     bool mfade_active_;
+    bool allow_mfade_;
     bool progress_active_;
     double progress_val_;
     mixer::source_id tfade_target_;
