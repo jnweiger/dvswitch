@@ -104,7 +104,6 @@ private:
     Gtk::Frame trans_frame_;
     Gtk::VBox trans_box_;
     Gtk::ProgressBar progress_;
-    Gtk::HSeparator meter_sep_;
     vu_meter vu_meter_;
     status_overlay osd_;
     dv_full_display_widget display_;

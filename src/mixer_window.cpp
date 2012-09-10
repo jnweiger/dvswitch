@@ -72,7 +72,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
       record_icon_(Gtk::Stock::MEDIA_RECORD, Gtk::ICON_SIZE_BUTTON),
       cut_button_(),
       cut_icon_(Gtk::Stock::CUT, Gtk::ICON_SIZE_BUTTON),
-      effects_frame_(gettext("Effects:")),
+      effects_frame_(gettext("Effects")),
       none_button_(effect_group_, gettext("No effect/transition")),
       pip_button_(effect_group_, gettext("_Pic-in-pic"), true),
       mfade_button_(effect_group_, gettext("_Manual fade"), true),
@@ -83,7 +83,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
       mfade_ab_(0, 256, 1),
       apply_button_(),
       apply_icon_(Gtk::Stock::APPLY, Gtk::ICON_SIZE_BUTTON),
-      trans_frame_(gettext("Transitions:")),
+      trans_frame_(gettext("Transitions")),
       vu_meter_(-56, 0),
       pri_video_source_id_(0),
       sec_video_source_id_(0),
@@ -217,8 +217,6 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
     progress_.set_text(gettext("Transition Progress"));
     progress_.show();
 
-    meter_sep_.show();
-
     vu_meter_.show();
 
     display_.show();
@@ -239,11 +237,11 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
 
     effects_box_.set_border_width(gui_standard_spacing);
     effects_box_.set_spacing(gui_standard_spacing);
+    effects_box_.pack_start(apply_button_, Gtk::PACK_SHRINK);
     effects_box_.pack_start(pip_button_, Gtk::PACK_SHRINK);
     effects_box_.pack_start(mfade_button_, Gtk::PACK_SHRINK);
     effects_box_.pack_start(mfade_label_, Gtk::PACK_SHRINK);
     effects_box_.pack_start(mfade_ab_, Gtk::PACK_SHRINK);
-    effects_box_.pack_start(apply_button_, Gtk::PACK_SHRINK);
     effects_box_.show();
     effects_frame_.add(effects_box_);
     effects_frame_.show();
@@ -254,7 +252,6 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
     trans_box_.pack_start(tfade_label_, Gtk::PACK_SHRINK);
     trans_box_.pack_start(tfade_value_, Gtk::PACK_SHRINK);
     trans_box_.pack_start(progress_, Gtk::PACK_SHRINK);
-    trans_box_.pack_start(meter_sep_, Gtk::PACK_SHRINK);
     trans_box_.show();
     trans_frame_.add(trans_box_);
     trans_frame_.show();
