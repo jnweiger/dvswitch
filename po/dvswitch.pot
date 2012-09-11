@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: dvswitch 0.9~alpha\n"
 "Report-Msgid-Bugs-To: dvswitch-devel@lists.alioth.debian.org\n"
-"POT-Creation-Date: 2011-11-05 18:46+0100\n"
+"POT-Creation-Date: 2012-09-11 01:58+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -52,50 +52,86 @@ msgstr ""
 msgid "Wide (16:9)"
 msgstr ""
 
-#: src/mixer_window.cpp:65
+#: src/mixer_window.cpp:66
 msgid "_File"
 msgstr ""
 
-#: src/mixer_window.cpp:67
+#: src/mixer_window.cpp:68
 msgid "_Settings"
 msgstr ""
 
-#: src/mixer_window.cpp:68
+#: src/mixer_window.cpp:69
 msgid "_Format"
 msgstr ""
 
-#: src/mixer_window.cpp:69
+#: src/mixer_window.cpp:70
 msgid "_Sources"
 msgstr ""
 
-#: src/mixer_window.cpp:74
-msgid "No effect"
-msgstr ""
-
 #: src/mixer_window.cpp:75
-msgid "_Pic-in-pic"
+msgid "Effects"
 msgstr ""
 
 #: src/mixer_window.cpp:76
-msgid "Fa_de"
+msgid "No effect/transition"
 msgstr ""
 
-#: src/mixer_window.cpp:95
+#: src/mixer_window.cpp:77
+msgid "_Pic-in-pic"
+msgstr ""
+
+#: src/mixer_window.cpp:78
+msgid "_Manual fade"
+msgstr ""
+
+#: src/mixer_window.cpp:79
+msgid "Timed fa_de"
+msgstr ""
+
+#: src/mixer_window.cpp:80
+msgid "Transition speed [ms]:"
+msgstr ""
+
+#: src/mixer_window.cpp:82
+msgid "Manual fade A/B:"
+msgstr ""
+
+#: src/mixer_window.cpp:86
+msgid "Transitions"
+msgstr ""
+
+#: src/mixer_window.cpp:103
 msgid "_Record"
 msgstr ""
 
-#: src/mixer_window.cpp:98
+#: src/mixer_window.cpp:106
 msgid "Cu_t"
 msgstr ""
 
-#: src/mixer_window.cpp:101
+#: src/mixer_window.cpp:109
 msgid "_Apply"
 msgstr ""
 
-#: src/mixer_window.cpp:195 src/mixer_window.cpp:332
+#: src/mixer_window.cpp:217
+msgid "Transition Progress"
+msgstr ""
+
+#: src/mixer_window.cpp:225 src/mixer_window.cpp:418
 msgid "STOP"
 msgstr ""
 
-#: src/mixer_window.cpp:330
+#: src/mixer_window.cpp:394
+msgid "Really quit?"
+msgstr ""
+
+#: src/mixer_window.cpp:395
+msgid "No, continue running dvswitch."
+msgstr ""
+
+#: src/mixer_window.cpp:396
+msgid "Yes, exit dvswitch."
+msgstr ""
+
+#: src/mixer_window.cpp:416
 msgid "RECORD"
 msgstr ""
