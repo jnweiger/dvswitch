@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: dvswitch 0.9\n"
 "Report-Msgid-Bugs-To: dvswitch-devel@lists.alioth.debian.org\n"
-"POT-Creation-Date: 2011-11-05 18:46+0100\n"
+"POT-Creation-Date: 2012-09-11 01:58+0200\n"
 "PO-Revision-Date: 2010-01-31 19:40+0100\n"
 "Last-Translator: Wouter Verhelst <w@uter.be>\n"
 "MIME-Version: 1.0\n"
@@ -29,33 +29,61 @@ msgstr "Sample-frequentie"
 msgid "Automatic"
 msgstr "Automatisch"
 
-#: src/mixer_window.cpp:98
+#: src/mixer_window.cpp:106
 msgid "Cu_t"
 msgstr "_Knippen"
 
-#: src/mixer_window.cpp:76
-msgid "Fa_de"
-msgstr "_Mengen"
+#: src/mixer_window.cpp:75
+msgid "Effects"
+msgstr "Effecten"
 
 #: src/format_dialog.cpp:17
 msgid "Format Settings"
 msgstr "Formaat-instellingen"
 
-#: src/mixer_window.cpp:74
-msgid "No effect"
-msgstr "Geen effect"
+#: src/mixer_window.cpp:82
+msgid "Manual fade A/B:"
+msgstr "Handmatig mengen A/B:"
+
+#: src/mixer_window.cpp:76
+msgid "No effect/transition"
+msgstr "Geen effect/transitie"
+
+#: src/mixer_window.cpp:395
+msgid "No, continue running dvswitch."
+msgstr "Nee, blijf dvswitch draaien."
 
 #: src/format_dialog.cpp:48
 msgid "Normal (4:3)"
 msgstr "Normaal (4:3)"
 
-#: src/mixer_window.cpp:330
+#: src/mixer_window.cpp:416
 msgid "RECORD"
 msgstr "OPNEMEN"
 
-#: src/mixer_window.cpp:195 src/mixer_window.cpp:332
+#: src/mixer_window.cpp:394
+msgid "Really quit?"
+msgstr "Echt afsluiten?"
+
+#: src/mixer_window.cpp:225 src/mixer_window.cpp:418
 msgid "STOP"
 msgstr "STOP"
+
+#: src/mixer_window.cpp:79
+msgid "Timed fa_de"
+msgstr "Tijd-_mengen"
+
+#: src/mixer_window.cpp:217
+msgid "Transition Progress"
+msgstr "Overgangsvoortgang"
+
+#: src/mixer_window.cpp:80
+msgid "Transition speed [ms]:"
+msgstr "Overgangssnelheid [ms]:"
+
+#: src/mixer_window.cpp:86
+msgid "Transitions"
+msgstr "Overgangen"
 
 #: src/format_dialog.cpp:19
 msgid "Video frame aspect ratio"
@@ -69,30 +97,38 @@ msgstr "Video-systeem"
 msgid "Wide (16:9)"
 msgstr "Breedbeeld (16:9)"
 
-#: src/mixer_window.cpp:101
+#: src/mixer_window.cpp:396
+msgid "Yes, exit dvswitch."
+msgstr "Ja, dvswitch afsluiten."
+
+#: src/mixer_window.cpp:109
 msgid "_Apply"
 msgstr "Toe_passen"
 
-#: src/mixer_window.cpp:65
+#: src/mixer_window.cpp:66
 msgid "_File"
 msgstr "_Bestand"
 
-#: src/mixer_window.cpp:68
+#: src/mixer_window.cpp:69
 msgid "_Format"
 msgstr "_Formaat"
 
-#: src/mixer_window.cpp:75
+#: src/mixer_window.cpp:78
+msgid "_Manual fade"
+msgstr "Han_dmatig mengen"
+
+#: src/mixer_window.cpp:77
 msgid "_Pic-in-pic"
 msgstr "B_eeld-in-beeld"
 
-#: src/mixer_window.cpp:95
+#: src/mixer_window.cpp:103
 msgid "_Record"
 msgstr "Op_nemen"
 
-#: src/mixer_window.cpp:67
+#: src/mixer_window.cpp:68
 msgid "_Settings"
 msgstr "_Instellingen"
 
-#: src/mixer_window.cpp:69
+#: src/mixer_window.cpp:70
 msgid "_Sources"
 msgstr "_Bronnen"
