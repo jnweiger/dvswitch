@@ -2,6 +2,7 @@ dvswitch (0.9) unstable; urgency=low
 
   [ Wouter Verhelst ]
   * Don't try to build or install dvsource-alsa on non-Linux.
+  * Revisit the interface to make it slihgtly more intuitive again.
 
   [ Robin Gareus ]
   * fast-fades (allow fade effect 40ms..15sec)
