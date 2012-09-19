@@ -90,6 +90,12 @@ private:
     Gtk::MenuItem format_menu_item_;
     Gtk::MenuItem sources_menu_item_;
     Gtk::CheckMenuItem safe_area_menu_item_;
+    Gtk::Menu status_bar_menu_;
+    Gtk::MenuItem status_bar_menu_item_;
+    Gtk::RadioButtonGroup status_bar_radio_grp;
+    Gtk::RadioMenuItem status_bar_on_menu_item_;
+    Gtk::RadioMenuItem status_bar_off_menu_item_;
+    Gtk::RadioMenuItem status_bar_blink_menu_item_;
     Gtk::HBox upper_box_;
     Gtk::VBox command_box_;
     Gtk::ToggleButton record_button_;

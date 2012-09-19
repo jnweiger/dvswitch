@@ -10,11 +10,19 @@
 class status_overlay : public Gtk::Container
 {
 public:
-    status_overlay(bool blinking_bar = true);
+    enum status_bar_mode {
+        BAR_ON,
+        BAR_OFF,
+        BAR_BLINK
+    };
+
+    status_overlay(enum status_bar_mode bar_mode = BAR_BLINK);
     ~status_overlay();
     void set_status(const Glib::ustring & text,
 		    const Glib::ustring & icon_name,
 		    unsigned timeout = 0);
+
+    void set_bar_mode(enum status_bar_mode v);
 
 private:
     virtual GType child_type_vfunc() const;
@@ -29,7 +37,6 @@ private:
     bool clear();
     bool blink();
     bool blink_;
-    bool blinking_bar_;
 
     class status_widget : public Gtk::DrawingArea
     {
@@ -47,6 +54,9 @@ private:
     Gtk::Widget * main_widget_;
     status_widget status_widget_;
     Glib::RefPtr<Glib::TimeoutSource> timer_;
+
+    bool blinking_bar_;
+    enum status_bar_mode bar_mode_;
 };
 
 #endif // DVSWITCH_STATUS_OVERLAY_HPP

@@ -69,6 +69,11 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
       format_menu_item_(gettext("_Format"), true),
       sources_menu_item_(gettext("_Sources"), true),
       safe_area_menu_item_(gettext("_Highlight safe area"), true),
+      status_bar_menu_item_(gettext("Status _Bar"), true),
+      status_bar_radio_grp(),
+      status_bar_on_menu_item_(status_bar_radio_grp, gettext("On"), false),
+      status_bar_off_menu_item_(status_bar_radio_grp, gettext("Off"), false),
+      status_bar_blink_menu_item_(status_bar_radio_grp, gettext("Blink"), false),
       record_button_(),
       record_icon_(Gtk::Stock::MEDIA_RECORD, Gtk::ICON_SIZE_BUTTON),
       cut_button_(),
@@ -140,6 +145,25 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
     safe_area_menu_item_.show();
     safe_area_menu_item_.set_active(true);
     settings_menu_.add(safe_area_menu_item_);
+
+    status_bar_on_menu_item_.signal_toggled().connect(
+	sigc::bind<0>(sigc::mem_fun(osd_, &status_overlay::set_bar_mode), status_overlay::BAR_ON));
+    status_bar_off_menu_item_.signal_toggled().connect(
+	sigc::bind<0>(sigc::mem_fun(osd_, &status_overlay::set_bar_mode), status_overlay::BAR_OFF));
+    status_bar_blink_menu_item_.signal_toggled().connect(
+	sigc::bind<0>(sigc::mem_fun(osd_, &status_overlay::set_bar_mode), status_overlay::BAR_BLINK));
+
+    status_bar_blink_menu_item_.set_active(true);
+    status_bar_on_menu_item_.show();
+    status_bar_off_menu_item_.show();
+    status_bar_blink_menu_item_.show();
+    status_bar_menu_.add(status_bar_on_menu_item_);
+    status_bar_menu_.add(status_bar_off_menu_item_);
+    status_bar_menu_.add(status_bar_blink_menu_item_);
+    status_bar_menu_item_.show();
+    status_bar_menu_item_.set_submenu(status_bar_menu_);
+    settings_menu_.add(status_bar_menu_item_);
+
     settings_menu_item_.set_submenu(settings_menu_);
     settings_menu_item_.show();
     menu_bar_.add(settings_menu_item_);

@@ -9,9 +9,9 @@
 const int status_scale = 64;
 #define STATUS_TEXT_HEIGHT "48" // must be a string :-(
 
-status_overlay::status_overlay(bool blinking_bar)
-    : blinking_bar_(blinking_bar),
-      main_widget_(0)
+status_overlay::status_overlay(enum status_bar_mode bar_mode)
+    : main_widget_(0),
+      bar_mode_(bar_mode)
 {
     // We do not need a window and do not implement realize()
     set_flags(Gtk::NO_WINDOW);
@@ -34,7 +34,10 @@ void status_overlay::set_status(const Glib::ustring & text,
 				unsigned timeout)
 {
     status_widget_.set_status(text, icon_name);
-    status_widget_.show();
+    if (bar_mode_ != BAR_OFF) 
+    {
+	status_widget_.show();
+    }
     blink_ = false;
 
     // Cancel any timer for the previous status
@@ -55,7 +58,7 @@ void status_overlay::set_status(const Glib::ustring & text,
 	timer_->connect(sigc::mem_fun(this, &status_overlay::clear));
 	timer_->attach(Glib::MainContext::get_default());
     }
-    else if (blinking_bar_) 
+    else
     {
 	timer_ = Glib::TimeoutSource::create(500);
 	timer_->connect(sigc::mem_fun(this, &status_overlay::blink));
@@ -64,12 +67,27 @@ void status_overlay::set_status(const Glib::ustring & text,
     }
 }
 
+void status_overlay::set_bar_mode(enum status_bar_mode v)
+{
+    bar_mode_ = v;
+}
+
 bool status_overlay::blink()
 {
     timer_.reset();
     if (!blink_)
     {
 	return false;
+    }
+
+    if (bar_mode_ != BAR_BLINK) 
+    {
+	if (bar_mode_ == BAR_OFF) 
+	    status_widget_.hide();
+	else
+	    status_widget_.show();
+	// keep timer - user may toggle the mode.
+	return true;
     }
 
     if (status_widget_.get_visible ())
