@@ -6,6 +6,10 @@ dvswitch (unreleased)
   * expose status-bar mode (on,off,blink) in Menu.
   * dvsource-file: allow to read from STDIN
 
+  [ James Bromberger ]
+  * Add support for printing timing information to screen during
+    playout in dvsource-file
+
 dvswitch (0.9) unstable; urgency=low
 
   [ Wouter Verhelst ]

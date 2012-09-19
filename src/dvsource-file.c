@@ -14,6 +14,7 @@
 #include <fcntl.h>
 #include <getopt.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <netinet/in.h>
 
@@ -28,6 +29,7 @@ static struct option options[] = {
     {"port",   1, NULL, 'p'},
     {"loop",   0, NULL, 'l'},
     {"help",   0, NULL, 'H'},
+    {"timings",0, NULL, 't'},
     {NULL,     0, NULL, 0}
 };
 
@@ -48,11 +50,22 @@ static void handle_config(const char * name, const char * value)
     }
 }
 
+static unsigned int get_file_size_bytes(int fd) 
+{
+    struct stat filestat;
+    if (fstat(fd, &filestat) < 0)
+    {
+        fputs("ERROR: Failed to read file size\n", stderr);
+        return 0;
+    }
+    return filestat.st_size;
+}
+
 static void usage(const char * progname)
 {
     fprintf(stderr,
 	    "\
-Usage: %s [-h HOST] [-p PORT] [-l] FILE\n",
+Usage: %s [-h HOST] [-p PORT] [-l] [-t] FILE\n",
 	    progname);
 }
 
@@ -60,6 +73,7 @@ struct transfer_params {
     int            file;
     int            sock;
     bool           opt_loop;
+    bool           timings;
 };
 
 static ssize_t read_retry(int fd, void * buf, size_t count)
@@ -90,6 +104,13 @@ static void transfer_frames(struct transfer_params * params)
     static uint8_t buf[DIF_MAX_FRAME_SIZE];
     uint64_t frame_timestamp = 0;
     unsigned int frame_interval = 0;
+    unsigned int frame_number = 0;
+    unsigned int num_frames = 0;
+    off_t file_size = 0;
+    double video_length_sec = 0;
+
+    if (params->timings)
+        file_size = get_file_size_bytes(params->file);
 
     frame_timer_init();
 
@@ -100,11 +121,25 @@ static void transfer_frames(struct transfer_params * params)
 	{
 	    // End of file; exit or loop
 	    if (!params->opt_loop)
-		return;
+	    {
+                if (params->timings)
+                {
+                    printf ("\n");
+                    fflush(stdout);
+                }
+                return;
+            }
+
 	    if (lseek(params->file, 0, 0) == 0)
-		continue;
-	    perror("ERROR: lseek");
-	    exit(1);
+            {
+                file_size = get_file_size_bytes(params->file);
+                frame_number = 0;
+                num_frames = 0;
+                video_length_sec = 0;
+                continue;
+            }
+            perror("ERROR: lseek");
+            exit(1);
 	}
 	if (size != (ssize_t)DIF_SEQUENCE_SIZE)
 	{
@@ -136,6 +171,7 @@ static void transfer_frames(struct transfer_params * params)
 		fputs("ERROR: Failed to read complete frame\n", stderr);
 	    exit(1);
 	}
+	frame_number++;
 	if (write(params->sock, buf, system->size) != (ssize_t)system->size)
 	{
 	    perror("ERROR: write");
@@ -143,6 +179,32 @@ static void transfer_frames(struct transfer_params * params)
 	}
 
 	frame_timestamp += frame_interval;
+
+	if (params->timings)
+        {
+	    if (video_length_sec == 0 && file_size > 0)
+            {
+		num_frames = (file_size / system->size);
+	        video_length_sec = 
+		    num_frames * (double) frame_interval / 1000000000;
+	    }
+
+	    /* No need to print out EVERY frame */
+	    if (frame_number % 3 == 0 && num_frames > 0 ) 
+            {
+	        double video_position_seconds = 
+		    frame_number * (double) frame_interval / 1000000000;
+	        double video_percent_complete = 
+		    video_position_seconds / video_length_sec * 100;
+	        printf ("\rINFO: frame %6d/%6d. %6.2f/%6.2f seconds. %6.2f%%", 
+		    frame_number, 
+		    num_frames, 
+		    video_position_seconds, 
+		    video_length_sec, 
+		    video_percent_complete);
+	        fflush(stdout);
+	    }
+        }
 	frame_timer_wait(frame_timestamp);
     }
 }
@@ -170,11 +232,12 @@ int main(int argc, char ** argv)
 
     struct transfer_params params;
     params.opt_loop = false;
+    params.timings = false;
 
     /* Parse arguments. */
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "h:p:l", options, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "h:p:lt", options, NULL)) != -1)
     {
 	switch (opt)
 	{
@@ -192,6 +255,9 @@ int main(int argc, char ** argv)
 	case 'H': /* --help */
 	    usage(argv[0]);
 	    return 0;
+	case 't':
+	    params.timings = true;
+	    break;
 	default:
 	    usage(argv[0]);
 	    return 2;
