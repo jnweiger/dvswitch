@@ -262,7 +262,8 @@ dv_full_display_widget::dv_full_display_widget()
       // pixel aspect ratio of 59:54.
       dest_width_(767), dest_height_(576),
       sel_enabled_(false),
-      sel_in_progress_(false)
+      sel_in_progress_(false),
+      highlight_title_safe_area_(true)
 {
     std::memset(&source_region_, 0, sizeof(source_region_));
     std::memset(&selection_, 0, sizeof(selection_));
@@ -514,7 +515,10 @@ void dv_full_display_widget::put_frame_buffer(
     frame_ref.pix_fmt = pix_fmt_;
     frame_ref.height = height_;
 
-    video_effect_show_title_safe(frame_ref);
+    if (highlight_title_safe_area_)
+    {
+	video_effect_show_title_safe(frame_ref);
+    }
 
     if (sel_enabled_)
     {

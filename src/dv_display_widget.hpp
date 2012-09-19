@@ -67,6 +67,7 @@ public:
 
     void set_selection_enabled(bool);
     rectangle get_selection();
+    void set_safe_area_highlight(bool v) { highlight_title_safe_area_ = v; }
 
 private:
     bool try_init_xvideo(PixelFormat pix_fmt, unsigned height) throw();
@@ -97,6 +98,7 @@ private:
     unsigned dest_width_, dest_height_;
     bool sel_enabled_;
     bool sel_in_progress_;
+    bool highlight_title_safe_area_;
     int sel_start_x_, sel_start_y_;
     rectangle selection_;
 };

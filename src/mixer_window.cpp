@@ -68,6 +68,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
       settings_menu_item_(gettext("_Settings"), true),
       format_menu_item_(gettext("_Format"), true),
       sources_menu_item_(gettext("_Sources"), true),
+      safe_area_menu_item_(gettext("_Highlight safe area"), true),
       record_button_(),
       record_icon_(Gtk::Stock::MEDIA_RECORD, Gtk::ICON_SIZE_BUTTON),
       cut_button_(),
@@ -134,6 +135,11 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
     sources_menu_item_.show();
     settings_menu_.add(sources_menu_item_);
     settings_menu_.add(format_menu_item_);
+    safe_area_menu_item_.signal_toggled().connect(
+	sigc::mem_fun(this, &mixer_window::toggle_safe_area_display));
+    safe_area_menu_item_.show();
+    safe_area_menu_item_.set_active(true);
+    settings_menu_.add(safe_area_menu_item_);
     settings_menu_item_.set_submenu(settings_menu_);
     settings_menu_item_.show();
     menu_bar_.add(settings_menu_item_);
@@ -485,6 +491,10 @@ void mixer_window::toggle_record() throw()
 	osd_.set_status(gettext("RECORD"), "gtk-media-record", 2);
     else
 	osd_.set_status(gettext("STOP"), "gtk-media-stop");
+}
+void mixer_window::toggle_safe_area_display()
+{
+    display_.set_safe_area_highlight(safe_area_menu_item_.get_active());
 }
 
 void mixer_window::set_pri_video_source(mixer::source_id id)

@@ -53,6 +53,7 @@ private:
     void open_format_dialog();
     void open_sources_dialog();
     void open_quit_dialog();
+    void toggle_safe_area_display();
 
     /* OSC callbacks */
     void tfade_set(int);
@@ -88,6 +89,7 @@ private:
     Gtk::Menu settings_menu_;
     Gtk::MenuItem format_menu_item_;
     Gtk::MenuItem sources_menu_item_;
+    Gtk::CheckMenuItem safe_area_menu_item_;
     Gtk::HBox upper_box_;
     Gtk::VBox command_box_;
     Gtk::ToggleButton record_button_;
