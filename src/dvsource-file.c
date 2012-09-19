@@ -224,9 +224,16 @@ int main(int argc, char ** argv)
     const char * filename = argv[optind];
 
     /* Prepare to read the file and connect a socket to the mixer. */
-
-    printf("INFO: Reading from %s\n", filename);
-    params.file = open(filename, O_RDONLY, 0);
+    if (strcmp(filename, "-"))
+    {
+	printf("INFO: Reading from %s\n", filename);
+	params.file = open(filename, O_RDONLY, 0);
+    }
+    else
+    {
+	printf("INFO: Reading from STDIN\n");
+	params.file = feof(stdin);
+    }
     if (params.file < 0)
     {
 	perror("ERROR: open");
