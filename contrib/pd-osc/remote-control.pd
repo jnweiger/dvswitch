@@ -1,0 +1,86 @@
+#N canvas 929 184 820 513 10;
+#X obj 19 78 loadbang;
+#X msg 19 104 connect localhost 5675;
+#X obj 19 150 sendOSC;
+#X obj 33 126 r oscout;
+#X msg 228 140 send /dvswitch/src/pri \$1;
+#X obj 228 165 s oscout;
+#X floatatom 228 119 5 0 0 0 - - -;
+#X text 269 118 primary video source;
+#X obj 228 372 s oscout;
+#X floatatom 228 326 5 0 0 0 - - -;
+#X msg 228 349 send /dvswitch/src/sec \$1;
+#X obj 522 232 hsl 128 15 2.55 255 0 0 empty empty empty -2 -8 0 10
+-204800 -1 -1 5900 1;
+#X obj 551 359 s oscout;
+#X msg 551 334 send /dvswitch/fx/overlay \$1;
+#X obj 519 255 t b f;
+#X obj 522 47 hsl 128 15 50 15010 0 0 empty empty empty -2 -8 0 10
+-204800 -1 -1 6700 1;
+#X text 550 196 A/B Overlay;
+#X text 520 214 A;
+#X text 641 212 B;
+#X text 218 211 Secondary Video Source (B);
+#X text 223 2 Primary Video Source (A);
+#X obj 469 48 bng 15 250 50 0 empty empty empty 17 7 0 10 -204800 -1
+-1;
+#X obj 519 137 s oscout;
+#X floatatom 519 91 5 0 0 0 - - -;
+#X msg 469 69 0;
+#X msg 519 112 send /dvswitch/fx/fade \$1;
+#X text 634 26 15sec;
+#X text 451 29 Disable;
+#X obj 228 250 hradio 15 1 0 8 empty empty empty 0 -8 0 10 -204800
+-1 -1 1;
+#X text 17 60 intialise OSC sender:;
+#X text 223 2 Primary Video Source (A);
+#X obj 228 40 hradio 15 1 0 8 empty empty empty 0 -8 0 10 -204800 -1
+-1 0;
+#X text 229 20 1;
+#X text 337 21 8;
+#X text 228 230 1;
+#X text 335 231 8;
+#X text 17 439 launch 'dvswitch -o 5675' and connect at least two video
+sources to enable effects.;
+#X text 269 325 2nd video source;
+#X text 515 2 Timed Fade Effect;
+#X text 516 28 50ms;
+#X obj 19 371 s oscout;
+#X obj 19 307 s oscout;
+#X msg 19 288 send /dvswitch/rec/stop;
+#X obj 19 245 s oscout;
+#X msg 19 352 send /dvswitch/rec/cut;
+#X msg 19 226 send /dvswitch/rec/start;
+#X obj 19 207 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144 -1
+-1;
+#X obj 19 270 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144 -1
+-1;
+#X obj 19 334 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144 -1
+-1;
+#X text 38 206 <- Start recording;
+#X text 39 269 <- Stop recording;
+#X text 40 332 <- cue recording;
+#X connect 0 0 1 0;
+#X connect 1 0 2 0;
+#X connect 3 0 2 0;
+#X connect 4 0 5 0;
+#X connect 6 0 4 0;
+#X connect 9 0 10 0;
+#X connect 10 0 8 0;
+#X connect 11 0 14 0;
+#X connect 13 0 12 0;
+#X connect 14 0 9 0;
+#X connect 14 1 13 0;
+#X connect 15 0 23 0;
+#X connect 21 0 24 0;
+#X connect 23 0 25 0;
+#X connect 24 0 23 0;
+#X connect 25 0 22 0;
+#X connect 28 0 9 0;
+#X connect 31 0 6 0;
+#X connect 42 0 41 0;
+#X connect 44 0 40 0;
+#X connect 45 0 43 0;
+#X connect 46 0 45 0;
+#X connect 47 0 42 0;
+#X connect 48 0 44 0;

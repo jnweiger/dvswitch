@@ -1,0 +1,34 @@
+Example Pd patch to demonstrate the dvswitch remote control API.
+
+Prerequisites
+-------------
+You will need Pure Data: http://puredata.info and the sendOSC external.
+
+The quickest way to get started is to get it directly from upstream:
+Download Pd-extended (includes many externals incl. sendOSC objects).
+It is available for various platforms and distributions:
+http://puredata.info/downloads/pd-extended
+
+vanilla Pd (without externals) is available on many GNU/Linux distributions.
+However, the sendOSC external is not packaged for debian. It is available from
+http://pure-data.svn.sourceforge.net/viewvc/pure-data/trunk/externals/OSCx/
+
+
+Usage
+-----
+Launch dvswitch with the '-o 5675' option to make it listen for OSC messages on
+UDP port 5675 and connect at least two dv-source to dvswitch (so that the
+effects work):
+
+  # dvswitch -o 5675 &
+  # dvsource-file -l /tmp/some_file.dv &
+  # dvsource-file -l /tmp/another_file.dv &
+
+Then just open 'remote-control.pd' in this folder:
+
+  # puredata remote-control.pd
+
+Push the buttons, move sliders in the Pd patch..
+
+have fun,
+robin
