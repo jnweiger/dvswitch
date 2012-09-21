@@ -23,6 +23,14 @@ Specify the network address on which to listen and accept source
 and sink connections.  The host address may be specified by name
 or as an IPv4 or IPv6 literal.
 .RE
+.TP
+\fB\-o\fR, \fB\-\-osc=\fIPORT\fR
+.RS
+This option activates the remote-control mode.
+If set, dvswitch will listen for OSC messages on the given port.
+OSC messages understood by dvcontrol are documented in the
+\fBREADME\fR file.
+.RE
 .SH AUTHOR
 Ben Hutchings <ben@decadent.org.uk>.
 .SH SEE ALSO

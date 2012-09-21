@@ -78,6 +78,9 @@ void dv_selector_widget::set_source_count(unsigned count)
 	try
 	{
 	    thumbnails_.resize(count);
+	    pri_btn_.resize(count);
+	    sec_btn_.resize(count);
+	    snd_btn_.resize(count);
 
 	    for (mixer::source_id i = first_new_source_id; i != count; ++i)
 	    {
@@ -132,6 +135,7 @@ void dv_selector_widget::set_source_count(unsigned count)
 		       row + row_pri_video_button + 1,
 		       Gtk::FILL, Gtk::FILL,
 		       0, 0);
+		pri_btn_[i] = pri_video_button;
 
 		Gtk::RadioButton * sec_video_button =
 		    create_radio_button(sec_video_button_group_,
@@ -148,6 +152,7 @@ void dv_selector_widget::set_source_count(unsigned count)
 		       row + row_sec_video_button + 1,
 		       Gtk::FILL, Gtk::FILL,
 		       0, 0);
+		sec_btn_[i] = sec_video_button;
 
 		Gtk::RadioButton * audio_button =
 		    create_radio_button(audio_button_group_,
@@ -163,6 +168,7 @@ void dv_selector_widget::set_source_count(unsigned count)
 		       row + row_audio_button, row + row_audio_button + 1,
 		       Gtk::FILL, Gtk::FILL,
 		       0, 0);
+		snd_btn_[i] = audio_button;
 
 		if (i < 9)
 		{
@@ -230,6 +236,30 @@ void dv_selector_widget::put_frame(mixer::source_id source_id,
 {
     if (source_id < thumbnails_.size())
 	thumbnails_[source_id]->put_frame(source_frame);
+}
+
+void dv_selector_widget::select_pri(mixer::source_id id)
+{
+    if (id >= pri_btn_.size())
+	return;
+    pri_btn_[id]->set_active();
+    on_pri_video_selected(id);
+}
+
+void dv_selector_widget::select_sec(mixer::source_id id)
+{
+    if (id >= sec_btn_.size())
+	return;
+    sec_btn_[id]->set_active();
+    on_sec_video_selected(id);
+}
+
+void dv_selector_widget::select_snd(mixer::source_id id)
+{
+    if (id >= snd_btn_.size())
+	return;
+    snd_btn_[id]->set_active();
+    on_audio_selected(id);
 }
 
 sigc::signal1<void, mixer::source_id> &

@@ -191,3 +191,24 @@ picture-in-picture effect is enabled.
 It is not currently possible to combine effects; if a fading transition
 is started while the picture-in-picture effect is active, then the
 latter will be disabled when the fading transition is started.
+
+Remote Control
+--------------
+
+dvswitch can be remote-controlled via OpenSoundControl. To activate
+the remote-control interface, dvswitch needs to be started with the
+-o <port-number> option. Basically all control messages are equivalent
+to functionality otherwise accessible via GUI interaction.
+
+OSC-msg              | var | description
+---------------------+-----+--------------------------------------------
+/dvswitch/src/pri    |  i  | select primary video-input [0..]
+/dvswitch/src/sec    |  i  | select secondary video-input [0..]
+/dvswitch/src/snd    |  i  | select audio-input [0..]
+/dvswitch/rec/start  | --- | send record-start command
+/dvswitch/rec/stop   | --- | send record-stop command
+/dvswitch/rec/cut    | --- | send record-cut command
+/dvswitch/fx/overlay |  i  | set A/B overlay [0..255];
+                     |     |  0: source A, 255: source B
+/dvswitch/fx/fade    |  i  | switch to A->A' fade-effect [50..15000]ms;
+                     |     |  0:cancel-effect

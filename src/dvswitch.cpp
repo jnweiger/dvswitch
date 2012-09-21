@@ -25,12 +25,14 @@
 #include "mixer.hpp"
 #include "mixer_window.hpp"
 #include "server.hpp"
+#include "osc_ctrl.hpp"
 
 namespace
 {
     struct option options[] = {
 	{"host",             1, NULL, 'h'},
 	{"port",             1, NULL, 'p'},
+	{"osc",              1, NULL, 'o'},
 	{"help",             0, NULL, 'H'},
 	{NULL,               0, NULL, 0}
     };
@@ -53,7 +55,7 @@ namespace
     {
 	std::cerr << "\
 Usage: " << progname << " [gtk-options] \\\n\
-           [{-h|--host} LISTEN-HOST] [{-p|--port} LISTEN-PORT]\n";
+           [{-h|--host} LISTEN-HOST] [{-p|--port} LISTEN-PORT] [{-o|--osc} OSC-PORT]\n";
     }
 }
 
@@ -71,8 +73,9 @@ int main(int argc, char **argv)
 
 	// Complete option parsing with Gtk's options out of the way.
 
+	int osc_port = 0;
 	int opt;
-	while ((opt = getopt_long(argc, argv, "h:p:", options, NULL)) != -1)
+	while ((opt = getopt_long(argc, argv, "h:p:o:", options, NULL)) != -1)
 	{
 	    switch (opt)
 	    {
@@ -81,6 +84,9 @@ int main(int argc, char **argv)
 		break;
 	    case 'p':
 		mixer_port = optarg;
+		break;
+	    case 'o': /* --osc */
+		osc_port = atoi(optarg);
 		break;
 	    case 'H': /* --help */
 		usage(argv[0]);
@@ -113,6 +119,15 @@ int main(int argc, char **argv)
 	the_mixer.set_monitor(the_window.get());
 	the_window->show();
 	the_window->signal_hide().connect(sigc::ptr_fun(&Gtk::Main::quit));
+	if (osc_port > 0 )
+	{
+	    OSC *os = new OSC();
+	    if (!os->initialize_osc(osc_port))
+	    {
+		os->setup_thread(Glib::MainContext::get_default());
+		the_window->init_osc_connection(os);
+	    }
+	}
 	Gtk::Main::run();
 	return EXIT_SUCCESS;
     }

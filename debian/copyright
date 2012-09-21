@@ -33,6 +33,11 @@ Copyright:
  2011 Robin Gareus <robin@gareus.org>
 License: GPL-2+
 
+Files: src/osc_ctrl.* 
+Copyright:
+ 2012 Robin Gareus <robin@gareus.org>
+License: GPL-2+
+
 Files: debian/*
 Copyright:
  2005-2009 Ben Hutchings

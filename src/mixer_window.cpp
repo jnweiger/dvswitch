@@ -92,7 +92,9 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
       mfade_active_(false),
       progress_active_(false),
       wakeup_pipe_(O_NONBLOCK, O_NONBLOCK),
-      next_source_id_(0)
+      next_source_id_(0),
+      osc_(NULL),
+      source_count_(0)
 {
     // In some locales (e.g., Dutch), the shortcuts of the stock button
     // labels conflict (e.g., _record -> op_nemen, cu_t -> k_nippen).
@@ -285,6 +287,67 @@ mixer_window::~mixer_window()
     osd_.remove(display_);
 }
 
+void mixer_window::init_osc_connection(OSC * osc)
+{
+    osc_ = osc;
+    osc_->signal_pri_video_selected().connect(
+	sigc::mem_fun(selector_, &dv_selector_widget::select_pri));
+    osc_->signal_sec_video_selected().connect(
+	sigc::mem_fun(selector_, &dv_selector_widget::select_sec));
+    osc_->signal_audio_selected().connect(
+	sigc::mem_fun(selector_, &dv_selector_widget::select_snd));
+
+    osc_->signal_mfade_set().connect(
+	sigc::mem_fun(*this, &mixer_window::mfade_set));
+    osc_->signal_tfade_set().connect(
+	sigc::mem_fun(*this, &mixer_window::tfade_set));
+
+    osc_->signal_cut_recording().connect(
+	sigc::mem_fun(mixer_, &mixer::cut));
+    osc_->signal_stop_recording().connect(
+	sigc::mem_fun(*this, &mixer_window::rec_stop));
+    osc_->signal_start_recording().connect(
+	sigc::mem_fun(*this, &mixer_window::rec_start));
+}
+
+void mixer_window::rec_start()
+{
+    if (!mixer_.can_record()) return;
+    if (record_button_.get_active()) return;
+    record_button_.set_active(true);
+    toggle_record();
+}
+
+void mixer_window::rec_stop()
+{
+    if (!record_button_.get_active()) return;
+    record_button_.set_active(false);
+    toggle_record();
+}
+
+void mixer_window::mfade_set(int val)
+{
+    if (!allow_mfade_) {
+	return;
+    }
+    mfade_button_.set_active(allow_mfade_);
+    mfade_ab_.set_value(val);
+    mfade_update();
+}
+
+void mixer_window::tfade_set(int val)
+{
+    if (val < 10 || val > 60000)
+    {
+	cancel_effect();
+	none_button_.set_active(true);
+	return;
+    }
+    tfade_button_.set_active(true);
+    tfade_value_.set_value(val);
+    begin_mfade();
+}
+
 void mixer_window::cancel_effect()
 {
     pip_pending_ = false;
@@ -356,6 +419,12 @@ void mixer_window::effect_status(int min, int cur, int max, bool more)
 
 void mixer_window::apply_effect()
 {
+    if (source_count_ < 1)
+    {
+	pip_pending_ = false;
+	return;
+    }
+
     if (pip_pending_)
     {
 	rectangle region = display_.get_selection();
@@ -420,6 +489,8 @@ void mixer_window::toggle_record() throw()
 
 void mixer_window::set_pri_video_source(mixer::source_id id)
 {
+    if (id >= source_count_) return;
+
     // If the secondary source is becoming the primary source, cancel
     // the effect rather than mixing it with itself.
     if (id == sec_video_source_id_)
@@ -471,6 +542,8 @@ void mixer_window::set_pri_video_source(mixer::source_id id)
 
 void mixer_window::set_sec_video_source(mixer::source_id id)
 {
+    if (id >= source_count_) return;
+
     sec_video_source_id_ = id;
 
     if (pip_active_)
@@ -497,23 +570,23 @@ void mixer_window::set_sec_video_source(mixer::source_id id)
 
 void mixer_window::mfade_mix()
 {
+    if (pri_video_source_id_ >= source_count_) return;
+    if (sec_video_source_id_ >= source_count_) return;
+
     if (sec_video_source_id_ != pri_video_source_id_)
     {
-	if (mfade_active_)
+	int fade = mfade_ab_.get_value();
+	if (fade < 1)
 	{
-	    int fade = mfade_ab_.get_value();
-	    if (fade < 1)
-	    {
-		mixer_.set_video_mix(mixer_.create_video_mix_simple(pri_video_source_id_));
-	    }
-	    else if (fade > 254)
-	    {
-		mixer_.set_video_mix(mixer_.create_video_mix_simple(sec_video_source_id_));
-	    }
-	    else
-	    {
-		mixer_.set_video_mix(mixer_.create_video_mix_fade(pri_video_source_id_, sec_video_source_id_, false, 0, fade));
-	    }
+	    mixer_.set_video_mix(mixer_.create_video_mix_simple(pri_video_source_id_));
+	}
+	else if (fade > 254)
+	{
+	    mixer_.set_video_mix(mixer_.create_video_mix_simple(sec_video_source_id_));
+	}
+	else
+	{
+	    mixer_.set_video_mix(mixer_.create_video_mix_fade(pri_video_source_id_, sec_video_source_id_, false, 0, fade));
 	}
     }
     else
@@ -526,7 +599,10 @@ void mixer_window::mfade_mix()
 
 void mixer_window::mfade_update()
 {
-    mfade_mix();
+    if (mfade_active_)
+    {
+	mfade_mix();
+    }
 }
 
 void mixer_window::put_frames(unsigned source_count,
@@ -593,6 +669,8 @@ bool mixer_window::update(Glib::IOCondition) throw()
 	pip_button_.set_sensitive(count >= 2);
 	tfade_button_.set_sensitive(count >= 2);
 	mfade_button_.set_sensitive((count >= 2) && allow_mfade_);
+
+	source_count_ = count;
 
 	// Update the thumbnail displays of sources.  If a new mixed frame
 	// arrives while we were doing this, return to the event loop.

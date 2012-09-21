@@ -28,6 +28,7 @@
 #include "mixer.hpp"
 #include "status_overlay.hpp"
 #include "vu_meter.hpp"
+#include "osc_ctrl.hpp"
 
 namespace Glib
 {
@@ -41,6 +42,7 @@ class mixer_window : public Gtk::Window, public mixer::monitor
 public:
     mixer_window(mixer & mixer, connector & connector);
     ~mixer_window();
+    void init_osc_connection(OSC * osc);
 
 private:
     void cancel_effect();
@@ -51,6 +53,12 @@ private:
     void open_format_dialog();
     void open_sources_dialog();
     void open_quit_dialog();
+
+    /* OSC callbacks */
+    void tfade_set(int);
+    void mfade_set(int);
+    void rec_start();
+    void rec_stop();
 
     void toggle_record() throw();
     bool update(Glib::IOCondition) throw();
@@ -127,6 +135,9 @@ private:
     mixer::mix_settings mix_settings_;
     dv_frame_ptr mixed_dv_;
     raw_frame_ptr mixed_raw_;
+
+    OSC * osc_;
+    mixer::source_id source_count_;
 };
 
 #endif // !defined(DVSWITCH_MIXER_WINDOW_HPP)
