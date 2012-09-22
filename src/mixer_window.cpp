@@ -69,6 +69,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
       format_menu_item_(gettext("_Format"), true),
       sources_menu_item_(gettext("_Sources"), true),
       safe_area_menu_item_(gettext("_Highlight safe area"), true),
+      fullscreen_menu_item_(gettext("Fu_ll screen"), true),
       status_bar_menu_item_(gettext("Status _Bar"), true),
       status_bar_radio_grp(),
       status_bar_on_menu_item_(status_bar_radio_grp, gettext("On"), false),
@@ -97,6 +98,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
       pip_pending_(false),
       mfade_active_(false),
       progress_active_(false),
+      fullscreen_state_(false),
       wakeup_pipe_(O_NONBLOCK, O_NONBLOCK),
       next_source_id_(0),
       osc_(NULL),
@@ -138,13 +140,19 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
     sources_menu_item_.signal_activate().connect(
 	sigc::mem_fun(this, &mixer_window::open_sources_dialog));
     sources_menu_item_.show();
-    settings_menu_.add(sources_menu_item_);
-    settings_menu_.add(format_menu_item_);
     safe_area_menu_item_.signal_toggled().connect(
 	sigc::mem_fun(this, &mixer_window::toggle_safe_area_display));
     safe_area_menu_item_.show();
     safe_area_menu_item_.set_active(true);
+    fullscreen_menu_item_.signal_toggled().connect(
+    	sigc::mem_fun(this, &mixer_window::toggle_fullscreen));
+    fullscreen_menu_item_.show();
+    fullscreen_menu_item_.set_active(false);
+
+    settings_menu_.add(sources_menu_item_);
+    settings_menu_.add(format_menu_item_);
     settings_menu_.add(safe_area_menu_item_);
+    settings_menu_.add(fullscreen_menu_item_);
 
     status_bar_on_menu_item_.signal_toggled().connect(
 	sigc::bind<0>(sigc::mem_fun(osd_, &status_overlay::set_bar_mode), status_overlay::BAR_ON));
@@ -519,6 +527,18 @@ void mixer_window::toggle_record() throw()
 void mixer_window::toggle_safe_area_display()
 {
     display_.set_safe_area_highlight(safe_area_menu_item_.get_active());
+}
+
+void mixer_window::toggle_fullscreen()
+{
+    fullscreen_state_ = !fullscreen_state_;
+
+    if(fullscreen_state_)
+    {
+    	fullscreen();
+    } else {
+    	unfullscreen();
+    }
 }
 
 void mixer_window::set_pri_video_source(mixer::source_id id)

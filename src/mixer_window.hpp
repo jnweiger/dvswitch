@@ -54,6 +54,7 @@ private:
     void open_sources_dialog();
     void open_quit_dialog();
     void toggle_safe_area_display();
+    void toggle_fullscreen();
 
     /* OSC callbacks */
     void tfade_set(int);
@@ -90,6 +91,7 @@ private:
     Gtk::MenuItem format_menu_item_;
     Gtk::MenuItem sources_menu_item_;
     Gtk::CheckMenuItem safe_area_menu_item_;
+    Gtk::CheckMenuItem fullscreen_menu_item_;
     Gtk::Menu status_bar_menu_;
     Gtk::MenuItem status_bar_menu_item_;
     Gtk::RadioButtonGroup status_bar_radio_grp;
@@ -132,6 +134,7 @@ private:
     bool mfade_active_;
     bool allow_mfade_;
     bool progress_active_;
+    bool fullscreen_state_;
     double progress_val_;
     mixer::source_id tfade_target_;
 
