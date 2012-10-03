@@ -470,10 +470,10 @@ namespace
 	// the remaining bits are meaningless in DV and we use zeroes
 	uint8_t timecode[DIF_PACK_SIZE] = {
 	    0x13,
-	    bcd(frame_num % frame_rate) | (1 << 6),
-	    bcd(frame_num / frame_rate % 60),
-	    bcd(frame_num / (60 * frame_rate) % 60),
-	    bcd(frame_num / (60 * 60 * frame_rate) % 24)
+	    (uint8_t)bcd(frame_num % frame_rate) | (1 << 6),
+	    (uint8_t)bcd(frame_num / frame_rate % 60),
+	    (uint8_t)bcd(frame_num / (60 * frame_rate) % 60),
+	    (uint8_t)bcd(frame_num / (60 * 60 * frame_rate) % 24)
 	};
 
 	// Record date format:
@@ -487,16 +487,16 @@ namespace
 	uint8_t video_record_date[DIF_PACK_SIZE] = {
 	    0x62,
 	    0xff,
-	    bcd(now_tm.tm_mday),
-	    bcd(1 + now_tm.tm_mon),
-	    bcd(now_tm.tm_year % 100)
+	    (uint8_t)bcd(now_tm.tm_mday),
+	    (uint8_t)bcd(1 + now_tm.tm_mon),
+	    (uint8_t)bcd(now_tm.tm_year % 100)
 	};
 	uint8_t audio_record_date[DIF_PACK_SIZE] = {
 	    0x52,
 	    0xff,
-	    bcd(now_tm.tm_mday),
-	    bcd(1 + now_tm.tm_mon),
-	    bcd(now_tm.tm_year % 100)
+	    (uint8_t)bcd(now_tm.tm_mday),
+	    (uint8_t)bcd(1 + now_tm.tm_mon),
+	    (uint8_t)bcd(now_tm.tm_year % 100)
 	};
 
 	// Record time format (similar to timecode format):
@@ -512,16 +512,16 @@ namespace
 	uint8_t video_record_time[DIF_PACK_SIZE] = {
 	    0x63,
 	    0xff,
-	    bcd(now_tm.tm_sec),
-	    bcd(now_tm.tm_min),
-	    bcd(now_tm.tm_hour)
+	    (uint8_t)bcd(now_tm.tm_sec),
+	    (uint8_t)bcd(now_tm.tm_min),
+	    (uint8_t)bcd(now_tm.tm_hour)
 	};
 	uint8_t audio_record_time[DIF_PACK_SIZE] = {
 	    0x53,
 	    0xff,
-	    bcd(now_tm.tm_sec),
-	    bcd(now_tm.tm_min),
-	    bcd(now_tm.tm_hour)
+	    (uint8_t)bcd(now_tm.tm_sec),
+	    (uint8_t)bcd(now_tm.tm_min),
+	    (uint8_t)bcd(now_tm.tm_hour)
 	};
 
         // In DIFs 1 and 2 (subcode) of sequence 6 onward:
@@ -902,6 +902,7 @@ void mixer::run_mixer()
 	    enc->time_base.den = system->frame_rate_numer;
 	    mixed_raw->header.pts = serial_num;
   	    mixed_dv = allocate_dv_frame();
+	    // FIXME: deprecated. use avcodec_encode_video2 instead:
 	    int out_size = avcodec_encode_video(enc,
 						mixed_dv->buffer, system->size,
 						&mixed_raw->header);

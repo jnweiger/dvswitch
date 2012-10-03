@@ -136,6 +136,8 @@ void connector::source_connection::handle_frame(
 
 void connector::source_connection::handle_close(void * opaque)
 {
+    // FIXME: gcc-4.7.1 says: 
+    // deleting object of polymorphic class type ‘connector::source_connection’ which has non-virtual destructor might cause undefined behaviour 
     delete static_cast<source_connection *>(opaque);
 }
 

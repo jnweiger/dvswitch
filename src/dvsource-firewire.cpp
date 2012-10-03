@@ -86,7 +86,7 @@ static int setup_tally_pipe()
 	        perror("dup2");
 		exit(EXIT_FAILURE);
 	    }
-	    execl(tally_script.c_str(), (char*)NULL);
+	    execl(tally_script.c_str(), tally_script.c_str(), (char*)NULL);
 	    // only returns in case of error
 	    perror("ERROR: exec");
 	    return -1;
