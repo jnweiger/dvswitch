@@ -1,4 +1,4 @@
-dvswitch (unreleased)
+dvswitch (0.9.1)
   [ Robin Gareus ]
   * OSC remote-control (see doc/README)
   * add contrib examples and tools for OSC
