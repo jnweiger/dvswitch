@@ -1,3 +1,9 @@
+dvswitch (0.9.1-1) experimental; urgency=low
+
+  * New upstream release
+
+ -- Wouter Verhelst <wouter@debian.org>  Sun, 10 Mar 2013 12:46:35 +0100
+
 dvswitch (0.9-1) experimental; urgency=low
 
   * New upstream release
