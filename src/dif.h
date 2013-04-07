@@ -70,8 +70,8 @@ struct dv_system
 	// Minimum and maximum sample counts allowed.  The actual sample
 	// count is encoded in the AS pack relative to the minimum.
 	unsigned min, max;
-	// A cycle of sample counts which will result in perfect
-	// synchronisation ("locked audio" for 32k and 48k).
+	// The cycle of sample counts required for "locked audio", per
+	// IEC 61834-2:1998 table 17.
 	unsigned std_cycle_len, std_cycle[15];
     } audio_frame_counts[dv_sample_rate_count];
     const uint8_t (*audio_shuffle)[9];
