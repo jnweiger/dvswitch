@@ -412,11 +412,13 @@ void dv_buffer_fill_dummy(uint8_t * buf, const struct dv_system * system)
 		memset(block + DIF_BLOCK_ID_SIZE,
 		       0xff, DIF_BLOCK_SIZE - DIF_BLOCK_ID_SIZE);
 
+		// VS & VSC packs go in even seq block 5 packs 9-10 and
+		// odd seq block 3 packs 0-1 (IEC 61834-2:1998 table 32)
 		int offset = 0;
 		if (!(seq_num & 1) && block_num == 5)
-		    offset = DIF_BLOCK_ID_SIZE;
-		else if ((seq_num & 1) && block_num == 3)
 		    offset = DIF_BLOCK_ID_SIZE + 9 * DIF_PACK_SIZE;
+		else if ((seq_num & 1) && block_num == 3)
+		    offset = DIF_BLOCK_ID_SIZE;
 		if (offset)
 		{
 		    // VS pack
