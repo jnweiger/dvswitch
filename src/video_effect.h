@@ -22,7 +22,8 @@ void video_effect_pic_in_pic(struct raw_frame_ref dest,
 			     struct rectangle source_rect);
 void video_effect_fade(struct raw_frame_ref dest,
 		       struct raw_frame_ref sec,
-		       uint8_t scale);
+		       uint8_t scale,
+		       uint8_t area);
 
 #ifdef __cplusplus
 }

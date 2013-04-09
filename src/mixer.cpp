@@ -706,6 +706,10 @@ bool mixer::video_mix_pic_in_pic::apply(const mix_data & m,
 
 // Fade video mix - performs a linear interpolation of the values of both
 // sources on an 8-bit scale. Useful for fading.
+// area: 0: normal=all
+//       1,2,3,4: bottom 1/2, 1/3, 1/4, 1/6;
+//       5,6,7,8: top 1/6, 1/4, 1/3, 1/2;
+// area=3 is useful for superimposed subtitles.
 
 class mixer::video_mix_fade : public video_mix
 {
@@ -713,11 +717,13 @@ public:
     video_mix_fade(source_id pri_source_id,
 		   source_id sec_source_id,
 		   bool timed, unsigned int ms,
-		   uint8_t scale=0)
+		   uint8_t scale=0,
+		   uint8_t area=0)
 	: pri_source_id_(pri_source_id),
 	  sec_source_id_(sec_source_id),
 	  timed_(timed),
 	  scale_(scale),
+	  area_(area),
 	  bucketsize_(ms * 1000 / 255),
 	  modulo_(0),
 	  us_per_frame_(0)
@@ -733,6 +739,7 @@ private:
     source_id pri_source_id_, sec_source_id_;
     bool timed_;
     uint8_t scale_;
+    uint8_t area_;
     int bucketsize_;
     int modulo_;
     int us_per_frame_;
@@ -805,7 +812,7 @@ bool mixer::video_mix_fade::apply(const mix_data & m,
 
 	// Mix raw video
 	video_effect_fade(make_raw_frame_ref(mixed_raw),
-			  make_raw_frame_ref(sec_source_raw), scale_);
+			  make_raw_frame_ref(sec_source_raw), scale_, area_);
     }
     return retval;
 }
@@ -826,10 +833,10 @@ mixer::create_video_mix_pic_in_pic(source_id pri_source_id,
 std::tr1::shared_ptr<mixer::video_mix>
 mixer::create_video_mix_fade(source_id pri_source_id,
 			     source_id sec_source_id, bool timed,
-			     unsigned int ms, uint8_t scale)
+			     unsigned int ms, uint8_t scale, uint8_t area)
 {
     return std::tr1::shared_ptr<mixer::video_mix>(
-        new video_mix_fade(pri_source_id, sec_source_id, timed, ms, scale));
+        new video_mix_fade(pri_source_id, sec_source_id, timed, ms, scale, area));
 }
 
 void mixer::run_mixer()

@@ -270,7 +270,8 @@ void video_effect_pic_in_pic(struct raw_frame_ref dest,
 
 void video_effect_fade(struct raw_frame_ref dest,
 		       struct raw_frame_ref sec,
-		       uint8_t scale)
+		       uint8_t scale,
+		       uint8_t area)
 {
     int x, y, plane;
     uint8_t *ptr_d, *ptr_s;
@@ -294,9 +295,24 @@ void video_effect_fade(struct raw_frame_ref dest,
 	}
         for (y = 0; y < height; y++)
         {
+            uint8_t sscale = scale;
+	    // CAUTION: keep in sync with mixer_window.cpp:217ff: mfade_area_choice_.append_text()
+	    switch (area)
+	    {
+	      case 8: if (y > 0.5   * height) sscale = 0; break;
+	      case 7: if (y > 0.333 * height) sscale = 0; break;
+	      case 6: if (y > 0.24  * height) sscale = 0; break;
+	      case 5: if (y > 0.166 * height) sscale = 0; break;
+	      case 4: if (y < 0.833 * height) sscale = 0; break;
+	      case 3: if (y < 0.75  * height) sscale = 0; break;
+	      case 2: if (y < 0.666 * height) sscale = 0; break;
+	      case 1: if (y < 0.5   * height) sscale = 0; break;
+	      default: break; // no exceptions.
+	    }
+
 	    for (x = 0; x < width; x++)
 	    {
-		tmp = scale * (*ptr_s - *ptr_d);
+		tmp = sscale * (*ptr_s - *ptr_d);
 		*ptr_d += (uint8_t)(tmp >> 8);
 		ptr_d++; ptr_s++;
 	    }

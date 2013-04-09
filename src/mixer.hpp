@@ -153,7 +153,8 @@ public:
 			  source_id sec_source_id,
 			  bool timed,
 			  unsigned int ms,
-			  uint8_t scale=0);
+			  uint8_t scale=0,
+			  uint8_t area=0);
 
     bool can_record() const;
 

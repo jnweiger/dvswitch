@@ -83,6 +83,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
       none_button_(effect_group_, gettext("No effect/transition")),
       pip_button_(effect_group_, gettext("_Pic-in-pic"), true),
       mfade_button_(effect_group_, gettext("_Manual fade"), true),
+      mfade_area_choice_(),
       tfade_button_(effect_group_, gettext("Timed fa_de"), true),
       tfade_label_(gettext("Transition speed [ms]:")),
       tfade_value_(40, 15040, 40),
@@ -97,6 +98,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
       pip_active_(false),
       pip_pending_(false),
       mfade_active_(false),
+      mfade_area_(0),
       progress_active_(false),
       fullscreen_state_(false),
       wakeup_pipe_(O_NONBLOCK, O_NONBLOCK),
@@ -212,6 +214,22 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
     	sigc::mem_fun(this, &mixer_window::begin_mfade));
     mfade_button_.show();
 
+    // CAUTION: keep in sync with video_effect.c:video_effect_fade():320ff
+    mfade_area_choice_.append_text(gettext("Full"));
+    mfade_area_choice_.append_text(gettext("1/2b"));
+    mfade_area_choice_.append_text(gettext("1/3b"));
+    mfade_area_choice_.append_text(gettext("1/4b"));
+    mfade_area_choice_.append_text(gettext("1/6b"));
+    mfade_area_choice_.append_text(gettext("1/6t"));
+    mfade_area_choice_.append_text(gettext("1/4t"));
+    mfade_area_choice_.append_text(gettext("1/3t"));
+    mfade_area_choice_.append_text(gettext("1/2t"));
+    mfade_area_choice_.set_sensitive(true);
+    mfade_area_choice_.set_active(0);	// activate first entry
+    mfade_area_choice_.signal_changed().connect(
+    	sigc::mem_fun(this, &mixer_window::mfade_update));
+    mfade_area_choice_.show();
+
     tfade_button_.set_mode(/*draw_indicator=*/false);
     tfade_button_.set_sensitive(false);
     tfade_button_.signal_clicked().connect(
@@ -275,11 +293,17 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
 	sigc::mem_fun(mixer_, &mixer::set_audio_source));
     selector_.show();
 
+    effects_mf_box_.set_border_width(0);
+    effects_mf_box_.set_spacing(gui_standard_spacing);
+    effects_mf_box_.pack_start(mfade_button_, Gtk::PACK_EXPAND_WIDGET);
+    effects_mf_box_.pack_start(mfade_area_choice_, Gtk::PACK_SHRINK);
+    effects_mf_box_.show();
+
     effects_box_.set_border_width(gui_standard_spacing);
     effects_box_.set_spacing(gui_standard_spacing);
     effects_box_.pack_start(apply_button_, Gtk::PACK_SHRINK);
     effects_box_.pack_start(pip_button_, Gtk::PACK_SHRINK);
-    effects_box_.pack_start(mfade_button_, Gtk::PACK_SHRINK);
+    effects_box_.pack_start(effects_mf_box_, Gtk::PACK_SHRINK);
     effects_box_.pack_start(mfade_label_, Gtk::PACK_SHRINK);
     effects_box_.pack_start(mfade_ab_, Gtk::PACK_SHRINK);
     effects_box_.show();
@@ -570,7 +594,7 @@ void mixer_window::set_pri_video_source(mixer::source_id id)
 	tfade_target_ = id;
 	mixer_.set_video_mix(
 	    mixer_.create_video_mix_fade(pri_video_source_id_, tfade_target_,
-					 true, int(tfade_value_.get_value())));
+					 true, int(tfade_value_.get_value()), 0));
         pip_active_ = false;
 	mfade_active_ = false;
 	return;
@@ -634,13 +658,13 @@ void mixer_window::mfade_mix()
 	{
 	    mixer_.set_video_mix(mixer_.create_video_mix_simple(pri_video_source_id_));
 	}
-	else if (fade > 254)
+	else if (fade > 254 && mfade_area_ == 0)
 	{
 	    mixer_.set_video_mix(mixer_.create_video_mix_simple(sec_video_source_id_));
 	}
 	else
 	{
-	    mixer_.set_video_mix(mixer_.create_video_mix_fade(pri_video_source_id_, sec_video_source_id_, false, 0, fade));
+	    mixer_.set_video_mix(mixer_.create_video_mix_fade(pri_video_source_id_, sec_video_source_id_, false, 0, fade, mfade_area_));
 	}
     }
     else
@@ -653,6 +677,7 @@ void mixer_window::mfade_mix()
 
 void mixer_window::mfade_update()
 {
+    mfade_area_ = mfade_area_choice_.get_active_row_number();
     if (mfade_active_)
     {
 	mfade_mix();
