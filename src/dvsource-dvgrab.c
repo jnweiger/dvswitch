@@ -23,6 +23,7 @@ static struct option options[] = {
     {"guid",	  1, NULL, 'g'},
     {"firewire", 0, NULL, 'F'},
     {"v4l2",     0, NULL, 'V'},
+    {"command",  0, NULL, 'C'},
     {"host",     1, NULL, 'h'},
     {"port",     1, NULL, 'p'},
     {"tally",    0, NULL, 't'},
@@ -35,6 +36,7 @@ enum mode {
     mode_unknown,
     mode_firewire,
     mode_v4l2,
+    mode_command,
 };
 
 static enum mode mode = mode_unknown;
@@ -57,6 +59,8 @@ static enum mode program_mode(const char * progname)
 	return mode_firewire;
     if (strcmp(progname, "dvsource-v4l2-dv") == 0)
 	return mode_v4l2;
+    if (strcmp(progname, "dvsource-command") == 0)
+	return mode_command;
     return mode_unknown;
 }
 
@@ -94,6 +98,7 @@ static void usage(const char * progname)
     static const char firewire_args[] =
 	"[-c CARD-NUMBER | DEVICE] [-g GUID]";
     static const char v4l2_args[] = "[DEVICE]";
+    static const char cmd_args[] = "['ffmpeg -v quiet -f alsa -ac 1 -i hw:1 -f v4l2 -i /dev/video0 -target pal-dv pipe:1']";
     static const char other_args[] =
 	"[-t] [-v] [-h HOST] [-p PORT]";
 
@@ -104,9 +109,12 @@ static void usage(const char * progname)
 		"Usage: %s %s \\\n"
 		"           --firewire %s\n"
 		"       %s %s \\\n"
-		"           --v4l2 %s\n",
+		"           --v4l2 %s\n"
+		"       %s %s \\\n"
+		"           --command %s\n",
 		progname, other_args, firewire_args,
-		progname, other_args, v4l2_args);
+		progname, other_args, v4l2_args,
+		progname, other_args, cmd_args);
 	break;
     case mode_firewire:
 	fprintf(stderr,
@@ -119,6 +127,12 @@ static void usage(const char * progname)
 		"Usage: %s %s \\\n"
 		"           %s\n",
 		progname, other_args, v4l2_args);
+	break;
+    case mode_command:
+	fprintf(stderr,
+		"Usage: %s %s \\\n"
+		"           %s\n",
+		progname, other_args, cmd_args);
 	break;
     }
 }
@@ -179,7 +193,7 @@ int main(int argc, char ** argv)
     /* Parse arguments. */
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "c:g:h:p:tv", options, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "c:g:h:p:tvFVC", options, NULL)) != -1)
     {
 	switch (opt)
 	{
@@ -196,6 +210,9 @@ int main(int argc, char ** argv)
 	    break;
 	case 'V':
 	    mode = mode_v4l2;
+	    break;
+	case 'C':
+	    mode = mode_command;
 	    break;
 	case 'h':
 	    free(mixer_host);
@@ -254,11 +271,18 @@ int main(int argc, char ** argv)
     {
 	if (!device_name)
 	    device_name = "/dev/video";
-	printf("INFO: Reading from V4L2 device %s\n", device_name);
+	printf("INFO: Reading from V4L2 device %s (DV mode)\n", device_name);
+    }
+    else if (mode == mode_command)
+    {
+        // FIXME: would it work without audio?
+	if (!device_name)
+	    device_name = "ffmpeg -v quiet -f alsa -ac 2 -i hw:0 -f v4l2 -i /dev/video0 -target pal-dv pipe:1";
+	printf("INFO: Running command: %s\n", device_name);
     }
     else
     {
-	fprintf(stderr, "%s: mode not defined (Firewire or V4L2)\n", argv[0]);
+	fprintf(stderr, "%s: mode not defined (Firewire, V4L2, or Command)\n", argv[0]);
 	return 2;
     }
 
@@ -291,6 +315,26 @@ int main(int argc, char ** argv)
 	    _exit(0);
 	}
     }
+
+    if (mode == mode_command)
+      {
+        // run a command, e.g. ffmpeg
+	if (verbose)
+	{
+	    printf("INFO: Running %s\n", device_name);
+	}
+
+	if (dup2(sock, STDOUT_FILENO) < 0)
+	{
+	    perror("ERROR: dup2");
+	    return 1;
+	}
+	close(sock);
+
+	execlp("/bin/sh", "/bin/sh", "-c", device_name, NULL);
+	perror("ERROR: execlp");
+	return 1;
+      }
 
     /* Run dvgrab with the socket as stdout. */
 
