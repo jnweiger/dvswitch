@@ -75,7 +75,9 @@ private:
 
     void window_to_frame_coords(int & frame_x, int & frame_y,
 				int window_x, int window_y) throw();
-    void update_selection(int x, int y);
+    void update_selection_redraw(int x, int y);	// jw@suse.de: renamed from update_selection()
+    void update_selection_move(int x, int y);	// jw@suse.de: variant of update_selection().
+    bool is_inside_selection(int x, int y);
 
     virtual AVFrame * get_frame_header();
     virtual AVFrame * get_frame_buffer(AVFrame * header,
@@ -98,6 +100,9 @@ private:
     unsigned dest_width_, dest_height_;
     bool sel_enabled_;
     bool sel_in_progress_;
+    bool sel_in_progress_mode_;
+#define SEL_IN_PROGRESS_MODE_REDRAW	0	// traditional redraw from scratch
+#define SEL_IN_PROGRESS_MODE_MOVE	1	// drag the selection around, size unchanged
     bool highlight_title_safe_area_;
     int sel_start_x_, sel_start_y_;
     rectangle selection_;

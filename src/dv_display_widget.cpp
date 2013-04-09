@@ -592,7 +592,37 @@ void dv_full_display_widget::window_to_frame_coords(
 				      dest_height_));
 }
 
-void dv_full_display_widget::update_selection(int x2, int y2)
+bool dv_full_display_widget::is_inside_selection(int x, int y)
+{
+  if (x < selection_.left || x > selection_.right)  return false;
+  if (y < selection_.top  || y > selection_.bottom) return false;
+  return true;
+}
+
+void dv_full_display_widget::update_selection_move(int x2, int y2)
+{
+    if (source_region_.empty())
+	return;
+
+    int dx, dy;
+    dx = x2 - sel_start_x_; sel_start_x_ = x2;
+    dy = y2 - sel_start_y_; sel_start_y_ = y2;
+
+    // constrain movement within source_region
+    if (selection_.left   + dx < source_region_.left)   dx = source_region_.left  - selection_.left;
+    if (selection_.top    + dy < source_region_.top)    dy = source_region_.top   - selection_.top;
+    if (selection_.right  + dx > source_region_.right)  dx = source_region_.right - selection_.right;
+    if (selection_.bottom + dy > source_region_.bottom) dy = source_region_.bottom- selection_.bottom;
+
+    selection_.left   += dx;
+    selection_.right  += dx;
+    selection_.top    += dy;
+    selection_.bottom += dy;
+    queue_draw();	// jw@suse.de: this eats CPU. FIXME: do it only if no more drag events follow
+}
+
+
+void dv_full_display_widget::update_selection_redraw(int x2, int y2)
 {
     if (source_region_.empty())
 	return;
@@ -660,7 +690,23 @@ bool dv_full_display_widget::on_button_press_event(GdkEventButton * event)
 	    sel_start_x_ = x;
 	    sel_start_y_ = y;
 	}
-	update_selection(x, y);
+	// jw@suse.de: we now decide redraw or move mode.
+	// If we click inside the existing selection, change to a closed-hand cursor,
+	// and go into move mode, until we get a button_release_event
+	if (is_inside_selection(x, y))
+	  {
+	     sel_in_progress_mode_ = SEL_IN_PROGRESS_MODE_MOVE;
+             Glib::RefPtr<Gdk::Window> window(get_window());
+	     window->set_cursor(Gdk::Cursor(Gdk::FLEUR));
+	     sel_start_x_ = x;
+	     sel_start_y_ = y;
+	     update_selection_move(x, y);
+          }
+	else
+	  {
+	    sel_in_progress_mode_ = SEL_IN_PROGRESS_MODE_REDRAW;
+	    update_selection_redraw(x, y);
+	  }
 	return true;
     }
 
@@ -672,6 +718,8 @@ bool dv_full_display_widget::on_button_release_event(GdkEventButton * event)
 {
     if (sel_in_progress_ && (event->button == 1 || event->button == 2))
     {
+	Glib::RefPtr<Gdk::Window> window(get_window());
+	window->set_cursor(Gdk::Cursor(Gdk::CROSSHAIR));
 	sel_in_progress_ = false;
 	remove_modal_grab();
 	return true;
@@ -685,7 +733,10 @@ bool dv_full_display_widget::on_motion_notify_event(GdkEventMotion * event)
 {
     int x, y;
     window_to_frame_coords(x, y, int(event->x), int(event->y));
-    update_selection(x, y);
+    if (sel_in_progress_mode_ == SEL_IN_PROGRESS_MODE_REDRAW)
+      update_selection_redraw(x, y);
+    else // if (sel_in_progress_mode_ == SEL_IN_PROGRESS_MODE_MOVE)
+      update_selection_move(x, y);
     return true;
 }
 
