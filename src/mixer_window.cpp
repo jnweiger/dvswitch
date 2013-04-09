@@ -262,7 +262,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
     display_.show();
 
     osd_.add(display_);
-    osd_.set_status(gettext("STOP"), "gtk-media-stop");
+    osd_.set_status(gettext("STOPPED"), "gtk-media-stop");
     osd_.show();
 
     selector_.set_border_width(gui_standard_spacing);
@@ -520,9 +520,9 @@ void mixer_window::toggle_record() throw()
     mixer_.enable_record(flag);
     cut_button_.set_sensitive(flag);
     if (flag)
-	osd_.set_status(gettext("RECORD"), "gtk-media-record", 2);
+	osd_.set_status(gettext("RECORDING"), "gtk-media-record", 2);
     else
-	osd_.set_status(gettext("STOP"), "gtk-media-stop");
+	osd_.set_status(gettext("STOPPED"), "gtk-media-stop");
 }
 void mixer_window::toggle_safe_area_display()
 {
