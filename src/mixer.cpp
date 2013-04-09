@@ -837,6 +837,7 @@ void mixer::run_mixer()
     dv_frame_ptr last_mixed_dv;
     unsigned serial_num = 0;
     const mix_data * m = 0;
+    unsigned repeating_mixed_frame = 0;
 
     auto_codec decoder(auto_codec_open_decoder(CODEC_ID_DVVIDEO));
     AVCodecContext * dec = decoder.get();
@@ -922,7 +923,15 @@ void mixer::run_mixer()
 
 	if (!mixed_dv)
 	{
-	    std::cerr << "WARN: Repeating mixed frame\n"; // XXX not very informative
+	    if (!(repeating_mixed_frame & 0x3ff))
+	      {
+	        if (repeating_mixed_frame)
+	          std::cerr << "\n";
+	        std::cerr << "WARN: Repeating mixed frame " << serial_num << "\n"; // XXX not very informative
+		repeating_mixed_frame++;
+	      }
+	    else
+	      std::cerr << ".";
 
 	    // Make a copy of the last mixed frame so we can
 	    // replace the audio.  (We can't modify the last frame
@@ -933,6 +942,12 @@ void mixer::run_mixer()
 			offsetof(dv_frame, buffer)
 			+ dv_frame_system(last_mixed_dv.get())->size);
 	    mixed_dv->serial_num = serial_num;
+	}
+	else
+	{
+	  if (repeating_mixed_frame)
+	    std::cerr << "WARN: End repeating " << serial_num << "\n";
+	  repeating_mixed_frame = 0;
 	}
 
 	const dv_frame_ptr & audio_source_dv =
