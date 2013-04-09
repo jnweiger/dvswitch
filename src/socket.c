@@ -52,6 +52,21 @@ int create_listening_socket(const char * host, const char * port)
     };
     struct addrinfo * addr;
     int error;
+
+    if (!strcmp(host, "*"))
+      {
+        /*
+	  * Manual page getaddrinfo(3) says:
+	  * If  the  AI_PASSIVE  flag  is  specified in hints.ai_flags, and node
+	  * is NULL,  then  the  returned  socket  addresses  will  be  suitable
+	  * for bind(2)ing  a  socket  that  will  accept(2) connections.  The
+	  * returned socket address will contain the "wildcard address"
+	  */
+        host = NULL;
+	addr_hints.ai_flags |= AI_PASSIVE;
+      }
+    // fprintf(stderr, "getaddrinfo %s %s\n", host, port);
+
     if ((error = getaddrinfo(host, port, &addr_hints, &addr)))
     {
 	fprintf(stderr, "ERROR: getaddrinfo: %s\n", gai_strerror(error));
