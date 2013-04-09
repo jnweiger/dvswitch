@@ -38,6 +38,7 @@ void video_effect_show_title_safe(struct raw_frame_ref dest)
 	    bias = chroma_bias;
 	}
 
+#ifdef THICK_TITLE_SAFE_AREA
 	for (unsigned y = 0; y != height; ++y)
 	{
 	    uint8_t * p, * end;
@@ -56,6 +57,26 @@ void video_effect_show_title_safe(struct raw_frame_ref dest)
 	    while (p != end)
 		*p = (*p + bias) / 2, ++p;
 	}
+#else
+	for (unsigned y = border_vert-2 ; y <= height-border_vert+1; ++y)
+	{
+	    uint8_t * p, * end;
+
+	    // Do left border
+	    p = dest.planes.data[plane] + dest.planes.linesize[plane] * y;
+	    end = p + border_horiz;
+	    p += border_horiz-2;
+	    while (p != end)
+		*p = (*p + bias) / 2, ++p;
+	    end = p + width - border_horiz - border_horiz + 2;
+	    if (y >= border_vert && y < height - border_vert)
+		// Skip to right border
+		p += width - 2 * border_horiz;
+	    // else continue across top border or bottom border
+	    while (p != end)
+		*p = (*p + bias) / 2, ++p;
+	}
+#endif
     }
 }
 
