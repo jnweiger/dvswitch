@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <netinet/in.h>
+#include <signal.h>
 
 #include "config.h"
 #include "dif.h"
@@ -230,6 +231,8 @@ int main(int argc, char ** argv)
     /* Initialise settings from configuration files. */
     dvswitch_read_config(handle_config);
 
+    (void)signal(SIGHUP, &sighup);
+
     struct transfer_params params;
     params.opt_loop = false;
     params.timings = false;
@@ -287,6 +290,8 @@ int main(int argc, char ** argv)
 	return 2;
     }
 
+    signal(SIGPIPE, SIG_IGN);	// make Broken pipe visible in perror write.
+
     const char * filename = argv[optind];
 
     /* Prepare to read the file and connect a socket to the mixer. */
@@ -298,7 +303,7 @@ int main(int argc, char ** argv)
     else
     {
 	printf("INFO: Reading from STDIN\n");
-	params.file = feof(stdin);
+	params.file = fileno(stdin);
     }
     if (params.file < 0)
     {
