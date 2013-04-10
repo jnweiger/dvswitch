@@ -1,0 +1,20 @@
+# /etc/dvswitchrc -- config file for dvswitch and friends
+# See also /usr/share/doc/dvswitch/README
+#
+## The mixer hostname and port can also be specified using the -h and
+## -p command-line options.  A Firewire card number for dvsource-firewire
+## can be specified using the -c option.
+
+##
+## the hostname (or IP address) on which the mixer listens (no default)
+MIXER_HOST=127.0.0.1
+
+##
+## the port on which the mixer listens (no default)
+MIXER_PORT=4456
+
+##
+## number of the Firewire card that dvsource-firewire
+## should read through (default: use first which appears
+## to have a camera attached)
+# FIREWIRE_CARD=0
