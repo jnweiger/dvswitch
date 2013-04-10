@@ -12,6 +12,7 @@
 
 #include <glibmm/refptr.h>
 #include <gtkmm/box.h>
+#include <gtkmm/comboboxtext.h>
 #include <gtkmm/menu.h>
 #include <gtkmm/menubar.h>
 #include <gtkmm/imagemenuitem.h>
@@ -107,10 +108,12 @@ private:
     Gtk::HSeparator command_sep_;
     Gtk::Frame effects_frame_;
     Gtk::VBox effects_box_;
+    Gtk::HBox effects_mf_box_;
     Gtk::RadioButtonGroup effect_group_;
     Gtk::RadioButton none_button_;
     Gtk::RadioButton pip_button_;
     Gtk::RadioButton mfade_button_;
+    Gtk::ComboBoxText mfade_area_choice_;
     Gtk::HSeparator transition_sep_;
     Gtk::RadioButton tfade_button_;
     Gtk::Label tfade_label_;
@@ -132,6 +135,7 @@ private:
     bool pip_pending_;
     bool tfade_pending_;
     bool mfade_active_;
+    int mfade_area_;
     bool allow_mfade_;
     bool progress_active_;
     bool fullscreen_state_;

@@ -38,6 +38,7 @@ void video_effect_show_title_safe(struct raw_frame_ref dest)
 	    bias = chroma_bias;
 	}
 
+#ifdef THICK_TITLE_SAFE_AREA
 	for (unsigned y = 0; y != height; ++y)
 	{
 	    uint8_t * p, * end;
@@ -56,6 +57,26 @@ void video_effect_show_title_safe(struct raw_frame_ref dest)
 	    while (p != end)
 		*p = (*p + bias) / 2, ++p;
 	}
+#else
+	for (unsigned y = border_vert-2 ; y <= height-border_vert+1; ++y)
+	{
+	    uint8_t * p, * end;
+
+	    // Do left border
+	    p = dest.planes.data[plane] + dest.planes.linesize[plane] * y;
+	    end = p + border_horiz;
+	    p += border_horiz-2;
+	    while (p != end)
+		*p = (*p + bias) / 2, ++p;
+	    end = p + width - border_horiz - border_horiz + 2;
+	    if (y >= border_vert && y < height - border_vert)
+		// Skip to right border
+		p += width - 2 * border_horiz;
+	    // else continue across top border or bottom border
+	    while (p != end)
+		*p = (*p + bias) / 2, ++p;
+	}
+#endif
     }
 }
 
@@ -270,7 +291,8 @@ void video_effect_pic_in_pic(struct raw_frame_ref dest,
 
 void video_effect_fade(struct raw_frame_ref dest,
 		       struct raw_frame_ref sec,
-		       uint8_t scale)
+		       uint8_t scale,
+		       uint8_t area)
 {
     int x, y, plane;
     uint8_t *ptr_d, *ptr_s;
@@ -294,9 +316,24 @@ void video_effect_fade(struct raw_frame_ref dest,
 	}
         for (y = 0; y < height; y++)
         {
+            uint8_t sscale = scale;
+	    // CAUTION: keep in sync with mixer_window.cpp:217ff: mfade_area_choice_.append_text()
+	    switch (area)
+	    {
+	      case 8: if (y > 0.5   * height) sscale = 0; break;
+	      case 7: if (y > 0.333 * height) sscale = 0; break;
+	      case 6: if (y > 0.24  * height) sscale = 0; break;
+	      case 5: if (y > 0.166 * height) sscale = 0; break;
+	      case 4: if (y < 0.833 * height) sscale = 0; break;
+	      case 3: if (y < 0.75  * height) sscale = 0; break;
+	      case 2: if (y < 0.666 * height) sscale = 0; break;
+	      case 1: if (y < 0.5   * height) sscale = 0; break;
+	      default: break; // no exceptions.
+	    }
+
 	    for (x = 0; x < width; x++)
 	    {
-		tmp = scale * (*ptr_s - *ptr_d);
+		tmp = sscale * (*ptr_s - *ptr_d);
 		*ptr_d += (uint8_t)(tmp >> 8);
 		ptr_d++; ptr_s++;
 	    }

@@ -11,6 +11,9 @@ dvsource-dvgrab \- Firewire and Video4Linux2 sources for DVswitch
 .HP
 .B dvsource-v4l2-dv
 .RI [ OPTIONS "] [" DEVICE ]
+.HP
+.B dvsource-command
+.RI "[ '" FFMPEG_COMMAND "' ]"
 .SH DESCRIPTION
 .LP
 \fBdvsource-firewire\fR uses \fBdvgrab\fR(1) to stream from a DV
@@ -19,6 +22,15 @@ device (camera or VCR) connected by Firewire.
 \fBdvsource-v4l2-dv\fR uses \fBdvgrab\fR(1) to stream from a DV device
 that has a Video4Linux2 driver.  This includes most USB DV cameras if
 you have the uvcvideo driver installed.
+.LP
+\fBdvsource-command\fR uses a user provided command to create a virtual DV stream
+from any device. The command may consist of multiple arguments, if so it must be quoted
+as a single shell argument. The default command takes audio from the first
+soundcard (builtin microphone) and video from the first video device.
+If your webcam is \fB/dev/video0\fR and has its own mono microphone, this
+command might work:
+.br
+\fB'ffmpeg -v quiet -f alsa -ac 1 -i hw:1 -f v4l2 -i /dev/video0 -target pal-dv pipe:1'\fR
 .SH OPTIONS
 \fB\-t\fR, \fB\-\-tally\fR
 .RS

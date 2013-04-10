@@ -68,14 +68,26 @@ static void usage(const char * progname)
 	    "\
 Usage: %s [-h HOST] [-p PORT] [-l] [-t] FILE\n",
 	    progname);
+
+    fprintf(stderr, "\n\
+To replace the DVFILE while --loop is running:\n\
+ rm DVFILE; NEWSOURCE ... > DVFILE; kill -hup MYPID\n");
+
 }
 
 struct transfer_params {
     int            file;
+    const char *   filename;
     int            sock;
     bool           opt_loop;
     bool           timings;
 };
+
+static int sighup_seen = 0;
+static void sighup()
+{
+  sighup_seen = 1;
+}
 
 static ssize_t read_retry(int fd, void * buf, size_t count)
 {
@@ -130,6 +142,14 @@ static void transfer_frames(struct transfer_params * params)
                 }
                 return;
             }
+
+	    if (sighup_seen && params->filename)
+	    {
+	      sighup_seen = 0;
+	      close(params->file);
+	      params->file = open(params->filename, O_RDONLY, 0);
+	      printf("INFO: Reloading %s\n", params->filename);
+	    }
 
 	    if (lseek(params->file, 0, 0) == 0)
             {
@@ -236,6 +256,7 @@ int main(int argc, char ** argv)
     struct transfer_params params;
     params.opt_loop = false;
     params.timings = false;
+    params.filename = NULL;
 
     /* Parse arguments. */
 
@@ -298,6 +319,7 @@ int main(int argc, char ** argv)
     if (strcmp(filename, "-"))
     {
 	printf("INFO: Reading from %s\n", filename);
+	params.filename = filename;
 	params.file = open(filename, O_RDONLY, 0);
     }
     else

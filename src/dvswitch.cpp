@@ -39,6 +39,7 @@ namespace
 
     std::string mixer_host;
     std::string mixer_port;
+    std::string listen_addr;
 
     extern "C"
     {
@@ -48,6 +49,8 @@ namespace
 		mixer_host = value;
 	    else if (strcmp(name, "MIXER_PORT") == 0)
 		mixer_port = value;
+	    else if (strcmp(name, "LISTEN") == 0)
+		listen_addr = value;
 	}
     }
 
@@ -55,7 +58,8 @@ namespace
     {
 	std::cerr << "\
 Usage: " << progname << " [gtk-options] \\\n\
-           [{-h|--host} LISTEN-HOST] [{-p|--port} LISTEN-PORT] [{-o|--osc} OSC-PORT]\n";
+           [{-h|--host} LISTEN-HOST] [{-p|--port} LISTEN-PORT] [{-o|--osc} OSC-PORT]\\\n\
+	   (use --host '*'  for INADDR_ANY)\n";
     }
 }
 
@@ -80,7 +84,7 @@ int main(int argc, char **argv)
 	    switch (opt)
 	    {
 	    case 'h':
-		mixer_host = optarg;
+		listen_addr = mixer_host = optarg;
 		break;
 	    case 'p':
 		mixer_port = optarg;
@@ -102,6 +106,9 @@ int main(int argc, char **argv)
 	    std::cerr << argv[0] << ": mixer hostname and port not defined\n";
 	    return 2;
 	}
+
+	if (!listen_addr.empty())
+	  mixer_host = listen_addr;
 
 	// The mixer must be created before the window, since we pass
 	// a reference to the mixer into the window's constructor to
