@@ -1,0 +1,421 @@
+#! /usr/bin/perl -w
+#
+# Copyright:
+# 
+# Copyright (C) 2011-2013, SUSE Linux Products GmbH
+# Author: Martin Caj <mcaj@suse.cz>
+#
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the Novell nor the names of its contributors may be
+#   used to endorse or promote products derived from this software without
+#   specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+# About the script:
+#
+# The idea was from the script dvsource-firewire_jw.pl by jw@suse.de.
+# dvsource-firewire_jw.pl -- a rewrite of the firewire grabber.
+# The original dvsource-firewire suffers from the following issues:
+# (C) 2012, jw@suse.de, distribute under GPL-2.0+ or ask.
+#
+#############
+## Requires: dvgrab and perl modules bellow
+#
+# How it is working ?
+# 1. It check your FW device and valid devices save into array @good.
+# 2. Run dv-switch GUI app.
+# 3. for each FW device it run dvsource-firewire with uniqe GUID
+#
+# TODO:
+# Add -c option - sometime childern are not properrly exited so
+# we need function to kill all dv* apps, or maybe reload FW kernel
+# modules.
+#
+# -s :save file to the created dir does`n work at the moment. We
+#     need to spilt var $opts{s} .
+# -r :option currently is we use it it does`nt kill chldern process
+#     when GUI is gone. 
+
+
+# (C) SUSE 2013, mcaj@suse.cz, distribute under GPL-2.0+ 
+
+use strict;
+use warnings;
+
+#use Data::Dumper;
+use File::stat;
+use File::Glob;
+#use Getopt::Long qw(:config no_ignore_case);
+use Getopt::Std;
+use POSIX ":sys_wait_h";
+
+my $version = '0.3';
+
+# Parameter  
+my %opts;
+getopts('s:vrhH:P:tl:', \%opts) or usage();
+
+if ($opts{h} || !$opts{s})
+{
+    usage();
+}
+
+# Do we need them ?
+my $a_chan = undef;
+my $a_name = undef;
+# for the stream are need it:
+my $retry_connect = 0;
+my $host = undef;
+my $port = undef;
+my $tally = undef;
+
+my $dvswitch='/usr/bin/dvswitch'; #path to dvswitch
+my $dvsink='/usr/bin/dvsink-files'; #path to dvsink-files
+#my $cmd = '/usr/bin/dvsource-dvgrab';
+my $cmd = '/usr/bin/dvsource-firewire'; #path to dvsource-firewire
+
+$cmd .= " --tally" if ($opts{t});
+$cmd .= " -v" if ($opts{v});
+$cmd .= ' --retry' if ($opts{r});
+$cmd .= " --port=$opts{P}" if ($opts{P});
+$cmd .= " --host=$opts{H}" if ($opts{H});
+
+my $dvgrab = 'dvgrab';
+my $dvgrab_opts = '-noavc';
+my $ignore_missing_units = 0;
+
+my $devices = 0; # devices start on Zero 
+
+my @good; # array for founded FW dev.
+my $good;
+
+my @children;            # Store connections to them
+my $children;
+my %children;
+my $fwpid;
+
+
+
+my $help = undef;
+
+sub get_ps();
+sub run_grab;
+sub search_dev;
+
+sub usage
+{
+        print "Usage: dvsource-firewire2switch [OPTION] -s [SAVE TO FILE] -l [LOG FILE] \n";
+	print "************************************************************************ \n";	
+	print "The script check all avaible FW devices on the machine and start dvsource.\n";
+	print "It using fork to run them separetly.Dead devices (without guid) are skipped.\n"; 
+	print "Devices that are in use (guid appears in /proc/*/cmdline) are also skipped.";
+	print "the options -s is mandatory !\n\n";
+	
+	print "Valid options are:\n";
+	print "\t -s : path there video data are store. this options is mandatory \n";
+	print "\t -v : verbose mode print more information at startup.\n";
+	print "\t -r : keep retrying to connect, in case DVswitch is not yet listening. -not Working yet!\n"; 
+	print "\t -H : send dvsource to remote HOST -not Working yet!\n";
+	print "\t -P : the port to remote HOST -not Working yet!\n";
+# Not working yet:
+# 	Specify the network address on which DVswitch is listening.  The
+#	host address may be specified by name or as an IPv4 or IPv6 literal.
+
+	print "\t -t :tally mode Print notices of activation and deactivation in the mixer \n";
+#	,  for	use with a tally light.  These will take the form "TALLY: on" or "TALLY: off".
+	print "\t -l :path to log file, if it not present all messages go to STDOUT \n\n";
+	print "version: $version \n";
+	print "In case of trouble please send me bug report to mcaj\@suse.cz \n";
+	exit 1;
+}
+
+
+#Run part:
+
+# search FW device and store them in @good:
+search_dev;
+
+my $max_procs=$#good ; # How many children we'll create -1
+$max_procs++; #add one becasue is start at 0
+
+
+# run save video:
+# This need to be add if dir exist. 
+# and file name needs date stemps too.
+
+# check if dir does not exist yet:
+if (-d $opts{s}) 
+{
+	print STDERR "Info: directory $opts{s} alredy exist \n" if ($opts{v});
+} 
+else
+{
+	print STDERR "Info: creating directory $opts{s} \n" if ($opts{v});
+	unless(mkdir $opts{s}) 
+	{
+		die "Error: Unable to create $opts{s}\n";
+	}
+}
+
+$opts{s} .="-%F-%T"; #add timestemp 
+
+$dvsink .=" $opts{s}"; 
+# $dvsink .= ' --retry' if ($opts{r}); do not use it at the moment,
+# otherwise process can not be killed 
+
+record ($dvsink);
+
+
+
+# run dvswitch app
+
+$dvswitch .=">/dev/null 2>&1 &"; #run it in beckground with no output
+
+run_command ($dvswitch);
+print "Slow down the script. \n" ;
+sleep 5;
+
+# In this cycle parent will make as many childern as
+# FW devices system has. There is also 2 sec. slees time after
+# FW stream start.
+
+print STDERR  " Info: $max_procs FW devices found on the machine \n" if ($opts{v});
+print "********************************************************* \n";
+
+foreach $good (@good )
+{
+    $fwpid = fork();
+    die "cannot fork" unless defined $fwpid;
+
+    if ($fwpid == 0) 
+        {
+            $children{$fwpid}=1;
+
+            print STDERR "Working on the device:$devices:   \n" if ($opts{v});
+            print "Starting dev/$good[$devices][0] guid=$good[$devices][1]\n \n";
+            run_grab ( $devices );
+	    sleep 2;
+	    print STDERR "Info: this child is going to exit now \n" if ($opts{v});
+            exit 0;
+        } 
+    else 
+        {
+
+            print STDERR "The parent $fwpid match, and will live \n" if ($opts{v});
+            $devices++;
+	    print "Devices count was increase up to : $devices " if ($opts{v});
+       }
+
+# check is FW is still streaming  ?:
+
+
+}
+
+
+exit 0;
+
+
+#####################################################
+
+
+###################################
+# wait for end children functions:
+###################################
+$SIG{CHLD} = sub 
+{
+print "Runnig $SIG{CHLD} \n";
+ 
+        # don't change $! and $? outside handler
+        local ($!, $?);
+        $fwpid = waitpid(-1, WNOHANG);
+        return if $fwpid == -1;
+        return unless defined $children{$fwpid};
+        print "children pid:  $children{$fwpid} \n";
+        delete $children{$fwpid};
+        print "cleanup_child($fwpid, $?)";
+        cleanup_child($fwpid, $?);
+};
+
+sub record
+#############################################################################
+#On the storage machine (usually the mixer itself) via bash it was loop:
+# sh -c 'while true; do dvsink-files /tmp/dvswitch/test-%F-%T; sleep 2; done'
+##############################################################################
+{
+
+    ($dvsink) = @_;
+    my $savepid = fork();
+    die "cannot fork" unless defined $savepid;
+
+    if ($savepid == 0) 
+        {
+            $children{$savepid}=1;
+	    sleep 4;
+	    print "Starting the infinite save-loop for video now \n";
+	    while(1) { # The infinite loop
+            		my $k = (`ps fax|grep /usr/bin/dvswitch | grep -v "ps fax" |grep -v grep|cut -d " " -f1`);
+	    		last if !$k;  # exit from the infinite loop after GUI is gone
+			print "Info: GUI $dvswitch is still running with PID:$k \n" if ($opts{v});
+	    		run_command ($dvsink);
+			sleep 2 ;
+		     }
+	    print STDERR "Info: the infinite save-loop is going to exit now \n" if ($opts{v});
+            exit 0;
+        } 
+    else 
+        {
+
+            print STDERR "The parent $savepid match, and will live \n" if ($opts{v});
+        }
+
+return 0;
+}
+
+sub run_command
+######################################
+# send STDOUT & STDERR from system to 
+# : log file
+# : STDOUT 
+# : dev/null
+######################################
+{
+	my ($run_system ) = @_;
+
+	if ($opts{l}) 
+	{
+		system ("$run_system &>>$opts{l}  ") and die "Error start $run_system";
+	}elsif ($opts{v})
+	{
+		system ("$run_system ") and die "Error start $run_system";
+	} else 
+	{
+		system ("$run_system >/dev/null 2>&1 ") and die "Error start $run_system";
+	}
+return 0;
+}
+sub search_dev 
+#####################################################
+# searching for "good" device with valid units ID:
+#####################################################
+
+{
+
+	opendir DIR, "/sys/bus/firewire/devices/" or die "no /sys/bus/firewire/devices/: $!";
+	my @fw = grep { !/^\./ } readdir DIR;
+	closedir DIR;
+	my %fw = map { $_ => { guid => undef } } @fw;
+	print STDERR "Founded FW devices @fw \n" if ($opts{v});
+
+	for my $fw (sort @fw)
+	  {
+	    if (open IN, '<', "/sys/bus/firewire/devices/$fw/guid")
+      	{
+		
+		print STDERR "Working on /sys/bus/firewire/devices/$fw/guid \n" if ($opts{v});
+		my $guid = <IN> || '';
+       	 chomp $guid;
+       	 $fw{$fw}{guid} = $guid;
+		close IN;
+
+       	 if (open IN, '<', "/sys/bus/firewire/devices/$fw/units")
+       	   {
+	    # expect 0x00a02d:0x010001
+       	     my $units = <IN> || '';
+       	     chomp $units;
+       	     $fw{$fw}{units} = $units;
+       	     close IN;
+		    $units = '0x0:0x0' if $ignore_missing_units;
+
+       	     if (($guid =~ m{^0x[\da-f]*[1-9a-f][\da-f]*$}) and
+		        ($units =~ m{^0x[\da-f]+:0x[\da-f]+$}))
+		      {
+			push @good, [$fw, $guid];
+		
+			#print STDERR "variable good-0-1 is $good[0][1] \n" if ($opts{v});
+			#print STDERR "variable good-* is @good  scalar: "if ($opts{v});
+			#print scalar @good  if ($opts{v});
+			#print " \n device is: $good[0][0] \n";
+			print STDERR "Usable devices: /dev/$fw guid=$guid with units: $units\n" if ($opts{v});
+		      }
+		    else
+		     {
+		     	print  STDERR "Device : $fw has guid=$guid with empty units: $units\n" if ($opts{v}); 
+		     } 
+		  }
+      	}
+  
+  	}
+return @good;
+}
+
+#####################################################
+# This function run grab command for fw device
+#####################################################
+
+sub run_grab
+{
+	my $all_commands = join("\n", get_ps());
+	my ($devices ) = @_;
+
+# This part need to be check :
+
+	while (@good && $all_commands =~ m{\b$good[$devices][1]\b})
+	  {
+	    print STDERR "Already in use: /dev/$good([$devices][0]) guid=$good([$devices][1])\n" if ($opts{v});
+#    $fw{$good[$devices][0]}{in_use} = 1;
+#    shift @good;
+	  }
+#die "No usable devices: " . Dumper \%fw unless scalar @good;
+
+	$cmd .= " -g '$good[$devices][1]'";	
+
+	# Run bin go background:
+	print STDERR "Running command  $cmd to background now: \n" if ($opts{v}) ;
+	run_command ($cmd);
+
+	return 0;
+}
+
+#####################################################
+# This  function run ps only
+#####################################################
+sub get_ps()
+{
+	my @r = ();
+	opendir DIR, "/proc/" or return @r;
+	my @pids = grep { /^\d+$/ } readdir DIR;
+	closedir DIR;
+
+	for my $pid (@pids)
+    	{
+      		if (open IN, "<", "/proc/$pid/cmdline")
+        		{
+		          my $cmdline = <IN> || '';
+		          chomp $cmdline;
+		          push @r, $cmdline;
+		        }
+    	}
+	return @r;
+}
