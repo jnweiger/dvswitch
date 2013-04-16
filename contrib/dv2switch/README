@@ -1,0 +1,20 @@
+This is my hackweek project from SUSE Hackweek 9.
+
+
+Base on the video setup from : Recording presentation I`d like to create a small script all to use two video source on the one machine. Then We don't need "Mixer Laptop (with Fire-wire & Gbit)" and can connect all in one machine.
+
+The script should be user friendly and allow to start recording without deep knowledge of fire-ware and dvswitch. 
+
+
+
+
+Post processing the recording
+
+The above proposed setup would minimize post processing, as all material is directly available on harddisk. The typical postprocessing is a simple
+
+"ffmpeg -i file:INPUT.dv -deinterlace OUTPUT.webm" 
+This reduces ca. 6GB per hour to ca. 100MB per hour. 
+
+
+Martin Caj
+mcaj@suse.cz
