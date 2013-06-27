@@ -16,7 +16,7 @@
 #include <unistd.h>
 #include <netinet/in.h>
 
-#include <asoundlib.h>
+#include <alsa/asoundlib.h>
 
 #include "config.h"
 #include "dif.h"

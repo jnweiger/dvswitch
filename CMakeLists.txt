@@ -27,6 +27,8 @@ if(NOT BOOST_THREAD_LIBRARIES)
 endif(NOT BOOST_THREAD_LIBRARIES)
 message(STATUS "  found Boost.Thread")
 
+find_library(ALSA_LIBRARIES asound)
+
 find_package(LiveMedia REQUIRED)
 
 # Cope with recent move of ffmpeg headers into subdirectories
