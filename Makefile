@@ -267,6 +267,19 @@ dvsource-jack/preinstall:
 .PHONY : dvsource-jack/preinstall
 
 #=============================================================================
+# Target rules for targets named dvsource-proxy
+
+# Build rule for target.
+dvsource-proxy: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 dvsource-proxy
+.PHONY : dvsource-proxy
+
+# fast build rule for target.
+dvsource-proxy/fast:
+	$(MAKE) -f src/CMakeFiles/dvsource-proxy.dir/build.make src/CMakeFiles/dvsource-proxy.dir/build
+.PHONY : dvsource-proxy/fast
+
+#=============================================================================
 # Target rules for targets named dvswitch
 
 # Build rule for target.
@@ -395,6 +408,7 @@ help:
 	@echo "... dvsource-file"
 	@echo "... dvsource-firewire-rtsp"
 	@echo "... dvsource-jack"
+	@echo "... dvsource-proxy"
 	@echo "... dvswitch"
 	@echo "... mixer"
 	@echo "... pic_in_pic"
