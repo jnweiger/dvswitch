@@ -42,10 +42,10 @@ EQUALS = =
 CMAKE_EDIT_COMMAND = /usr/bin/ccmake
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/testy/src/obs/pm/home:jnweiger/dvswitch-git/git
+CMAKE_SOURCE_DIR = /home/testy/src/github/dvswitch
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/testy/src/obs/pm/home:jnweiger/dvswitch-git/git
+CMAKE_BINARY_DIR = /home/testy/src/github/dvswitch
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -113,9 +113,9 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/testy/src/obs/pm/home:jnweiger/dvswitch-git/git/CMakeFiles /home/testy/src/obs/pm/home:jnweiger/dvswitch-git/git/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/testy/src/github/dvswitch/CMakeFiles /home/testy/src/github/dvswitch/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/testy/src/obs/pm/home:jnweiger/dvswitch-git/git/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/testy/src/github/dvswitch/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -167,6 +167,19 @@ dvsink-files: cmake_check_build_system
 dvsink-files/fast:
 	$(MAKE) -f src/CMakeFiles/dvsink-files.dir/build.make src/CMakeFiles/dvsink-files.dir/build
 .PHONY : dvsink-files/fast
+
+#=============================================================================
+# Target rules for targets named dvsource-alien
+
+# Build rule for target.
+dvsource-alien: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 dvsource-alien
+.PHONY : dvsource-alien
+
+# fast build rule for target.
+dvsource-alien/fast:
+	$(MAKE) -f src/CMakeFiles/dvsource-alien.dir/build.make src/CMakeFiles/dvsource-alien.dir/build
+.PHONY : dvsource-alien/fast
 
 #=============================================================================
 # Target rules for targets named dvsource-alsa
@@ -376,6 +389,7 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... dvsink-command"
 	@echo "... dvsink-files"
+	@echo "... dvsource-alien"
 	@echo "... dvsource-alsa"
 	@echo "... dvsource-dvgrab"
 	@echo "... dvsource-file"
