@@ -49,10 +49,17 @@
  * BuildReqiures: libffmpeg-devel
  *
  * (C) 2013, jw@suse.de
+ *
+ * 2013-07-06 jw@suse.de, V0.1  - v4l2, scaler, encoder connected as a draught.
+ * 2013-07-07 jw@suse.de, V0.2  - dummy audio track added.
+ * TODO: 
+ * - implement double buffering with two threads.
+ *
  */
 
 /* Copyright 2007-2009 Ben Hutchings.
  * Copyright 2008 Petter Reinholdtsen.
+ * Copyright 2013 Jürgen Weigert
  *
  * See the file "COPYING" for licence details.
  */
@@ -62,6 +69,8 @@ first dummy implementation:
 a static raw image is on-the-fly encoded to dv-format, then sent repeatedly to the mixer.
 #endif
 
+
+#define VERSION "0.2"
 
 #include <assert.h>
 #include <stdbool.h>
@@ -100,11 +109,15 @@ a static raw image is on-the-fly encoded to dv-format, then sent repeatedly to t
 #include <libavutil/pixfmt.h>		// PIX_FMT_YUV420P
 #include <libswscale/swscale.h>		// SWS_FAST_BILINEAR 
 
-static struct option options[] = {
+static struct option options[] = {	// is this used at all?
     {"host",   1, NULL, 'h'},
     {"port",   1, NULL, 'p'},
     {"geometry", 1, NULL, 'g'},
+    {"geometry", 1, NULL, 'g'},
     {"help",   0, NULL, 'H'},
+    {"aa_preview",   0, NULL, 'a'},
+    {"timing",   0, NULL, 't'},
+    {"rate",   1, NULL, 'r'},
     {NULL,     0, NULL, 0}
 };
 
@@ -155,9 +168,12 @@ Options:\n\
 -a\n\
 	Enable ascii-art preview. One line from the middle of the video\n\
 	is rendered as ascii art gray ramp.\n\
+-r AUDIO_RATE\n\
+	Supported values are 48000,32000. Default 48000.\n\
+	The audio track is digital silence, but it still needs to have a sample rate.\n\
 \n\
 \n");
-
+    fprintf(stderr, "dvsource-alien V%s\n\n", VERSION);
 }
 
 
@@ -341,7 +357,10 @@ struct v4l2_grab *v4l2_grab_init(char *dev_name, unsigned int width, unsigned in
   }
 
   if ((v->fmt.fmt.pix.width != width) || (v->fmt.fmt.pix.height != height))
-	  printf("Warning: driver is sending image at %dx%d\n",
+	  printf("Warning: driver is sending different format %dx%d\n",
+		  v->fmt.fmt.pix.width, v->fmt.fmt.pix.height);
+  else
+	  printf("Video captured at %dx%d\n",
 		  v->fmt.fmt.pix.width, v->fmt.fmt.pix.height);
 
   CLEAR(v->req);
@@ -461,14 +480,18 @@ struct transfer_params {
     int                 proxy_sock;
     int                 mixer_sock;
     bool		timings, aa_preview;
+    enum dv_sample_rate sample_rate_code;
 };
-
 
 static void transfer_frames(struct transfer_params * params)
 {
   uint64_t frame_timestamp = 0;
   unsigned int frame_interval = 0;
   unsigned long	seq_num_in = 0;
+  unsigned long audio_frame_count = 1920;	// dvswitch/src/dif.c: 48k, 16bit
+
+  if (params->sample_rate_code == dv_sample_rate_32k)
+    audio_frame_count = 1280;			// dvswitch/src/dif.c: 32k, 12bit
 
   frame_timer_init();
   frame_timestamp = frame_timer_get();
@@ -481,6 +504,10 @@ static void transfer_frames(struct transfer_params * params)
       if (!grab_buf) return;
       r = encode_pal_dv(params->enc, grab_buf, params->aa_preview && !(seq_num_in & 0x7));
       if (!r) continue;
+
+      // NULL is allowed for digital silence
+      // OOPS, sample_rate_code == dv_sample_rate_32k does not seem to work...
+      dv_buffer_set_audio(params->enc->pkt.data, params->sample_rate_code, audio_frame_count, NULL);
 
       if (write(params->mixer_sock, params->enc->pkt.data, params->enc->pkt.size) != (ssize_t)params->enc->pkt.size)
 	{
@@ -506,11 +533,12 @@ int main(int argc, char ** argv)
     params.timings = false;
     params.filename = NULL;
     params.aa_preview = false;
+    params.sample_rate_code = dv_sample_rate_48k;
 
     /* Parse arguments. */
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "h:p:g:at", options, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "h:p:g:r:at", options, NULL)) != -1)
     {
 	switch (opt)
 	{
@@ -528,6 +556,11 @@ int main(int argc, char ** argv)
 	    break;
 	case 'a':
 	    params.aa_preview = true;
+	    break;
+	case 'r':
+	    opt = atoi(optarg);
+	    params.sample_rate_code = dv_sample_rate_48k;
+	    if (opt == 32000) params.sample_rate_code = dv_sample_rate_32k;
 	    break;
 	case 'H': /* --help */
 	    usage(argv[0]);
