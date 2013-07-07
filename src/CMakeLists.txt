@@ -15,6 +15,9 @@ add_executable(dvsink-files dvsink-files.c ${common_sources})
 add_executable(dvsource-file dvsource-file.c frame_timer.c ${common_sources})
 target_link_libraries(dvsource-file pthread rt)
 
+add_executable(dvsource-alien dvsource-alien.c frame_timer.c ${common_sources})
+target_link_libraries(dvsource-alien pthread rt)
+
 add_executable(dvsource-dvgrab dvsource-dvgrab.c ${common_sources})
 
 add_executable(dvsource-firewire-rtsp dvsource-firewire.cpp os_error.cpp
