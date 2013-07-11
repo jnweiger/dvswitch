@@ -156,7 +156,7 @@ void mixer::put_frame(source_id id, const dv_frame_ptr & frame)
 		else if (format_.sample_rate != format.sample_rate)
 		{
 		    std::cerr << "WARN: Source " << 1 + id 
-		    	      << " (" << format_.sample_rate << " vs " << format.sample_rate " ) "
+		    	      << " (" << format_.sample_rate << " vs " << format.sample_rate << " ) "
 			      << "using wrong sample rate\n";
 
 		    frame->format_error = true;

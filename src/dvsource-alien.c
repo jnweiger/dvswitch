@@ -45,6 +45,19 @@
  * http://ffmpeg.org/doxygen/trunk/doc_2examples_2decoding_encoding_8c-example.html
  * http://dvswitch.alioth.debian.org/wiki/DV_format/
  *
+ * Triple Buffer implementation according to 
+ * http://en.wikipedia.org/wiki/Double_buffering#Triple_buffering
+ * See also:
+ * http://www.tldp.org/HOWTO/Parallel-Processing-HOWTO-2.html
+ *
+ * This solution appears adequate, as the case is very similar to a graphics
+ * card:
+ * We want to have a fixed 25HZ reader() cycle, that never gets blocked.
+ * our writer is unreliable, and may produce data faster or slower than the
+ * reader can consume. The writer also shall never be blocked, so that there
+ * is no accumulating backlog in the inbound v4l pipeline or tcp connection.
+ *
+ *
  * BuildReqiures: libv4l-devel
  * BuildReqiures: libffmpeg-devel
  *
@@ -52,9 +65,7 @@
  *
  * 2013-07-06 jw@suse.de, V0.1  - v4l2, scaler, encoder connected as a draught.
  * 2013-07-07 jw@suse.de, V0.2  - dummy audio track added.
- * TODO: 
- * - implement double buffering with two threads.
- *
+ * 2013-07-10 jw@suse.de, V0.3  - triple buffer with two threads.
  */
 
 /* Copyright 2007-2009 Ben Hutchings.
@@ -63,14 +74,10 @@
  *
  * See the file "COPYING" for licence details.
  */
-#if 0
-
-first dummy implementation:
-a static raw image is on-the-fly encoded to dv-format, then sent repeatedly to the mixer.
-#endif
 
 
-#define VERSION "0.2"
+#define VERSION "0.3"
+#define TBUF_VERBOSE 1
 
 #include <assert.h>
 #include <stdbool.h>
@@ -79,6 +86,7 @@ a static raw image is on-the-fly encoded to dv-format, then sent repeatedly to t
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <stdint.h>
 
 #include <fcntl.h>
 #include <getopt.h>
@@ -176,25 +184,7 @@ Options:\n\
     fprintf(stderr, "dvsource-alien V%s\n\n", VERSION);
 }
 
-
-struct buffer {
-        void   *start;
-        size_t length;
-};
-
-static void xioctl(int fh, int request, void *arg)
-{
-        int r;
-
-        do {
-                r = v4l2_ioctl(fh, request, arg);
-        } while (r == -1 && ((errno == EINTR) || (errno == EAGAIN)));
-
-        if (r == -1) {
-                fprintf(stderr, "error %d, %s\n", errno, strerror(errno));
-                exit(EXIT_FAILURE);
-        }
-}
+// Start of dv pal encoder code_section
 
 struct enc_pal_dv
 {
@@ -312,16 +302,41 @@ int encode_pal_dv(struct enc_pal_dv *enc, char *rgb, int print_aa)
   return got_output;
 }
 
+// End of dv pal encoder code_section
+
+// Start of v4l code_section
+
+struct buffer_data {
+        void   *start;
+        size_t length;
+};
+
 struct v4l2_grab 
 {
   struct v4l2_format              fmt;
   struct v4l2_buffer              buf;
   struct v4l2_requestbuffers      req;
   char                            *dev_name;
-  struct buffer                   *buffers;
+  struct buffer_data              *buffers;
   int				  fd;
   unsigned int                    n_buffers;
 };
+
+
+static void xioctl(int fh, int request, void *arg)
+{
+        int r;
+
+        do {
+                r = v4l2_ioctl(fh, request, arg);
+        } while (r == -1 && ((errno == EINTR) || (errno == EAGAIN)));
+
+        if (r == -1) {
+                fprintf(stderr, "error %d, %s\n", errno, strerror(errno));
+                exit(EXIT_FAILURE);
+        }
+}
+
 
 // Configure a grabber, connect to a v4l2 device ('/dev/video0' if dev_name == NULL)
 // and ask for a frame size of width and height(if they are nonzero)).
@@ -465,13 +480,206 @@ void v4l_grab_release(struct v4l2_grab *v4l)
   xioctl(v4l->fd, VIDIOC_QBUF, &(v4l->buf));
 }
 
+// End of v4l code_section
 
+// Start of triple buffer code_section
 
-static int sighup_seen = 0;
-static void sighup()
+#define TBUF_STAY_LIMIT 100
+#define TBUF_OWN_READER ((int)'R')
+#define TBUF_OWN_WRITER ((int)'W')
+#define TBUF_OWN_ANY ((int)'A')
+struct dv_buf_ctl
 {
-  sighup_seen = 1;
+  int write_next;	// a buffer number 0,1,2, set by writer
+  int read_next;	// a buffer number 0,1,2, set by writer
+  int ownership[3];	// OWN_* for each , set to R/W by writer, set to A by reader.
+  // the following is only for assertions:
+  int read_lock[3];	// true or false for each buffer, changed by reader
+  int write_lock[3];	// true or false for each buffer, changed by writer
+};
+
+struct dv_triple_buf
+{
+  uint8_t buf[3][DIF_MAX_FRAME_SIZE];
+  int len[3];
+  struct dv_buf_ctl ctl;
+};
+
+volatile struct dv_triple_buf *tbuf_init()
+{
+  volatile struct dv_triple_buf *shm;
+  shm = (volatile struct dv_triple_buf *)mmap(NULL, sizeof(volatile struct dv_triple_buf), PROT_READ|PROT_WRITE, MAP_ANON|MAP_SHARED, -1, 0);
+  if (shm == MAP_FAILED)
+    {
+      perror("mmap anon failed");
+      return 0;
+    }
+
+  shm->ctl.ownership[0] = TBUF_OWN_WRITER;	// start with all buffers at the writer.
+  shm->ctl.ownership[1] = TBUF_OWN_WRITER;	// start with all buffers at the writer.
+  shm->ctl.ownership[2] = TBUF_OWN_WRITER;	// start with all buffers at the writer.
+  shm->ctl.write_next = 0;		// pick any.
+  shm->ctl.read_next = 1;		// need somthing different than write_next.
+  return shm;
 }
+
+void tbuf_destroy(volatile struct dv_triple_buf *shm)
+{
+  munmap((void *)shm, sizeof(volatile struct dv_triple_buf));
+}
+
+void tbuf_print_ctl(volatile struct dv_triple_buf *shm)
+{
+  volatile struct dv_buf_ctl *ctl = &shm->ctl;
+  printf("%c%c%c r%d%d%d w%d%d%d wn=%d rn=%d ", 
+    (char)ctl->ownership[0],
+    (char)ctl->ownership[1],
+    (char)ctl->ownership[2],
+    ctl->read_lock[0],
+    ctl->read_lock[1],
+    ctl->read_lock[2],
+    ctl->write_lock[0],
+    ctl->write_lock[1],
+    ctl->write_lock[2],
+    ctl->write_next, ctl->read_next);
+}
+
+
+void tbuf_reader_get(volatile struct dv_triple_buf *shm, int *cur_buf_p)
+{
+  int cur_buf = shm->ctl.read_next;
+  assert(shm->ctl.ownership[cur_buf] != TBUF_OWN_WRITER);
+  shm->ctl.ownership[cur_buf] = TBUF_OWN_READER;
+
+  shm->ctl.read_lock[cur_buf] = 1;
+  *cur_buf_p = cur_buf;
+}
+
+void tbuf_reader_put(volatile struct dv_triple_buf *shm, int cur_buf)
+{
+  shm->ctl.read_lock[cur_buf] = 0;
+#if 0
+  shm->ctl.ownership[cur_buf] = TBUF_OWN_ANY;
+  int prev_buf = cur_buf -1;
+  if (prev_buf < 0) prev_buf = 2;
+  shm->ctl.ownership[prev_buf] = TBUF_OWN_ANY;
+  // but not clear next_buf, it may be ready to come in.
+#else
+  // this is safe, as writer will never grab the buffer pointed to by read_next.
+  shm->ctl.ownership[0] = TBUF_OWN_ANY;
+  shm->ctl.ownership[1] = TBUF_OWN_ANY;
+  shm->ctl.ownership[2] = TBUF_OWN_ANY;
+#endif
+
+}
+
+void tbuf_writer_get(volatile struct dv_triple_buf *shm, int *cur_buf_p)
+{
+  int cur_buf = shm->ctl.write_next;
+  assert (shm->ctl.write_next != shm->ctl.read_next);
+  assert (shm->ctl.ownership[cur_buf] != TBUF_OWN_READER);
+  assert(shm->ctl.read_lock[cur_buf] == 0);	// he should not have that one
+
+  shm->ctl.write_lock[cur_buf] = 1;
+  *cur_buf_p = cur_buf;
+}
+
+static int tbuf_stay_counter = 0;
+void tbuf_writer_put(volatile struct dv_triple_buf *shm, int cur_buf)
+{
+  assert(shm->ctl.read_lock[cur_buf] == 0);	// he should not have that one
+  shm->ctl.write_lock[cur_buf] = 0;
+
+  int oth1_buf = cur_buf + 1;
+  if (oth1_buf > 2) oth1_buf = 0;
+  int oth2_buf = oth1_buf + 1;
+  if (oth2_buf > 2) oth2_buf = 0;
+  if (shm->ctl.ownership[oth1_buf] != TBUF_OWN_READER)
+    {
+      // we move on to oth1, so we can pass cur to the reader.
+      shm->ctl.ownership[cur_buf] = TBUF_OWN_READER;
+      shm->ctl.read_next = cur_buf;
+      shm->ctl.ownership[oth1_buf] = TBUF_OWN_WRITER; // may come from TBUF_OWN_ANY
+      shm->ctl.write_next = oth1_buf;
+#ifdef TBUF_VERBOSE
+      tbuf_print_ctl(shm);
+      printf("w%d end GOTO OTH1=%d\n", cur_buf, oth1_buf);
+#endif
+      tbuf_stay_counter = 0;
+    }
+  else if (shm->ctl.ownership[oth2_buf] != TBUF_OWN_READER)
+    {
+      // we move on to oth2, so we can pass cur to the reader.
+      // NOTE: oth1 currently catches all. We apparently never come here.
+      shm->ctl.ownership[cur_buf] = TBUF_OWN_READER;
+      shm->ctl.read_next = cur_buf;
+      shm->ctl.ownership[oth2_buf] = TBUF_OWN_WRITER; // may come from TBUF_OWN_ANY
+      shm->ctl.write_next = oth2_buf;
+#ifdef TBUF_VERBOSE
+      tbuf_print_ctl(shm);
+      printf("w%d end GOTO OTH2=%d 2\n", cur_buf, oth2_buf);
+#endif
+      tbuf_stay_counter = 0;
+    }
+  else
+    {
+      // reader has both other buffers, cannot swap anything.
+      // overwrite our own frame instead.
+      shm->ctl.ownership[cur_buf] = TBUF_OWN_WRITER; // may come from TBUF_OWN_ANY
+#ifdef TBUF_VERBOSE
+      tbuf_print_ctl(shm);
+      printf("w%d end STAY HERE\n", cur_buf);
+#endif
+      assert(tbuf_stay_counter++ < TBUF_STAY_LIMIT);
+    }
+}
+
+#if 0
+void tbuf_reader(volatile struct dv_triple_buf *shm)
+{
+  int cur_buf;
+  tbuf_reader_get(shm, &cur_buf);
+
+  int seen = shm->buf[cur_buf][0];
+#ifdef TBUF_VERBOSE
+  tbuf_print_ctl(shm);
+#endif
+  printf("r%d start: 		value=    %d\n", cur_buf, seen);
+  usleep(30000);
+#ifdef TBUF_VERBOSE
+  tbuf_print_ctl(shm);
+  printf("r%d done\n", cur_buf);
+#endif
+
+  tbuf_reader_put(shm, cur_buf);
+}
+
+
+static uint8_t tbuf_write_counter = 0;
+void tbuf_writer(volatile struct dv_triple_buf *shm)
+{
+  int cur_buf;
+  tbuf_writer_get(shm, &cur_buf);
+
+  tbuf_write_counter++;	// may wrap
+
+#ifdef TBUF_VERBOSE
+  tbuf_print_ctl(shm);
+#endif
+  printf("w%d start: 		value=%d\n", cur_buf, tbuf_write_counter);
+
+  int i;
+  for (i = 0; i < DIF_MAX_FRAME_SIZE; i++)
+    shm->buf[cur_buf][i] = tbuf_write_counter;
+  usleep(2123+(rand()&0xffff));
+
+  tbuf_writer_put(shm, cur_buf);
+}
+#endif
+
+// End of triple buffer code_section
+
+// Start of dv mixer transfer code_section
 
 struct transfer_params {
     struct v4l2_grab *  v4l;
@@ -520,6 +728,14 @@ static void transfer_frames(struct transfer_params * params)
       frame_timestamp += frame_interval;
       frame_timer_wait(frame_timestamp);
     }
+}
+
+// End of dv mixer transfer code_section
+
+static int sighup_seen = 0;
+static void sighup()
+{
+  sighup_seen = 1;
 }
 
 int main(int argc, char ** argv)
