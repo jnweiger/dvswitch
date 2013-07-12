@@ -73,6 +73,8 @@
  * 2013-07-11 jw@suse.de, V0.4  - fully functional with v4l, geometry handling 
  *                                and aa-rendering improved! No delay seen 
  *                                after 30 minutes!
+ * 2013-07-12 jw@suse.de, V0.5  - --crop option added. sws_scale can do that
+ *                                at no cost.
  */
 
 /* Copyright 2007-2009 Ben Hutchings.
@@ -83,7 +85,7 @@
  */
 
 
-#define VERSION "0.4"
+#define VERSION "0.5"
 #define TBUF_VERBOSE 0
 
 #include <assert.h>
@@ -133,12 +135,14 @@ static struct option options[] = {	// is this used at all?
     {"aa_preview",   0, NULL, 'a'},
     {"timing",   0, NULL, 't'},
     {"rate",   1, NULL, 'r'},
+    {"crop",   1, NULL, 'c'},
     {NULL,     0, NULL, 0}
 };
 
 static char * mixer_host = NULL;
 static char * mixer_port = NULL;
 static char * video_geometry = NULL;
+static char * crop_margin = NULL;
 
 static void handle_config(const char * name, const char * value)
 {
@@ -157,6 +161,11 @@ static void handle_config(const char * name, const char * value)
 	free(video_geometry);
 	video_geometry = strdup(value);
     }
+    else if (strcmp(name, "CROP_MARGIN") == 0)
+    {
+	free(crop_margin);
+	crop_margin = strdup(value);
+    }
 }
 
 
@@ -164,7 +173,7 @@ static void usage(const char * progname)
 {
     fprintf(stderr,
 	    "\
-Usage: %s [-h HOST] [-p PORT] [-g 640x480] [/dev/video0]\n\
+Usage: %s [-h HOST] [-p PORT] [-g 640x480] [-c 0:0:0:0] [/dev/video0]\n\
        %s [-h HOST] [-p PORT] http://192.168.178.27:8080\n",
 	    progname, progname);
 
@@ -177,6 +186,10 @@ But it can also connect to a http video server like the \n\
 android 'IP Webcam' application.\n\
 \n\
 Options:\n\
+-c LEFT:RIGHT:TOP:BOTTOM\n\
+	Specify a cropmargin for the source image.\n\
+	Default: -c 0:0:0:0\n\
+\n\
 -g WIDTHxHEIGHT \n\
 	Specify the requested video resolution for v4l.\n\
 	This will be scaled to fit into the pal-dv format.\n\
@@ -210,7 +223,12 @@ struct enc_pal_dv
   int enc_size;
 };
 
-struct enc_pal_dv *encode_pal_dv_init(int w, int h)
+struct crop_margins
+{
+  int l, r, t, b;
+};
+
+struct enc_pal_dv *encode_pal_dv_init(int w, int h, struct crop_margins *crop)
 {
   struct enc_pal_dv *s = malloc(sizeof(struct enc_pal_dv));
 
@@ -250,6 +268,19 @@ struct enc_pal_dv *encode_pal_dv_init(int w, int h)
   s->raw_size = avpicture_get_size(PIX_FMT_RGB24, w, h);
   s->raw_stride[0] = avpicture_get_size(PIX_FMT_RGB24, w, 1);
   s->raw_stride[2] = s->raw_stride[1] = s->raw_stride[0];
+
+  if (crop)
+    {
+      // half of the cropping is shifting (done in transfer_frames()), the 
+      // other half is scaling, done here, together with the normal scaling.
+      w -= crop->l + crop->r;
+      h -= crop->t + crop->b;
+      if (w < 1 || h < 1)
+	{
+	  printf("bad crop from %dx%d to %dx%d\n", s->raw_width, s->raw_height, w, h);
+	  exit(1);
+	}
+    }
 
   s->sws_ctx = sws_getContext(w, h, PIX_FMT_RGB24,
   			      s->ctx->width, s->ctx->height, s->ctx->pix_fmt,
@@ -305,7 +336,11 @@ int encode_pal_dv(struct enc_pal_dv *enc, char *rgb, int print_aa)
     {
       render_aa_line(aa_buf, 60, enc->frame->data[0]+
 	    enc->frame->linesize[0]*(enc->frame->height>>1), enc->frame->width);
-      fprintf(stderr, "%s ret=%d got=%d sz=%d\r", aa_buf, ret, got_output, enc->pkt.size);
+#if TBUF_VERBOSE
+      fprintf(stderr, " %s ret=%d got=%d sz=%d\r", aa_buf, ret, got_output, enc->pkt.size);
+#else
+      fprintf(stderr, " %s \r", aa_buf);
+#endif
     }
 
   return got_output;
@@ -656,6 +691,7 @@ struct transfer_params {
     int                 mixer_sock;
     bool		aa_preview;
     enum dv_sample_rate sample_rate_code;
+    struct crop_margins crop;
 };
 
 #if 0
@@ -741,11 +777,16 @@ static void transfer_frames(struct transfer_params * params)
 	  char *grab_buf = v4l_grab_acquire(params->v4l, &grab_len);
 	  if (!grab_buf) return;
 
+	  // half of the cropping is shifting (done here), the other half
+	  // is scaling, done in encode_pal_dv_init().
+	  grab_buf += 3*params->crop.l + params->enc->raw_stride[0]*params->crop.t;
+
   	  int cur_buf;
   	  tbuf_producer_get(shm, &cur_buf);
 
   	  params->enc->pkt.data = (unsigned char *)shm->buf[cur_buf];
           params->enc->pkt.size = sizeof(shm->buf[cur_buf]);
+
 	  r = encode_pal_dv(params->enc, grab_buf, params->aa_preview && !(seq_num_in & 0x7));
 	  v4l_grab_release(params->v4l);
   	  if (!r) return;
@@ -812,13 +853,17 @@ int main(int argc, char ** argv)
 
     struct transfer_params params;
     params.filename = NULL;
+    params.crop.l = 0;
+    params.crop.r = 0;
+    params.crop.t = 0;
+    params.crop.b = 0;
     params.aa_preview = true;
     params.sample_rate_code = dv_sample_rate_48k;
 
     /* Parse arguments. */
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "h:p:g:r:q", options, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "h:p:g:c:r:q", options, NULL)) != -1)
     {
 	switch (opt)
 	{
@@ -829,6 +874,10 @@ int main(int argc, char ** argv)
 	case 'p':
 	    free(mixer_port);
 	    mixer_port = strdup(optarg);
+	    break;
+	case 'c':
+	    free(crop_margin);
+	    crop_margin = strdup(optarg);
 	    break;
 	case 'g':
 	    free(video_geometry);
@@ -866,14 +915,30 @@ int main(int argc, char ** argv)
 
     signal(SIGPIPE, SIG_IGN);	// make Broken pipe visible in perror write.
 
+    if (crop_margin)
+      {
+        char *p = crop_margin;
+        params.crop.l = atoi(p);
+	while (*p &&  *p >= '0' && *p <= '9') p++;
+	while (*p && (*p < '0'  || *p > '9')) p++;
+        params.crop.r = atoi(p);
+	while (*p &&  *p >= '0' && *p <= '9') p++;
+	while (*p && (*p < '0'  || *p > '9')) p++;
+        params.crop.t = atoi(p);
+	while (*p &&  *p >= '0' && *p <= '9') p++;
+	while (*p && (*p < '0'  || *p > '9')) p++;
+        params.crop.b = atoi(p);
+      }
+
     unsigned int width = 0;
     unsigned int height = 0;
     if (video_geometry)
       {
-        width = atoi(video_geometry);
-	while (*video_geometry >= '0' && *video_geometry <= '9') video_geometry++;
-	while (*video_geometry && (*video_geometry < '0'  || *video_geometry > '9')) video_geometry++;
-        height = atoi(video_geometry);
+        char *p = video_geometry;
+        width = atoi(p);
+	while (*p &&  *p >= '0' && *p <= '9') p++;
+	while (*p && (*p < '0'  || *p > '9')) p++;
+        height = atoi(p);
 	if (!height) height = 3*width/4;
       }
     params.v4l = v4l2_grab_init(NULL, width, height);
@@ -884,7 +949,7 @@ int main(int argc, char ** argv)
       }
     width  = params.v4l->fmt.fmt.pix.width;	// driver may choose different values.
     height = params.v4l->fmt.fmt.pix.height;	// face reality :-)
-    params.enc = encode_pal_dv_init(width, height);
+    params.enc = encode_pal_dv_init(width, height, &params.crop);
 
     printf("INFO: Connecting to %s:%s\n", mixer_host, mixer_port);
     params.mixer_sock = create_connected_socket(mixer_host, mixer_port);
