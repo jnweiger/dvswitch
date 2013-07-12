@@ -67,6 +67,12 @@
  * 2013-07-06 jw@suse.de, V0.1  - v4l2, scaler, encoder connected as a draught.
  * 2013-07-07 jw@suse.de, V0.2  - dummy audio track added.
  * 2013-07-10 jw@suse.de, V0.3  - triple buffer with two threads.
+ *                                avcodec_encode_video2() now accepts my pkt 
+ *                                buffer. Heureka. Timer does not survive fork(),
+ *                                moved into child.
+ * 2013-07-11 jw@suse.de, V0.4  - fully functional with v4l, geometry handling 
+ *                                and aa-rendering improved! No delay seen 
+ *                                after 30 minutes!
  */
 
 /* Copyright 2007-2009 Ben Hutchings.
@@ -77,8 +83,8 @@
  */
 
 
-#define VERSION "0.3"
-#define TBUF_VERBOSE 1
+#define VERSION "0.4"
+#define TBUF_VERBOSE 0
 
 #include <assert.h>
 #include <stdbool.h>
@@ -174,9 +180,11 @@ Options:\n\
 -g WIDTHxHEIGHT \n\
 	Specify the requested video resolution for v4l.\n\
 	This will be scaled to fit into the pal-dv format.\n\
--a\n\
-	Enable ascii-art preview. One line from the middle of the video\n\
-	is rendered as ascii art gray ramp.\n\
+\n\
+-q\n\
+	Disable ascii-art preview. Default: One line from the middle of \n\
+	the video is rendered as ascii art gray ramp to stderr.\n\
+\n\
 -r AUDIO_RATE\n\
 	Supported values are 48000,32000. Default 48000.\n\
 	The audio track is digital silence, but it still needs to have a sample rate.\n\
@@ -253,8 +261,8 @@ void render_aa_line(char *aa_buf, int aa_width, uint8_t *pgm_line, int pgm_width
 {
   // gray ramps from http://paulbourke.net/dataformats/asciiart/
   // we choose the long ramp, as we want to see change, even in small amounts.
-  char gray_ramp[] = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,\"^`'. ";
-  // char gray_ramp[10] = " .:-=+*#%@";
+  // char gray_ramp[] = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,\"^`'. ";
+  char gray_ramp[10] = " .:-=+*#%@";
   int i;
   double aa_x_scale = (double)pgm_width/(double)aa_width;
   double aa_c_scale = (double)sizeof(gray_ramp)/255.;
@@ -360,6 +368,7 @@ struct v4l2_grab *v4l2_grab_init(char *dev_name, unsigned int width, unsigned in
 	  return NULL;
   }
 
+  printf("v4l2_grab_init('%s', w=%d, h=%d)\n", dev_name, width, height);
   CLEAR(v->fmt);
   v->fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   v->fmt.fmt.pix.width       = width;
@@ -485,7 +494,7 @@ void v4l_grab_release(struct v4l2_grab *v4l)
 
 // Start of triple buffer code_section
 
-#define TBUF_STAY_LIMIT 100
+#define TBUF_STAY_LIMIT 20
 #define TBUF_OWN_READER ((int)'R')
 #define TBUF_OWN_WRITER ((int)'W')
 #define TBUF_OWN_ANY ((int)'A')
@@ -602,7 +611,7 @@ void tbuf_producer_put(volatile struct dv_triple_buf *shm, int cur_buf)
       shm->ctl.read_next = cur_buf;
       shm->ctl.ownership[oth1_buf] = TBUF_OWN_WRITER; // may come from TBUF_OWN_ANY
       shm->ctl.write_next = oth1_buf;
-#ifdef TBUF_VERBOSE
+#if TBUF_VERBOSE
       tbuf_print_ctl(shm);
       printf("w%d end GOTO OTH1=%d\n", cur_buf, oth1_buf);
 #endif
@@ -616,7 +625,7 @@ void tbuf_producer_put(volatile struct dv_triple_buf *shm, int cur_buf)
       shm->ctl.read_next = cur_buf;
       shm->ctl.ownership[oth2_buf] = TBUF_OWN_WRITER; // may come from TBUF_OWN_ANY
       shm->ctl.write_next = oth2_buf;
-#ifdef TBUF_VERBOSE
+#if TBUF_VERBOSE
       tbuf_print_ctl(shm);
       printf("w%d end GOTO OTH2=%d 2\n", cur_buf, oth2_buf);
 #endif
@@ -627,7 +636,7 @@ void tbuf_producer_put(volatile struct dv_triple_buf *shm, int cur_buf)
       // consumer has both other buffers, cannot swap anything.
       // overwrite our own frame instead.
       shm->ctl.ownership[cur_buf] = TBUF_OWN_WRITER; // may come from TBUF_OWN_ANY
-#ifdef TBUF_VERBOSE
+#if TBUF_VERBOSE
       tbuf_print_ctl(shm);
       printf("w%d end STAY HERE\n", cur_buf);
 #endif
@@ -645,7 +654,7 @@ struct transfer_params {
     const char *        filename;
     int                 proxy_sock;
     int                 mixer_sock;
-    bool		timings, aa_preview;
+    bool		aa_preview;
     enum dv_sample_rate sample_rate_code;
 };
 
@@ -656,12 +665,12 @@ void tbuf_consumer(volatile struct dv_triple_buf *shm, struct transfer_params *t
   tbuf_consumer_get(shm, &cur_buf);
 
   int seen = shm->buf[cur_buf][0];
-#ifdef TBUF_VERBOSE
+#if TBUF_VERBOSE
   tbuf_print_ctl(shm);
 #endif
   printf("r%d start: 		value=    %d\n", cur_buf, seen);
   usleep(30000);
-#ifdef TBUF_VERBOSE
+#if TBUF_VERBOSE
   tbuf_print_ctl(shm);
   printf("r%d done\n", cur_buf);
 #endif
@@ -678,7 +687,7 @@ void tbuf_producer(volatile struct dv_triple_buf *shm, struct transfer_params *t
 
   tbuf_write_counter++;	// may wrap
 
-#ifdef TBUF_VERBOSE
+#if TBUF_VERBOSE
   tbuf_print_ctl(shm);
 #endif
   printf("w%d start: 		value=%d\n", cur_buf, tbuf_write_counter);
@@ -694,8 +703,6 @@ void tbuf_producer(volatile struct dv_triple_buf *shm, struct transfer_params *t
 
 static void transfer_frames(struct transfer_params * params)
 {
-  uint64_t frame_timestamp = 0;
-  unsigned int frame_interval = 0;
   unsigned long	seq_num_in = 0;
   unsigned long audio_frame_count = 1920;	// dvswitch/src/dif.c: 48k, 16bit
 
@@ -704,10 +711,6 @@ static void transfer_frames(struct transfer_params * params)
 
   volatile struct dv_triple_buf *shm = tbuf_init();
 
-  frame_timer_init();
-  frame_timestamp = frame_timer_get();
-  frame_interval = (1000000000 / params->enc->ctx->time_base.den
-			       * params->enc->ctx->time_base.num);
   int grab_len, r;
   char *grab_buf = v4l_grab_acquire(params->v4l, &grab_len);
   if (!grab_buf) return;
@@ -716,6 +719,8 @@ static void transfer_frames(struct transfer_params * params)
   tbuf_producer_get(shm, &cur_buf);
 
   params->enc->pkt.data = (unsigned char *)shm->buf[cur_buf];
+  params->enc->pkt.size = sizeof(shm->buf[cur_buf]);
+  // printf("pkt size = %d\n", params->enc->pkt.size);
   r = encode_pal_dv(params->enc, grab_buf, 0);
   if (!r) return;
   dv_buffer_set_audio(params->enc->pkt.data, params->sample_rate_code, audio_frame_count, NULL);
@@ -740,6 +745,7 @@ static void transfer_frames(struct transfer_params * params)
   	  tbuf_producer_get(shm, &cur_buf);
 
   	  params->enc->pkt.data = (unsigned char *)shm->buf[cur_buf];
+          params->enc->pkt.size = sizeof(shm->buf[cur_buf]);
 	  r = encode_pal_dv(params->enc, grab_buf, params->aa_preview && !(seq_num_in & 0x7));
 	  v4l_grab_release(params->v4l);
   	  if (!r) return;
@@ -756,6 +762,13 @@ static void transfer_frames(struct transfer_params * params)
     }
   else
     {
+      uint64_t frame_timestamp = 0;
+      unsigned int frame_interval = 0;
+
+      frame_timer_init();
+      frame_timestamp = frame_timer_get();
+      frame_interval = (1000000000 / params->enc->ctx->time_base.den
+			       * params->enc->ctx->time_base.num);
       int parent_pid = getppid();
       for (;;)
         {
@@ -798,15 +811,14 @@ int main(int argc, char ** argv)
     (void)signal(SIGHUP, &sighup);
 
     struct transfer_params params;
-    params.timings = false;
     params.filename = NULL;
-    params.aa_preview = false;
+    params.aa_preview = true;
     params.sample_rate_code = dv_sample_rate_48k;
 
     /* Parse arguments. */
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "h:p:g:r:at", options, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "h:p:g:r:q", options, NULL)) != -1)
     {
 	switch (opt)
 	{
@@ -822,8 +834,8 @@ int main(int argc, char ** argv)
 	    free(video_geometry);
 	    video_geometry = strdup(optarg);
 	    break;
-	case 'a':
-	    params.aa_preview = true;
+	case 'q':
+	    params.aa_preview = false;
 	    break;
 	case 'r':
 	    opt = atoi(optarg);
@@ -833,8 +845,6 @@ int main(int argc, char ** argv)
 	case 'H': /* --help */
 	    usage(argv[0]);
 	    return 0;
-	case 't':
-	    params.timings = true;
 	    break;
 	default:
 	    usage(argv[0]);
@@ -862,8 +872,9 @@ int main(int argc, char ** argv)
       {
         width = atoi(video_geometry);
 	while (*video_geometry >= '0' && *video_geometry <= '9') video_geometry++;
-	while (*video_geometry < '0'  || *video_geometry > '9') video_geometry++;
+	while (*video_geometry && (*video_geometry < '0'  || *video_geometry > '9')) video_geometry++;
         height = atoi(video_geometry);
+	if (!height) height = 3*width/4;
       }
     params.v4l = v4l2_grab_init(NULL, width, height);
     if (!params.v4l) 
