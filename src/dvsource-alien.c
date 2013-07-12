@@ -918,16 +918,13 @@ int main(int argc, char ** argv)
     if (crop_margin)
       {
         char *p = crop_margin;
-        params.crop.l = atoi(p);
-	while (*p &&  *p >= '0' && *p <= '9') p++;
-	while (*p && (*p < '0'  || *p > '9')) p++;
-        params.crop.r = atoi(p);
-	while (*p &&  *p >= '0' && *p <= '9') p++;
-	while (*p && (*p < '0'  || *p > '9')) p++;
-        params.crop.t = atoi(p);
-	while (*p &&  *p >= '0' && *p <= '9') p++;
-	while (*p && (*p < '0'  || *p > '9')) p++;
-        params.crop.b = atoi(p);
+        params.crop.l = strtol(p, &p, 10);
+	while (*p && *p != '-' && (*p < '0'  || *p > '9')) p++;
+        params.crop.r = strtol(p, &p, 10);
+	while (*p && *p != '-' && (*p < '0'  || *p > '9')) p++;
+        params.crop.t = strtol(p, &p, 10);
+	while (*p && *p != '-' && (*p < '0'  || *p > '9')) p++;
+        params.crop.b = strtol(p, &p, 10);
       }
 
     unsigned int width = 0;
@@ -935,8 +932,7 @@ int main(int argc, char ** argv)
     if (video_geometry)
       {
         char *p = video_geometry;
-        width = atoi(p);
-	while (*p &&  *p >= '0' && *p <= '9') p++;
+        width = strtol(p, &p, 10);
 	while (*p && (*p < '0'  || *p > '9')) p++;
         height = atoi(p);
 	if (!height) height = 3*width/4;
