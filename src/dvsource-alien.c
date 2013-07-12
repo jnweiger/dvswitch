@@ -49,12 +49,13 @@
  * http://en.wikipedia.org/wiki/Double_buffering#Triple_buffering
  * See also:
  * http://www.tldp.org/HOWTO/Parallel-Processing-HOWTO-2.html
+ * http://remis-thoughts.blogspot.de/2012/01/triple-buffering-as-concurrency_30.html
  *
  * This solution appears adequate, as the case is very similar to a graphics
  * card:
- * We want to have a fixed 25HZ reader() cycle, that never gets blocked.
- * our writer is unreliable, and may produce data faster or slower than the
- * reader can consume. The writer also shall never be blocked, so that there
+ * We want to have a fixed 25HZ consumer() cycle, that never gets blocked.
+ * our producer is unreliable, and may produce data faster or slower than the
+ * consumer can consume. The producer also shall never be blocked, so that there
  * is no accumulating backlog in the inbound v4l pipeline or tcp connection.
  *
  *
@@ -220,7 +221,7 @@ struct enc_pal_dv *encode_pal_dv_init(int w, int h)
   s->enc_size  = s->seq_count * DIF_SEQUENCE_SIZE;
 
   av_init_packet(&(s->pkt));
-  s->pkt.data = NULL;    // packet data will be allocated by the encoder
+  s->pkt.data = NULL;    // packet data will be allocated by the encoder or set by tbuf code.
   s->pkt.size = 0;
 
   if (avcodec_open(s->ctx, s->codec) < 0) 
@@ -490,12 +491,12 @@ void v4l_grab_release(struct v4l2_grab *v4l)
 #define TBUF_OWN_ANY ((int)'A')
 struct dv_buf_ctl
 {
-  int write_next;	// a buffer number 0,1,2, set by writer
-  int read_next;	// a buffer number 0,1,2, set by writer
-  int ownership[3];	// OWN_* for each , set to R/W by writer, set to A by reader.
+  int write_next;	// a buffer number 0,1,2, set by producer
+  int read_next;	// a buffer number 0,1,2, set by producer
+  int ownership[3];	// OWN_* for each , set to R/W by producer, set to A by consumer.
   // the following is only for assertions:
-  int read_lock[3];	// true or false for each buffer, changed by reader
-  int write_lock[3];	// true or false for each buffer, changed by writer
+  int read_lock[3];	// true or false for each buffer, changed by consumer
+  int write_lock[3];	// true or false for each buffer, changed by producer
 };
 
 struct dv_triple_buf
@@ -515,9 +516,9 @@ volatile struct dv_triple_buf *tbuf_init()
       return 0;
     }
 
-  shm->ctl.ownership[0] = TBUF_OWN_WRITER;	// start with all buffers at the writer.
-  shm->ctl.ownership[1] = TBUF_OWN_WRITER;	// start with all buffers at the writer.
-  shm->ctl.ownership[2] = TBUF_OWN_WRITER;	// start with all buffers at the writer.
+  shm->ctl.ownership[0] = TBUF_OWN_WRITER;	// start with all buffers at the producer.
+  shm->ctl.ownership[1] = TBUF_OWN_WRITER;	// start with all buffers at the producer.
+  shm->ctl.ownership[2] = TBUF_OWN_WRITER;	// start with all buffers at the producer.
   shm->ctl.write_next = 0;		// pick any.
   shm->ctl.read_next = 1;		// need somthing different than write_next.
   return shm;
@@ -545,7 +546,7 @@ void tbuf_print_ctl(volatile struct dv_triple_buf *shm)
 }
 
 
-void tbuf_reader_get(volatile struct dv_triple_buf *shm, int *cur_buf_p)
+void tbuf_consumer_get(volatile struct dv_triple_buf *shm, int *cur_buf_p)
 {
   int cur_buf = shm->ctl.read_next;
   assert(shm->ctl.ownership[cur_buf] != TBUF_OWN_WRITER);
@@ -555,7 +556,7 @@ void tbuf_reader_get(volatile struct dv_triple_buf *shm, int *cur_buf_p)
   *cur_buf_p = cur_buf;
 }
 
-void tbuf_reader_put(volatile struct dv_triple_buf *shm, int cur_buf)
+void tbuf_consumer_put(volatile struct dv_triple_buf *shm, int cur_buf)
 {
   shm->ctl.read_lock[cur_buf] = 0;
 #if 0
@@ -565,7 +566,7 @@ void tbuf_reader_put(volatile struct dv_triple_buf *shm, int cur_buf)
   shm->ctl.ownership[prev_buf] = TBUF_OWN_ANY;
   // but not clear next_buf, it may be ready to come in.
 #else
-  // this is safe, as writer will never grab the buffer pointed to by read_next.
+  // this is safe, as producer will never grab the buffer pointed to by read_next.
   shm->ctl.ownership[0] = TBUF_OWN_ANY;
   shm->ctl.ownership[1] = TBUF_OWN_ANY;
   shm->ctl.ownership[2] = TBUF_OWN_ANY;
@@ -573,7 +574,7 @@ void tbuf_reader_put(volatile struct dv_triple_buf *shm, int cur_buf)
 
 }
 
-void tbuf_writer_get(volatile struct dv_triple_buf *shm, int *cur_buf_p)
+void tbuf_producer_get(volatile struct dv_triple_buf *shm, int *cur_buf_p)
 {
   int cur_buf = shm->ctl.write_next;
   assert (shm->ctl.write_next != shm->ctl.read_next);
@@ -585,7 +586,7 @@ void tbuf_writer_get(volatile struct dv_triple_buf *shm, int *cur_buf_p)
 }
 
 static int tbuf_stay_counter = 0;
-void tbuf_writer_put(volatile struct dv_triple_buf *shm, int cur_buf)
+void tbuf_producer_put(volatile struct dv_triple_buf *shm, int cur_buf)
 {
   assert(shm->ctl.read_lock[cur_buf] == 0);	// he should not have that one
   shm->ctl.write_lock[cur_buf] = 0;
@@ -596,7 +597,7 @@ void tbuf_writer_put(volatile struct dv_triple_buf *shm, int cur_buf)
   if (oth2_buf > 2) oth2_buf = 0;
   if (shm->ctl.ownership[oth1_buf] != TBUF_OWN_READER)
     {
-      // we move on to oth1, so we can pass cur to the reader.
+      // we move on to oth1, so we can pass cur to the consumer.
       shm->ctl.ownership[cur_buf] = TBUF_OWN_READER;
       shm->ctl.read_next = cur_buf;
       shm->ctl.ownership[oth1_buf] = TBUF_OWN_WRITER; // may come from TBUF_OWN_ANY
@@ -609,7 +610,7 @@ void tbuf_writer_put(volatile struct dv_triple_buf *shm, int cur_buf)
     }
   else if (shm->ctl.ownership[oth2_buf] != TBUF_OWN_READER)
     {
-      // we move on to oth2, so we can pass cur to the reader.
+      // we move on to oth2, so we can pass cur to the consumer.
       // NOTE: oth1 currently catches all. We apparently never come here.
       shm->ctl.ownership[cur_buf] = TBUF_OWN_READER;
       shm->ctl.read_next = cur_buf;
@@ -623,7 +624,7 @@ void tbuf_writer_put(volatile struct dv_triple_buf *shm, int cur_buf)
     }
   else
     {
-      // reader has both other buffers, cannot swap anything.
+      // consumer has both other buffers, cannot swap anything.
       // overwrite our own frame instead.
       shm->ctl.ownership[cur_buf] = TBUF_OWN_WRITER; // may come from TBUF_OWN_ANY
 #ifdef TBUF_VERBOSE
@@ -633,49 +634,6 @@ void tbuf_writer_put(volatile struct dv_triple_buf *shm, int cur_buf)
       assert(tbuf_stay_counter++ < TBUF_STAY_LIMIT);
     }
 }
-
-#if 0
-void tbuf_reader(volatile struct dv_triple_buf *shm)
-{
-  int cur_buf;
-  tbuf_reader_get(shm, &cur_buf);
-
-  int seen = shm->buf[cur_buf][0];
-#ifdef TBUF_VERBOSE
-  tbuf_print_ctl(shm);
-#endif
-  printf("r%d start: 		value=    %d\n", cur_buf, seen);
-  usleep(30000);
-#ifdef TBUF_VERBOSE
-  tbuf_print_ctl(shm);
-  printf("r%d done\n", cur_buf);
-#endif
-
-  tbuf_reader_put(shm, cur_buf);
-}
-
-
-static uint8_t tbuf_write_counter = 0;
-void tbuf_writer(volatile struct dv_triple_buf *shm)
-{
-  int cur_buf;
-  tbuf_writer_get(shm, &cur_buf);
-
-  tbuf_write_counter++;	// may wrap
-
-#ifdef TBUF_VERBOSE
-  tbuf_print_ctl(shm);
-#endif
-  printf("w%d start: 		value=%d\n", cur_buf, tbuf_write_counter);
-
-  int i;
-  for (i = 0; i < DIF_MAX_FRAME_SIZE; i++)
-    shm->buf[cur_buf][i] = tbuf_write_counter;
-  usleep(2123+(rand()&0xffff));
-
-  tbuf_writer_put(shm, cur_buf);
-}
-#endif
 
 // End of triple buffer code_section
 
@@ -691,6 +649,47 @@ struct transfer_params {
     enum dv_sample_rate sample_rate_code;
 };
 
+void tbuf_consumer(volatile struct dv_triple_buf *shm, struct transfer_params *tp)
+{
+  int cur_buf;
+  tbuf_consumer_get(shm, &cur_buf);
+
+  int seen = shm->buf[cur_buf][0];
+#ifdef TBUF_VERBOSE
+  tbuf_print_ctl(shm);
+#endif
+  printf("r%d start: 		value=    %d\n", cur_buf, seen);
+  usleep(30000);
+#ifdef TBUF_VERBOSE
+  tbuf_print_ctl(shm);
+  printf("r%d done\n", cur_buf);
+#endif
+
+  tbuf_consumer_put(shm, cur_buf);
+}
+
+
+static uint8_t tbuf_write_counter = 0;
+void tbuf_producer(volatile struct dv_triple_buf *shm, struct transfer_params *tp)
+{
+  int cur_buf;
+  tbuf_producer_get(shm, &cur_buf);
+
+  tbuf_write_counter++;	// may wrap
+
+#ifdef TBUF_VERBOSE
+  tbuf_print_ctl(shm);
+#endif
+  printf("w%d start: 		value=%d\n", cur_buf, tbuf_write_counter);
+
+  int i;
+  for (i = 0; i < DIF_MAX_FRAME_SIZE; i++)
+    shm->buf[cur_buf][i] = tbuf_write_counter;
+  usleep(2123+(rand()&0xffff));
+
+  tbuf_producer_put(shm, cur_buf);
+}
+
 static void transfer_frames(struct transfer_params * params)
 {
   uint64_t frame_timestamp = 0;
@@ -701,32 +700,80 @@ static void transfer_frames(struct transfer_params * params)
   if (params->sample_rate_code == dv_sample_rate_32k)
     audio_frame_count = 1280;			// dvswitch/src/dif.c: 32k, 12bit
 
+  volatile struct dv_triple_buf *shm = tbuf_init();
+
   frame_timer_init();
   frame_timestamp = frame_timer_get();
   frame_interval = (1000000000 / params->enc->ctx->time_base.den
 			       * params->enc->ctx->time_base.num);
-  for (;;)
-    {
-      int grab_len, r;
-      char *grab_buf = v4l_grab_acquire(params->v4l, &grab_len);
-      if (!grab_buf) return;
-      r = encode_pal_dv(params->enc, grab_buf, params->aa_preview && !(seq_num_in & 0x7));
-      if (!r) continue;
+  int grab_len, r;
+  char *grab_buf = v4l_grab_acquire(params->v4l, &grab_len);
+  if (!grab_buf) return;
+  int cur_buf;
+  tbuf_producer_get(shm, &cur_buf);
+  params->enc->pkt.data = shm->buf[cur_buf];
+  r = encode_pal_dv(params->enc, grab_buf, 0);
+  if (!r) return;
+  dv_buffer_set_audio(params->enc->pkt.data, params->sample_rate_code, audio_frame_count, NULL);
+  tbuf_producer_put(shm, cur_buf);
 
-      // NULL is allowed for digital silence
-      // OOPS, sample_rate_code == dv_sample_rate_32k does not seem to work...
-      dv_buffer_set_audio(params->enc->pkt.data, params->sample_rate_code, audio_frame_count, NULL);
-
-      if (write(params->mixer_sock, params->enc->pkt.data, params->enc->pkt.size) != (ssize_t)params->enc->pkt.size)
+  int child_pid;
+  if ((child_pid = fork())) 
+    {  
+      for (;;)
 	{
-	    perror("ERROR: write");
-	    return;
-	}
-      v4l_grab_release(params->v4l);
+	  if (kill(child_pid, 0))
+	    {
+	      tbuf_destroy(shm);
+	      _exit(0);	// end the parent when the child dies.
+	    }
 
-      seq_num_in++;
-      frame_timestamp += frame_interval;
-      frame_timer_wait(frame_timestamp);
+          int grab_len, r;
+	  char *grab_buf = v4l_grab_acquire(params->v4l, &grab_len);
+	  if (!grab_buf) return;
+
+  	  int cur_buf;
+  	  tbuf_producer_get(shm, &cur_buf);
+
+  	  params->enc->pkt.data = shm->buf[cur_buf];
+	  r = encode_pal_dv(params->enc, grab_buf, params->aa_preview && !(seq_num_in & 0x7));
+	  v4l_grab_release(params->v4l);
+  	  if (!r) return;
+
+	  // NULL is allowed for digital silence
+	  // OOPS, sample_rate_code == dv_sample_rate_32k does not seem to work...
+	  dv_buffer_set_audio(params->enc->pkt.data, params->sample_rate_code, audio_frame_count, NULL);
+	  shm->len[cur_buf] = params->enc->pkt.size
+
+  	  tbuf_producer_put(shm, cur_buf);
+	  seq_num_in++;
+	}
+    }
+  else
+    {
+      int parent_pid = getppid();
+      for (;;)
+        {
+	  if (kill(parent_pid, 0))
+	    {
+	      tbuf_destroy(shm);
+	      _exit(0);	// end the child when the parent ended.
+	    }
+
+  	  int cur_buf;
+  	  tbuf_consumer_get(shm, &cur_buf);
+
+	  if (write(params->mixer_sock, shm->buf[cur_buf], shm->len[cur_buf]) != (ssize_t)shm->len[cur_buf])
+	    {
+		perror("ERROR: write");
+		return;
+	    }
+  	  tbuf_consumer_put(shm, cur_buf);
+
+	  frame_timestamp += frame_interval;
+	  frame_timer_wait(frame_timestamp);
+	}
+      _exit(0);	// do not letting the child process walk out of here...
     }
 }
 
