@@ -649,6 +649,7 @@ struct transfer_params {
     enum dv_sample_rate sample_rate_code;
 };
 
+#if 0
 void tbuf_consumer(volatile struct dv_triple_buf *shm, struct transfer_params *tp)
 {
   int cur_buf;
@@ -689,6 +690,7 @@ void tbuf_producer(volatile struct dv_triple_buf *shm, struct transfer_params *t
 
   tbuf_producer_put(shm, cur_buf);
 }
+#endif
 
 static void transfer_frames(struct transfer_params * params)
 {
@@ -709,9 +711,11 @@ static void transfer_frames(struct transfer_params * params)
   int grab_len, r;
   char *grab_buf = v4l_grab_acquire(params->v4l, &grab_len);
   if (!grab_buf) return;
+
   int cur_buf;
   tbuf_producer_get(shm, &cur_buf);
-  params->enc->pkt.data = shm->buf[cur_buf];
+
+  params->enc->pkt.data = (unsigned char *)shm->buf[cur_buf];
   r = encode_pal_dv(params->enc, grab_buf, 0);
   if (!r) return;
   dv_buffer_set_audio(params->enc->pkt.data, params->sample_rate_code, audio_frame_count, NULL);
@@ -735,7 +739,7 @@ static void transfer_frames(struct transfer_params * params)
   	  int cur_buf;
   	  tbuf_producer_get(shm, &cur_buf);
 
-  	  params->enc->pkt.data = shm->buf[cur_buf];
+  	  params->enc->pkt.data = (unsigned char *)shm->buf[cur_buf];
 	  r = encode_pal_dv(params->enc, grab_buf, params->aa_preview && !(seq_num_in & 0x7));
 	  v4l_grab_release(params->v4l);
   	  if (!r) return;
@@ -743,7 +747,8 @@ static void transfer_frames(struct transfer_params * params)
 	  // NULL is allowed for digital silence
 	  // OOPS, sample_rate_code == dv_sample_rate_32k does not seem to work...
 	  dv_buffer_set_audio(params->enc->pkt.data, params->sample_rate_code, audio_frame_count, NULL);
-	  shm->len[cur_buf] = params->enc->pkt.size
+  	  assert((unsigned char *)shm->buf[cur_buf] == params->enc->pkt.data);
+	  shm->len[cur_buf] = params->enc->pkt.size;
 
   	  tbuf_producer_put(shm, cur_buf);
 	  seq_num_in++;
@@ -763,7 +768,7 @@ static void transfer_frames(struct transfer_params * params)
   	  int cur_buf;
   	  tbuf_consumer_get(shm, &cur_buf);
 
-	  if (write(params->mixer_sock, shm->buf[cur_buf], shm->len[cur_buf]) != (ssize_t)shm->len[cur_buf])
+	  if (write(params->mixer_sock, (void *)shm->buf[cur_buf], shm->len[cur_buf]) != (ssize_t)shm->len[cur_buf])
 	    {
 		perror("ERROR: write");
 		return;
