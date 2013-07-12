@@ -16,7 +16,7 @@ public:
         BAR_BLINK
     };
 
-    status_overlay(enum status_bar_mode bar_mode = BAR_BLINK);
+    status_overlay(enum status_bar_mode bar_mode = BAR_ON);
     ~status_overlay();
     void set_status(const Glib::ustring & text,
 		    const Glib::ustring & icon_name,

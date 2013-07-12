@@ -163,7 +163,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
     status_bar_blink_menu_item_.signal_toggled().connect(
 	sigc::bind<0>(sigc::mem_fun(osd_, &status_overlay::set_bar_mode), status_overlay::BAR_BLINK));
 
-    status_bar_blink_menu_item_.set_active(true);
+    status_bar_on_menu_item_.set_active(true);
     status_bar_on_menu_item_.show();
     status_bar_off_menu_item_.show();
     status_bar_blink_menu_item_.show();
