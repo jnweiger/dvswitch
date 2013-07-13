@@ -75,6 +75,7 @@
  *                                after 30 minutes!
  * 2013-07-12 jw@suse.de, V0.5  - --crop option added. sws_scale can do that
  *                                at no cost.
+ * 2013-07-12 jw@suse.de, V0.6  - mjpeg decoder code_section added.
  */
 
 /* Copyright 2007-2009 Ben Hutchings.
@@ -85,8 +86,9 @@
  */
 
 
-#define VERSION "0.5"
+#define VERSION "0.6"
 #define TBUF_VERBOSE 0
+#define MJPEG_VERBOSE 0
 
 #include <assert.h>
 #include <stdbool.h>
@@ -174,7 +176,8 @@ static void usage(const char * progname)
     fprintf(stderr,
 	    "\
 Usage: %s [-h HOST] [-p PORT] [-g 640x480] [-c 0:0:0:0] [/dev/video0]\n\
-       %s [-h HOST] [-p PORT] http://192.168.178.27:8080\n",
+       %s [-h HOST] [-p PORT] - \n\
+       %s [-h HOST] [-p PORT] http://192.168.178.27:8080/video\n",
 	    progname, progname);
 
     fprintf(stderr, "\n\
@@ -184,6 +187,7 @@ streaming motion jpeg or v4l2 input.\n\
 The default input is /dev/video0.\n\
 But it can also connect to a http video server like the \n\
 android 'IP Webcam' application.\n\
+Direct URL connect is equivalent to 'curl -s URL | ... -'\n\
 \n\
 Options:\n\
 -c LEFT:RIGHT:TOP:BOTTOM\n\
@@ -193,6 +197,7 @@ Options:\n\
 -g WIDTHxHEIGHT \n\
 	Specify the requested video resolution for v4l.\n\
 	This will be scaled to fit into the pal-dv format.\n\
+	Only with v4l devices.\n\
 \n\
 -q\n\
 	Disable ascii-art preview. Default: One line from the middle of \n\
@@ -293,7 +298,7 @@ void render_aa_line(char *aa_buf, int aa_width, uint8_t *pgm_line, int pgm_width
   // gray ramps from http://paulbourke.net/dataformats/asciiart/
   // we choose the long ramp, as we want to see change, even in small amounts.
   // char gray_ramp[] = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,\"^`'. ";
-  char gray_ramp[10] = " .:-=+*#%@";
+  char gray_ramp[10] = "@%#*+=-:. ";
   int i;
   double aa_x_scale = (double)pgm_width/(double)aa_width;
   double aa_c_scale = (double)sizeof(gray_ramp)/255.;
@@ -339,7 +344,7 @@ int encode_pal_dv(struct enc_pal_dv *enc, char *rgb, int print_aa)
 #if TBUF_VERBOSE
       fprintf(stderr, " %s ret=%d got=%d sz=%d\r", aa_buf, ret, got_output, enc->pkt.size);
 #else
-      fprintf(stderr, " %s \r", aa_buf);
+      fprintf(stderr, " [%s] \r", aa_buf);
 #endif
     }
 
@@ -527,6 +532,212 @@ void v4l_grab_release(struct v4l2_grab *v4l)
 
 // End of v4l code_section
 
+// Start of mjpeg code_section
+
+struct dec_jpg
+{
+  AVCodec *codec;
+  AVCodecContext *ctx;
+  AVFrame *fyuv;		// dest
+  AVFrame *frgb;		// dest
+  struct SwsContext *scaler_ctx;
+};
+
+struct dec_jpg *dec_jpg_init()
+{
+  struct dec_jpg *s = malloc(sizeof(struct dec_jpg));
+
+  avcodec_register_all();	// hope it does not hurt to do that twice.
+  s->codec = avcodec_find_decoder(CODEC_ID_MJPEG);
+  s->ctx = avcodec_alloc_context();
+  s->fyuv = avcodec_alloc_frame();
+  s->frgb = avcodec_alloc_frame();
+  s->scaler_ctx = NULL;
+  avcodec_get_context_defaults(s->ctx);
+  // s->ctx->pix_fmt = PIX_FMT_RGB24;
+
+  if (avcodec_open(s->ctx, s->codec) < 0) 
+    {
+      printf("could not open CODEC_ID_MJPEG\n");
+      exit(1);
+    }
+  return s;
+}
+
+
+int process_jpeg(struct dec_jpg *s, unsigned char *buf, int len)
+{
+#if MJPEG_VERBOSE
+  printf("found jpeg: %02x %02x %02x %02x len=%d\n", buf[0], buf[1], buf[2], buf[3], len);
+#endif
+  AVPacket packet;
+  av_init_packet(&packet);
+  packet.data = buf;
+  packet.size = len;
+
+  int frame_decoded = 0;
+  int result = avcodec_decode_video2(s->ctx, s->fyuv, &frame_decoded, &packet);
+  if (frame_decoded)
+    {
+#if MJPEG_VERBOSE
+      printf("process_jpeg yuv w=%d, h=%d, fmt=%d, linsz=%d %d %d\n", 
+        s->fyuv->width, s->fyuv->height, s->fyuv->format, 
+	s->fyuv->linesize[0], s->fyuv->linesize[1], s->fyuv->linesize[2]);
+#endif
+      if (!s->scaler_ctx)
+        {
+	  s->frgb->width  = s->fyuv->width;
+	  s->frgb->height = s->fyuv->height;
+	  s->scaler_ctx = sws_getContext(s->fyuv->width, s->fyuv->height, s->fyuv->format,
+	  	s->fyuv->width, s->fyuv->height, PIX_FMT_RGB24, 
+		SWS_POINT, NULL, NULL, NULL);
+	  unsigned char *dst_buffer = av_malloc(avpicture_get_size (PIX_FMT_RGB24, s->frgb->width, s->frgb->width));
+	  avpicture_fill ((AVPicture *) s->frgb, dst_buffer, PIX_FMT_RGB24, s->frgb->width, s->frgb->height);
+	}
+      // FIXME: can't we convince the jpeg decoder to directly produce RGB
+      // But we don't want to prefill its output frame, as we don't know the dimensions!!!
+      // If it allocates the frame itself, it always falls back to yuv???
+      sws_scale (s->scaler_ctx, s->fyuv->data, s->fyuv->linesize,
+      		0, s->fyuv->height,
+		s->frgb->data, s->frgb->linesize);
+#if MJPEG_VERBOSE
+      printf("             rgb w=%d, h=%d, fmt=%d, linsz=%d %d %d\n", 
+        s->frgb->width, s->frgb->height, s->frgb->format, 
+	s->frgb->linesize[0], s->frgb->linesize[1], s->frgb->linesize[2]);
+#endif
+      return 1;
+    }
+
+  printf("process_jpeg got no frame, result=%d\n", result);
+  return 0;
+}
+
+#define MEM_CHUNK (1024*8)
+struct mjpeg_grab 
+{
+  int fd;
+  char *file;
+  int buf_sz;
+  int len;
+  unsigned char *buf;
+  unsigned char *sep;
+  int sep_len;
+  int returned;
+};
+
+struct mjpeg_grab *mjpeg_grab_init(int fd, char *filename)
+{
+  if (fd < 0) { perror(filename); return NULL; }
+
+  struct mjpeg_grab *s = (struct mjpeg_grab *)malloc(sizeof(struct mjpeg_grab));
+
+  s->fd = fd;
+  s->file = filename;
+  s->buf_sz = MEM_CHUNK*8;
+  s->buf = (unsigned char *)malloc(s->buf_sz);
+  s->len = 0;		// current amount of data in buf
+  s->sep = NULL;	// to be initialized on the fly by mjpeg_grab()
+  s->sep_len = 0;
+  s->returned = 0;	// mjpeg_grab had returned this size of jpeg data. Advance on next call.
+
+  return s;
+}
+
+unsigned char *mjpeg_grab(struct mjpeg_grab *mjpeg, int *lenp)
+{
+  if (!mjpeg->sep)
+    {
+      // Read enough to see the first jpeg header. 
+      // My Android IP Webcam starts the stream like this:
+      // 0000000: 2d2d 4261 346f 5476 514d 5938 6577 3034  --Ba4oTvQMY8ew04
+      // 0000010: 4e38 6463 6e4d 0d0a 436f 6e74 656e 742d  N8dcnM..Content-
+      // 0000020: 5479 7065 3a20 696d 6167 652f 6a70 6567  Type: image/jpeg
+      // 0000030: 0d0a 0d0a ffd8 ffe0 0010 4a46 4946 0001  ..........JFIF..
+      for(;;)
+	{
+	  if (mjpeg->buf_sz - mjpeg->len < MEM_CHUNK)
+	    {
+	      mjpeg->buf_sz += MEM_CHUNK*8;
+	      mjpeg->buf = (unsigned char *)realloc(mjpeg->buf, mjpeg->buf_sz);
+#if MJPEG_VERBOSE
+	      printf("realloc %d\n", mjpeg->buf_sz);
+#endif
+	    }
+	  int r = read(mjpeg->fd, mjpeg->buf+mjpeg->len, mjpeg->buf_sz - mjpeg->len);
+	  if (r < 0) { perror("read"); exit(0); }
+	  if (r == 0) break;	// EOF may happen.
+	  mjpeg->len += r;
+	  unsigned char *p = (unsigned char *)memmem(mjpeg->buf, mjpeg->len, "\x0d\x0a\x0d\x0a", 4);
+	  if (!p) continue;
+#if MJPEG_VERBOSE
+	  printf("found header end at offset %d\n", p-mjpeg->buf);
+#endif
+	  unsigned char *e = p+4;
+	  // walk backward, until we find a \x0a character, 
+	  // from there it is the seperator with which we will search for repeated chunks.
+	  while (--p >= mjpeg->buf) if (*p == '\x0a') { p++; break; }
+	  mjpeg->sep = (unsigned char *)malloc(e-p+1);
+	  memcpy(mjpeg->sep, p, e-p);
+	  mjpeg->sep_len = e-p;
+	  mjpeg->sep[mjpeg->sep_len] = '\0';
+	  memmove(mjpeg->buf, e, mjpeg->len-(e-mjpeg->buf));
+	  mjpeg->len -= (e-mjpeg->buf);
+	  break;
+	}
+      if (!mjpeg->sep)
+	{
+	  printf("could not find http header seperator\n");
+	  exit(0);
+	}
+      printf("sep='%s'\n", mjpeg->sep);
+    }
+  if (mjpeg->returned)
+    {
+      memmove(mjpeg->buf, mjpeg->buf+mjpeg->returned, mjpeg->len-mjpeg->returned);
+      mjpeg->len -= mjpeg->returned;
+      mjpeg->returned = 0;
+    }
+
+  // we now have a partial jpeg image starting at mjpeg_buf
+  // add more data until we find our sep again.
+  unsigned char *p = (unsigned char *)memmem(mjpeg->buf, mjpeg->len, mjpeg->sep, mjpeg->sep_len);
+  for(;;)
+    {
+      if (p)
+        {
+	  mjpeg->returned = p-mjpeg->buf+mjpeg->sep_len;
+	  *lenp = mjpeg->returned-mjpeg->sep_len;
+	  return mjpeg->buf;
+	}
+
+      // no end marker found, try to read more.
+      if (mjpeg->buf_sz-mjpeg->len < MEM_CHUNK)
+        {
+	  mjpeg->buf_sz += MEM_CHUNK*8;
+          mjpeg->buf = (unsigned char *)realloc(mjpeg->buf, mjpeg->buf_sz);
+	  printf("realloc %d\n", mjpeg->buf_sz);
+	}
+      for (;;)
+	{
+	  p = NULL;
+	  int r = read(mjpeg->fd, mjpeg->buf+mjpeg->len, mjpeg->buf_sz-mjpeg->len);
+	  if (r < 0) { perror("read"); exit(0); }
+	  if (r == 0) break;	// EOF may happen.
+	  p = mjpeg->buf+mjpeg->len-mjpeg->sep_len;
+	  if (p < mjpeg->buf) p = mjpeg->buf;
+          int check_len = mjpeg->len-(p-mjpeg->buf)+r;
+          p = (unsigned char *)memmem(p, check_len, mjpeg->sep, mjpeg->sep_len);
+	  mjpeg->len += r;
+	  if (p) break;
+	}
+      if (!p) break;
+    }
+  return NULL;	// EOF
+}
+
+
+// End of mjpeg code_section
+
 // Start of triple buffer code_section
 
 #define TBUF_STAY_LIMIT 20
@@ -685,6 +896,8 @@ void tbuf_producer_put(volatile struct dv_triple_buf *shm, int cur_buf)
 
 struct transfer_params {
     struct v4l2_grab *  v4l;
+    struct mjpeg_grab * mjpeg;
+    struct dec_jpg *    jdec;
     struct enc_pal_dv * enc;
     const char *        filename;
     int                 proxy_sock;
@@ -748,7 +961,11 @@ static void transfer_frames(struct transfer_params * params)
   volatile struct dv_triple_buf *shm = tbuf_init();
 
   int grab_len, r;
-  char *grab_buf = v4l_grab_acquire(params->v4l, &grab_len);
+  char *grab_buf;
+  if (params->mjpeg)
+    grab_buf = params->jdec->frgb->data[0];
+  else
+    grab_buf = v4l_grab_acquire(params->v4l, &grab_len);
   if (!grab_buf) return;
 
   int cur_buf;
@@ -774,7 +991,16 @@ static void transfer_frames(struct transfer_params * params)
 	    }
 
           int grab_len, r;
-	  char *grab_buf = v4l_grab_acquire(params->v4l, &grab_len);
+	  char *grab_buf;
+	  if (params->mjpeg)
+	    {
+              unsigned char *buf = mjpeg_grab(params->mjpeg, &grab_len);
+	      if (!buf) return;
+              process_jpeg(params->jdec, buf, grab_len);
+              grab_buf = params->jdec->frgb->data[0];
+	    }
+	  else
+	    grab_buf = v4l_grab_acquire(params->v4l, &grab_len);
 	  if (!grab_buf) return;
 
 	  // half of the cropping is shifting (done here), the other half
@@ -788,7 +1014,8 @@ static void transfer_frames(struct transfer_params * params)
           params->enc->pkt.size = sizeof(shm->buf[cur_buf]);
 
 	  r = encode_pal_dv(params->enc, grab_buf, params->aa_preview && !(seq_num_in & 0x7));
-	  v4l_grab_release(params->v4l);
+	  if (!params->mjpeg)
+	    v4l_grab_release(params->v4l);
   	  if (!r) return;
 
 	  // NULL is allowed for digital silence
@@ -853,6 +1080,7 @@ int main(int argc, char ** argv)
 
     struct transfer_params params;
     params.filename = NULL;
+    params.mjpeg = NULL;
     params.crop.l = 0;
     params.crop.r = 0;
     params.crop.t = 0;
@@ -937,15 +1165,49 @@ int main(int argc, char ** argv)
         height = atoi(p);
 	if (!height) height = 3*width/4;
       }
-    params.v4l = v4l2_grab_init(NULL, width, height);
-    if (!params.v4l) 
+
+    if (!params.filename || !strncmp(params.filename, "/dev/", 5))
       {
-	perror("ERROR: v4l2_grab_init");
-	exit(EXIT_FAILURE);
+	params.v4l = v4l2_grab_init(params.filename, width, height);
+	if (!params.v4l) 
+	  {
+	    perror("ERROR: v4l2_grab_init");
+	    exit(EXIT_FAILURE);
+	  }
+	width  = params.v4l->fmt.fmt.pix.width;	// driver may choose different values.
+	height = params.v4l->fmt.fmt.pix.height;	// face reality :-)
+	params.enc = encode_pal_dv_init(width, height, &params.crop);
       }
-    width  = params.v4l->fmt.fmt.pix.width;	// driver may choose different values.
-    height = params.v4l->fmt.fmt.pix.height;	// face reality :-)
-    params.enc = encode_pal_dv_init(width, height, &params.crop);
+    else if (!strcmp(params.filename, "-"))	// we expect motion jpeg on stdin
+      {
+        if (isatty(0))
+	  {
+	    perror("not good: stdin is a tty");
+	    exit(0);
+	  }
+        params.mjpeg = mjpeg_grab_init(0, "<stdin>");
+      }
+    else
+      {
+        char cmd[1000];
+	sprintf(cmd, "curl -s '%s'", params.filename);
+        FILE *fp = popen(cmd, "r");
+	printf("+ %s -> fd=%d\n", cmd, fileno(fp));
+        params.mjpeg = mjpeg_grab_init(fileno(fp), params.filename);
+      }
+
+    if (params.mjpeg)
+      {
+        params.jdec = dec_jpg_init();
+        int buf_len = 0;
+        unsigned char *buf = mjpeg_grab(params.mjpeg, &buf_len);
+        if (!buf) { perror("mjpeg_grab()"); exit(1); }
+        process_jpeg(params.jdec, buf, buf_len);
+	int w = params.jdec->frgb->width;
+	int h = params.jdec->frgb->height;
+	printf("mjpeg %d x %d\n", w, h);
+	params.enc = encode_pal_dv_init(w, h, &params.crop);
+      }
 
     printf("INFO: Connecting to %s:%s\n", mixer_host, mixer_port);
     params.mixer_sock = create_connected_socket(mixer_host, mixer_port);
@@ -959,7 +1221,8 @@ int main(int argc, char ** argv)
 
     transfer_frames(&params);
 
-    v4l2_grab_destruct(params.v4l);
+    if (!params.mjpeg)
+      v4l2_grab_destruct(params.v4l);
     close(params.mixer_sock);
 
     return 0;
