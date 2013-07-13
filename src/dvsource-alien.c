@@ -409,6 +409,7 @@ struct v4l2_grab *v4l2_grab_init(char *dev_name, unsigned int width, unsigned in
   }
 
   printf("v4l2_grab_init('%s', w=%d, h=%d)\n", dev_name, width, height);
+  printf("You can adjust the video with:\n\tv4lctl -c %s bright 10\n\tv4lctl -c %s contrast 10\n", dev_name, dev_name);
   CLEAR(v->fmt);
   v->fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   v->fmt.fmt.pix.width       = width;
