@@ -328,7 +328,13 @@ int encode_pal_dv(struct enc_pal_dv *enc, char *rgb, int print_aa)
   int ret;
   int got_output;
 
+#if LIBAVCODEC_VERSION_MAJOR >= 54
   ret = avcodec_encode_video2(enc->ctx, &(enc->pkt), enc->frame, &got_output);
+#else
+  ret = avcodec_encode_video(enc->ctx, enc->pkt.data, enc->pkt.size, enc->frame);
+  got_output = 1;
+#endif
+  
   if (ret < 0)
   {
      fprintf(stderr, "Error encoding video frame\n");
