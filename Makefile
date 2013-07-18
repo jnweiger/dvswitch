@@ -42,10 +42,10 @@ EQUALS = =
 CMAKE_EDIT_COMMAND = /usr/bin/ccmake
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/jw/github/dvswitch
+CMAKE_SOURCE_DIR = /home/testy/src/github/dvswitch
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/jw/github/dvswitch
+CMAKE_BINARY_DIR = /home/testy/src/github/dvswitch
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -82,6 +82,16 @@ install/local: preinstall
 install/local/fast: install/local
 .PHONY : install/local/fast
 
+# Special rule for the target install/strip
+install/strip: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
+	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip
+
+# Special rule for the target install/strip
+install/strip/fast: install/strip
+.PHONY : install/strip/fast
+
 # Special rule for the target list_install_components
 list_install_components:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"Unspecified\""
@@ -103,9 +113,9 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/jw/github/dvswitch/CMakeFiles /home/jw/github/dvswitch/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/testy/src/github/dvswitch/CMakeFiles /home/testy/src/github/dvswitch/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/jw/github/dvswitch/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/testy/src/github/dvswitch/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -157,6 +167,19 @@ dvsink-files: cmake_check_build_system
 dvsink-files/fast:
 	$(MAKE) -f src/CMakeFiles/dvsink-files.dir/build.make src/CMakeFiles/dvsink-files.dir/build
 .PHONY : dvsink-files/fast
+
+#=============================================================================
+# Target rules for targets named dvsink-files-command
+
+# Build rule for target.
+dvsink-files-command: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 dvsink-files-command
+.PHONY : dvsink-files-command
+
+# fast build rule for target.
+dvsink-files-command/fast:
+	$(MAKE) -f src/CMakeFiles/dvsink-files-command.dir/build.make src/CMakeFiles/dvsink-files-command.dir/build
+.PHONY : dvsink-files-command/fast
 
 #=============================================================================
 # Target rules for targets named dvsource-alien
@@ -374,10 +397,12 @@ help:
 	@echo "... edit_cache"
 	@echo "... install"
 	@echo "... install/local"
+	@echo "... install/strip"
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... dvsink-command"
 	@echo "... dvsink-files"
+	@echo "... dvsink-files-command"
 	@echo "... dvsource-alien"
 	@echo "... dvsource-alsa"
 	@echo "... dvsource-dvgrab"

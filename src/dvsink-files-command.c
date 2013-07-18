@@ -33,7 +33,8 @@ static struct option options[] = {
     {NULL,     0, NULL, 0}
 };
 
-statich int always_number = 1;
+char *output_name_format_default = "output_%F_%H%M%S";
+static int always_number = 1;
 static char * mixer_host = NULL;
 static char * mixer_port = NULL;
 static char * pipe_command = NULL;
@@ -66,12 +67,12 @@ Usage: %s [-h HOST] [-p PORT] [-a] [-c 'COMMAND' ] [NAME-FORMAT]\n",
 	    progname);
     fprintf(stderr, "\n");
     fprintf(stderr, " -a     switch off autonumbering, only done when collisons.\n");
-    fprintf(stderr, "        Default: always add a "%04d" numbering suffix.\n");
+    fprintf(stderr, "        Default: always add a '%%04d' numbering suffix.\n");
     fprintf(stderr, " -c 'COMMAND'  Additionally run a command as with dvsink-command.\n");
     fprintf(stderr, "        Default: only sink to files\n");
     fprintf(stderr, "\n");
     fprintf(stderr, " NAME-FORMAT supports all strftime escapes.\n");
-    fprintf(stderr, "        Default is 'output_%F_%H%M%S' unless overwritten by a\n");
+    fprintf(stderr, "        Default is '%s' unless overwritten by a\n", output_name_format_default);
     fprintf(stderr, "        OUTPUT_NAME_FORMAT=... in /etc/dvswitchrc .\n");
 }
 
@@ -256,12 +257,12 @@ static void transfer_frames(struct transfer_params * params, int cmd_fd)
 	    exit(1);
 	}
 
-	if (cmd_fd => 0)
+	if (cmd_fd >= 0)
 	  {
-	    int written=0;
+	    unsigned int written = 0;
 	    while (written < system->size)
 	      {
-	        int r = write(cmd_fd, buf + SINK_FRAME_HEADER_SIZE+written, system->size-written)
+	        int r = write(cmd_fd, buf + SINK_FRAME_HEADER_SIZE+written, system->size-written);
 	        if (r <= 0)
 		  {
 		    perror("ERROR: write cmd");
@@ -339,7 +340,7 @@ int main(int argc, char ** argv)
 
     if (!output_name_format || !output_name_format[0])
     {
-        output_name_format = strdup("output_%F_%H%M%S");
+        output_name_format = strdup(output_name_format_default);
 	fprintf(stderr, "Using default output name format: %s\n", output_name_format);
     }
 
@@ -359,7 +360,7 @@ int main(int argc, char ** argv)
     FILE *fp = NULL;
     if (pipe_command)
       {
-        fp = popen("pipe_command");
+        fp = popen(pipe_command, "w");
         cmd_fd = fileno(fp);
       }
 

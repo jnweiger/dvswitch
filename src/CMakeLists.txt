@@ -12,6 +12,8 @@ add_executable(dvsink-command dvsink-command.c ${common_sources})
 
 add_executable(dvsink-files dvsink-files.c ${common_sources})
 
+add_executable(dvsink-files-command dvsink-files-command.c ${common_sources})
+
 add_executable(dvsource-file dvsource-file.c frame_timer.c ${common_sources})
 target_link_libraries(dvsource-file pthread rt)
 
