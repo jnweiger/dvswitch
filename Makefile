@@ -169,17 +169,17 @@ dvsink-files/fast:
 .PHONY : dvsink-files/fast
 
 #=============================================================================
-# Target rules for targets named dvsink-files-command
+# Target rules for targets named dvsink-tee
 
 # Build rule for target.
-dvsink-files-command: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 dvsink-files-command
-.PHONY : dvsink-files-command
+dvsink-tee: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 dvsink-tee
+.PHONY : dvsink-tee
 
 # fast build rule for target.
-dvsink-files-command/fast:
-	$(MAKE) -f src/CMakeFiles/dvsink-files-command.dir/build.make src/CMakeFiles/dvsink-files-command.dir/build
-.PHONY : dvsink-files-command/fast
+dvsink-tee/fast:
+	$(MAKE) -f src/CMakeFiles/dvsink-tee.dir/build.make src/CMakeFiles/dvsink-tee.dir/build
+.PHONY : dvsink-tee/fast
 
 #=============================================================================
 # Target rules for targets named dvsource-alien
@@ -402,7 +402,7 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... dvsink-command"
 	@echo "... dvsink-files"
-	@echo "... dvsink-files-command"
+	@echo "... dvsink-tee"
 	@echo "... dvsource-alien"
 	@echo "... dvsource-alsa"
 	@echo "... dvsource-dvgrab"

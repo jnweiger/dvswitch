@@ -16,7 +16,7 @@ use File::Glob;
 use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
 
-my $version = '0.3';
+my $version = '0.4';
 my $a_chan = undef;
 my $a_name = undef;
 my $retry_connect = 0;
@@ -32,10 +32,12 @@ my $ffmpeg_rtmp = undef;
 my $channel_url     = 'http://bambuser.com/channel/opensusetv';
 my $channel_admin   = 'Juergen Weigert <jw@suse.de> #opensuse-video@irc.freenode.org';
 my $config_file = undef;
+my $recording = undef;
 
 GetOptions(
 	"retry|R" 	=> \$retry_connect,
 	"verbose|v"	=> \$verbose,
+	"record|r=s"	=> \$recording,
 	"port|p=s"	=> \$port,
 	"host|h=s"	=> \$host,
 	"config|c=s"	=> sub { $ENV{ICECAST_CONF_FILE} = $_[1]; },
@@ -73,6 +75,12 @@ Valid options are:
  	Specify the network address on which DVswitch is listening.  The
 	host address may be specified by name or as an IPv4 or IPv6 literal.
 
+ -r, --recording=FILE_FORMAT
+        Send only to bambuser, if record was pressed.
+        Use dvsink_tee instead of dvsink_command to also record what is 
+	beeing sent.  If the FILE_FORMAT does not contain '%' characters,
+	'_%F_%H%M%S' is appended.  A '_%04d.dv' suffix is also added.
+
  --320 --480 --640 --720
  	Select a specific output size and bandwidth. 
 	Default: '$ffmpeg_opt'
@@ -93,7 +101,6 @@ or was specified with -c, containing the following lines:
 
 The channel at $channel_url 
 is run by $channel_admin
-
 }) if $help;
 	
 $ffmpeg_opt = getconfig('ffmpeg_opt') || $ffmpeg_opt_def;
@@ -105,12 +112,25 @@ my $ff_verbose = ($verbose > 1) ? 'verbose' : 'quiet';
 my $ffmpeg = sprintf $ffmpeg_fmt, $ff_verbose, $ffmpeg_opt, $ffmpeg_rtmp;
 
 my $cmd = 'dvsink-command';
+$cmd = 'dvsink-tee' if $recording;
 $cmd .= ' --retry' if $retry_connect;
 $cmd .= " --port=$port" if defined $port;
 $cmd .= " --host=$host" if defined $host;
 
-print "+ $cmd -- $ffmpeg\n" if $verbose;
-system "$cmd -- $ffmpeg" and die "failed to run '$cmd'\n";
+if ($recording)
+  {
+    unless ($recording =~ m{%})
+      {
+        $recording .= '_%F_%H%M%S';
+      }
+    print "+ $cmd -c '$ffmpeg' $recording\n" if $verbose;
+    system "$cmd -c '$ffmpeg' $recording" and die "failed to run '$cmd'\n";
+  }
+else
+  {
+    print "+ $cmd -- $ffmpeg\n" if $verbose;
+    system "$cmd -- $ffmpeg" and die "failed to run '$cmd'\n";
+  }
 exit 0;
 
 sub getconfig

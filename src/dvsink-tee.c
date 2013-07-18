@@ -68,11 +68,13 @@ Usage: %s [-h HOST] [-p PORT] [-a] [-c 'COMMAND' ] [NAME-FORMAT]\n",
     fprintf(stderr, "\n");
     fprintf(stderr, " -a     switch off autonumbering, only done when collisons.\n");
     fprintf(stderr, "        Default: always add a '%%04d' numbering suffix.\n");
-    fprintf(stderr, " -c 'COMMAND'  Additionally run a command as with dvsink-command.\n");
+    fprintf(stderr, " -c 'COMMAND'  Additionally forward the raw dv-stream to stdin of a\n");
+    fprintf(stderr, "        command when recording. Note that this differs from dvsink-command,\n");
+    fprintf(stderr, "        which would also feed its command, when not recording.\n");
     fprintf(stderr, "        Default: only sink to files\n");
     fprintf(stderr, "\n");
     fprintf(stderr, " NAME-FORMAT supports all strftime escapes.\n");
-    fprintf(stderr, "        Default is '%s' unless overwritten by a\n", output_name_format_default);
+    fprintf(stderr, "        Default is '%s' unless overwritten by\n", output_name_format_default);
     fprintf(stderr, "        OUTPUT_NAME_FORMAT=... in /etc/dvswitchrc .\n");
 }
 
@@ -82,6 +84,7 @@ struct transfer_params {
 
 static int create_file(const char * format, char ** name)
 {
+    static int static_suffix_num = 0;
     time_t now;
     struct tm now_local;
     size_t name_buf_len = 200, name_len;
@@ -118,19 +121,25 @@ static int create_file(const char * format, char ** name)
 	strcpy(name_buf + name_len, ".dv");
     else
 	name_len -= 3;
+
+    if (always_number)
+      {
+        sprintf(name_buf + name_len, "-%04d.dv", ++static_suffix_num);
+	suffix_num = static_suffix_num;
+      }
+
     for (;;)
     {
-        if (!always_number)
-	  file = open(name_buf, O_CREAT | O_EXCL | O_WRONLY, 0666);
+	file = open(name_buf, O_CREAT | O_EXCL | O_WRONLY, 0666);
 	if (file >= 0)
 	{
 	    *name = name_buf;
 	    return file;
 	}
-	else if (always_number || (errno == EEXIST))
+	else if (errno == EEXIST)
 	{
 	    // Name collision; try changing the suffix
-	    sprintf(name_buf + name_len, "-%04d.dv", ++suffix_num);
+            sprintf(name_buf + name_len, "-%04d.dv", ++suffix_num);
 	}
 	else if (errno == ENOENT)
 	{
@@ -215,14 +224,20 @@ static void transfer_frames(struct transfer_params * params, int cmd_fd)
 	    // Check for stop indicator
 	    if (buf[SINK_FRAME_CUT_FLAG_POS] == SINK_FRAME_CUT_STOP)
 	    {
-		printf("INFO: Stopped recording\n");
+	        if (pipe_command)
+		  printf("INFO: Stopped piping.\n");
+		printf("INFO: Stopped recording.\n");
 		fflush(stdout);
 		continue;
 	    }
 
 	    file = create_file(output_name_format, &name);
 	    if (starting)
+	      {
+	        if (pipe_command)
+		  printf("INFO: Started piping\n");
 		printf("INFO: Started recording\n");
+	      }
 	    printf("INFO: Created file %s\n", name);
 	    fflush(stdout);
 	}
@@ -362,6 +377,8 @@ int main(int argc, char ** argv)
       {
         fp = popen(pipe_command, "w");
         cmd_fd = fileno(fp);
+        printf("INFO: ready: '%s'\n", pipe_command);
+        printf("INFO: will start piping, when record is pressed.\n");
       }
 
     transfer_frames(&params, cmd_fd);
