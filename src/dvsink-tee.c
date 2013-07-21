@@ -5,6 +5,11 @@
 
 // Sink that creates DIF ("raw DV") files and 
 // runs an arbitrary command
+/*
+ * 2013-07-19 jw@suse.de, V0.1  - initial draught
+ * 2013-07-21 jw@suse.de, V0.2  - automerge framedrops, unless -s
+ */
+#define VERSION "0.2"
 
 #include <assert.h>
 #include <errno.h>
@@ -30,6 +35,7 @@ static struct option options[] = {
     {"port",   1, NULL, 'p'},
     {"help",   0, NULL, 'H'},
     {"command", 1,NULL, 'c'},
+    {"split",   0, NULL, 's'},
     {NULL,     0, NULL, 0}
 };
 
@@ -39,6 +45,7 @@ static char * mixer_host = NULL;
 static char * mixer_port = NULL;
 static char * pipe_command = NULL;
 static char * output_name_format = NULL;
+static int automerge = 1;
 
 static void handle_config(const char * name, const char * value)
 {
@@ -57,13 +64,17 @@ static void handle_config(const char * name, const char * value)
 	free(output_name_format);
 	output_name_format = strdup(value);
     }
+    else if (strcmp(name, "AUTO_MERGE") == 0)
+    {
+        automerge = atoi(value);
+    }
 }
 
 static void usage(const char * progname)
 {
     fprintf(stderr,
 	    "\
-Usage: %s [-h HOST] [-p PORT] [-a] [-c 'COMMAND' ] [NAME-FORMAT]\n",
+Usage: %s [-h HOST] [-p PORT] [-a] [-s] [-c 'COMMAND' ] [NAME-FORMAT]\n",
 	    progname);
     fprintf(stderr, "\n");
     fprintf(stderr, " -a     switch off autonumbering, only done when collisons.\n");
@@ -72,17 +83,20 @@ Usage: %s [-h HOST] [-p PORT] [-a] [-c 'COMMAND' ] [NAME-FORMAT]\n",
     fprintf(stderr, "        command when recording. Note that this differs from dvsink-command,\n");
     fprintf(stderr, "        which would also feed its command, when not recording.\n");
     fprintf(stderr, "        Default: only sink to files\n");
+    fprintf(stderr, " -s     Split files when dropping frames, to be compatible with dvsink-files.\n");
+    fprintf(stderr, "        Default: automatically merge the stream unless an explicit cut is done.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, " NAME-FORMAT supports all strftime escapes.\n");
     fprintf(stderr, "        Default is '%s' unless overwritten by\n", output_name_format_default);
     fprintf(stderr, "        OUTPUT_NAME_FORMAT=... in /etc/dvswitchrc .\n");
+    fprintf(stderr, "\ndvsink-tee V%s\n\n", VERSION);
 }
 
 struct transfer_params {
     int            sock;
 };
 
-static int create_file(const char * format, char ** name)
+static int create_file(const char * format, const char * suff, char ** name)
 {
     static int static_suffix_num = 0;
     time_t now;
@@ -90,6 +104,9 @@ static int create_file(const char * format, char ** name)
     size_t name_buf_len = 200, name_len;
     char * name_buf = 0;
     int file = -1;
+
+    if (!suff) suff = ".dv";
+    size_t suff_len = strlen(suff);
 
     now = time(0);
     localtime_r(&now, &now_local);
@@ -117,14 +134,14 @@ static int create_file(const char * format, char ** name)
     // number before it if necessary to avoid collision.
     // Create parent directories as necessary.
     int suffix_num = 0;
-    if (name_len <= 3 || strcmp(name_buf + name_len - 3, ".dv") != 0)
-	strcpy(name_buf + name_len, ".dv");
+    if (name_len <= suff_len || strcmp(name_buf + name_len - suff_len, suff) != 0)
+	strcpy(name_buf + name_len, suff);
     else
-	name_len -= 3;
+	name_len -= suff_len;
 
     if (always_number)
       {
-        sprintf(name_buf + name_len, "-%04d.dv", ++static_suffix_num);
+        sprintf(name_buf + name_len, "-%04d%s", ++static_suffix_num, suff);
 	suffix_num = static_suffix_num;
       }
 
@@ -139,7 +156,7 @@ static int create_file(const char * format, char ** name)
 	else if (errno == EEXIST)
 	{
 	    // Name collision; try changing the suffix
-            sprintf(name_buf + name_len, "-%04d.dv", ++suffix_num);
+            sprintf(name_buf + name_len, "-%04d%s", ++suffix_num, suff);
 	}
 	else if (errno == ENOENT)
 	{
@@ -210,6 +227,15 @@ static void transfer_frames(struct transfer_params * params, int cmd_fd)
 	}
 	while (buf_pos != wanted_size);
 
+	if ((buf[SINK_FRAME_CUT_FLAG_POS] == SINK_FRAME_CUT_OVERFLOW) &&
+	    automerge)
+	  {
+	    int cutfd = create_file(output_name_format, ".cut", &name);
+	    write(cutfd, "O\n", 2);
+	    close(cutfd);
+	    buf[SINK_FRAME_CUT_FLAG_POS] = '\0';
+	  }
+
 	// Open/close files as necessary
 	if (buf[SINK_FRAME_CUT_FLAG_POS] || file < 0)
 	{
@@ -231,7 +257,7 @@ static void transfer_frames(struct transfer_params * params, int cmd_fd)
 		continue;
 	    }
 
-	    file = create_file(output_name_format, &name);
+	    file = create_file(output_name_format, NULL, &name);
 	    if (starting)
 	      {
 	        if (pipe_command)
@@ -307,7 +333,7 @@ int main(int argc, char ** argv)
     // Parse arguments.
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "h:p:ac:", options, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "h:p:asc:", options, NULL)) != -1)
     {
 	switch (opt)
 	{
@@ -325,6 +351,9 @@ int main(int argc, char ** argv)
 	case 'p':
 	    free(mixer_port);
 	    mixer_port = strdup(optarg);
+	    break;
+	case 's': // --split
+	    automerge = 0;
 	    break;
 	case 'H': // --help
 	    usage(argv[0]);

@@ -132,10 +132,8 @@ static struct option options[] = {	// is this used at all?
     {"host",   1, NULL, 'h'},
     {"port",   1, NULL, 'p'},
     {"geometry", 1, NULL, 'g'},
-    {"geometry", 1, NULL, 'g'},
     {"help",   0, NULL, 'H'},
     {"aa_preview",   0, NULL, 'a'},
-    {"timing",   0, NULL, 't'},
     {"rate",   1, NULL, 'r'},
     {"crop",   1, NULL, 'c'},
     {NULL,     0, NULL, 0}
