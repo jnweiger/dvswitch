@@ -260,7 +260,7 @@ struct enc_pal_dv *encode_pal_dv_init(int w, int h, struct crop_margins *crop)
   s->pkt.data = NULL;    // packet data will be allocated by the encoder or set by tbuf code.
   s->pkt.size = 0;
 
-  if (avcodec_open2(s->ctx, s->codec, NULL) < 0) 
+  if (avcodec_open2(s->ctx, s->codec, NULL) < 0)
     {
       printf("could not open codec DVVIDEO\n");
       exit(1);
@@ -573,7 +573,7 @@ struct dec_jpg *dec_jpg_init()
   s->scaler_ctx = NULL;
   // s->ctx->pix_fmt = PIX_FMT_RGB24;
 
-  if (avcodec_open2(s->ctx, s->codec, NULL) < 0) 
+  if (avcodec_open2(s->ctx, s->codec, NULL) < 0)
     {
       printf("could not open CODEC_ID_MJPEG\n");
       exit(1);
