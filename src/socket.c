@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>	// strcmp()
 
 #include <netdb.h>
 #include <sys/socket.h>
