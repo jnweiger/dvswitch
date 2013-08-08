@@ -76,6 +76,8 @@
  * 2013-07-12 jw@suse.de, V0.5  - --crop option added. sws_scale can do that
  *                                at no cost.
  * 2013-07-12 jw@suse.de, V0.6  - mjpeg decoder code_section added.
+ * 2013-08-08 jw@suse.de, V0.7  - adding support for libavcodec-2.0 VERSION(55,18,108)
+ *                                http://ffmpeg.org/doxygen/1.0/deprecated.html
  */
 
 /* Copyright 2007-2009 Ben Hutchings.
@@ -86,7 +88,7 @@
  */
 
 
-#define VERSION "0.6"
+#define VERSION "0.7"
 #define TBUF_VERBOSE 0
 #define MJPEG_VERBOSE 0
 
@@ -237,8 +239,13 @@ struct enc_pal_dv *encode_pal_dv_init(int w, int h, struct crop_margins *crop)
 
   avcodec_register_all();
   s->codec = avcodec_find_encoder(CODEC_ID_DVVIDEO);
+#if LIBAVCODEC_VERSION_MAJOR < 55	// below version 2.0
   s->ctx = avcodec_alloc_context();
   avcodec_get_context_defaults(s->ctx);
+#else
+  s->ctx = avcodec_alloc_context3(NULL);
+  avcodec_get_context_defaults3(s->ctx, s->codec);
+#endif
   // s->ctx->bit_rate = 400000;		// FIXME
   s->ctx->width = 720;			// from dvswitch/srv/dif.c
   s->ctx->height = 576;			// from dvswitch/srv/dif.c
@@ -253,7 +260,7 @@ struct enc_pal_dv *encode_pal_dv_init(int w, int h, struct crop_margins *crop)
   s->pkt.data = NULL;    // packet data will be allocated by the encoder or set by tbuf code.
   s->pkt.size = 0;
 
-  if (avcodec_open(s->ctx, s->codec) < 0) 
+  if (avcodec_open2(s->ctx, s->codec, NULL) < 0) 
     {
       printf("could not open codec DVVIDEO\n");
       exit(1);
@@ -554,14 +561,19 @@ struct dec_jpg *dec_jpg_init()
 
   avcodec_register_all();	// hope it does not hurt to do that twice.
   s->codec = avcodec_find_decoder(CODEC_ID_MJPEG);
+#if LIBAVCODEC_VERSION_MAJOR < 55	// below version 2.0
   s->ctx = avcodec_alloc_context();
+  avcodec_get_context_defaults(s->ctx);
+#else
+  s->ctx = avcodec_alloc_context3(NULL);
+  avcodec_get_context_defaults3(s->ctx, s->codec);
+#endif
   s->fyuv = avcodec_alloc_frame();
   s->frgb = avcodec_alloc_frame();
   s->scaler_ctx = NULL;
-  avcodec_get_context_defaults(s->ctx);
   // s->ctx->pix_fmt = PIX_FMT_RGB24;
 
-  if (avcodec_open(s->ctx, s->codec) < 0) 
+  if (avcodec_open2(s->ctx, s->codec, NULL) < 0) 
     {
       printf("could not open CODEC_ID_MJPEG\n");
       exit(1);
