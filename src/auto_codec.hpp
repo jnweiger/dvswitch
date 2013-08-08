@@ -21,6 +21,10 @@ struct auto_codec_factory
 typedef auto_handle<AVCodecContext *, auto_codec_closer, auto_codec_factory>
 auto_codec;
 
+#if LIBAVCODEC_VERSION_MAJOR >= 55	// version 2.0
+# define CodecID enum AVCodecID
+#endif
+
 auto_codec auto_codec_open_decoder(CodecID);
 void auto_codec_open_decoder(const auto_codec &, CodecID);
 auto_codec auto_codec_open_encoder(CodecID, int thread_count=1);
