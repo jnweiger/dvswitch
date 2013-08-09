@@ -17,11 +17,22 @@ pkg_check_modules(GTKMM REQUIRED gtkmm-2.4)
 pkg_check_modules(LIBAVCODEC REQUIRED libavcodec)
 pkg_check_modules(LIBAVUTIL REQUIRED libavutil)
 
+message(STATUS "checking for Boost.System")
+find_library(BOOST_SYSTEM_LIBRARIES
+	     NAMES boost_system-mt boost_system
+	     DOC "Boost.System library path"
+	     NO_SYSTEM_ENVIRONMENT_PATH)
+if(NOT BOOST_SYSTEM_LIBRARIES)
+    message(FATAL_ERROR "Boost.System library not found")
+endif(NOT BOOST_SYSTEM_LIBRARIES)
+message(STATUS "  found Boost.System")
+
 message(STATUS "checking for Boost.Thread")
 find_library(BOOST_THREAD_LIBRARIES
 	     NAMES boost_thread-mt boost_thread
 	     DOC "Boost.Thread library path"
 	     NO_SYSTEM_ENVIRONMENT_PATH)
+
 if(NOT BOOST_THREAD_LIBRARIES)
     message(FATAL_ERROR "Boost.Thread library not found")
 endif(NOT BOOST_THREAD_LIBRARIES)
