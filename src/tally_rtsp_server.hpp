@@ -16,7 +16,7 @@ public:
 protected:
     tally_rtsp_server(int pipefd, bool verbose, UsageEnvironment& env, int ourSocket, Port ourPort, UserAuthenticationDatabase* authDatabase, unsigned reclamationTestSeconds);
     virtual ~tally_rtsp_server();
-    virtual RTSPServer::RTSPClientSession* createNewClientSession(unsigned sessionId, int clientSocket, struct sockaddr_in clientAddr);
+    virtual RTSPServer::RTSPClientConnection* createNewClientConnection(int clientSocket, struct sockaddr_in clientAddr);
 private:
     int pipefd_;
     enum tally {
@@ -25,11 +25,11 @@ private:
         TALLY_CUE
     } tally_state_;
     bool verbose_;
-    class RTSPClientSession: public RTSPServer::RTSPClientSession
+    class RTSPClientConnection: public RTSPServer::RTSPClientConnection
     {
     public:
-        RTSPClientSession(tally_rtsp_server& ourServer, unsigned sessionId, int clientSocket, struct sockaddr_in clientAddr);
-	virtual ~RTSPClientSession();
+        RTSPClientConnection(tally_rtsp_server& ourServer, int clientSocket, struct sockaddr_in clientAddr);
+	virtual ~RTSPClientConnection();
     protected:
 	virtual void handleCmd_SET_PARAMETER(ServerMediaSubsession* subsession, char const* cseq, char const* fullRequestStr);
     private:
