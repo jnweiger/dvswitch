@@ -7,6 +7,10 @@
 
 #include <boost/thread/mutex.hpp>
 
+extern "C" {
+#include <libavutil/mem.h>
+}
+
 #include "auto_codec.hpp"
 #include "os_error.hpp"
 
