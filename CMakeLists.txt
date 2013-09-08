@@ -38,6 +38,26 @@ if(NOT BOOST_THREAD_LIBRARIES)
 endif(NOT BOOST_THREAD_LIBRARIES)
 message(STATUS "  found Boost.Thread")
 
+# Recent versions of Boost.Thread require Boost.System
+include(CheckCXXSourceCompiles)
+set(CMAKE_REQUIRED_LIBRARIES ${BOOST_THREAD_LIBRARIES})
+check_cxx_source_compiles("#include <boost/thread.hpp>
+    void f() {}
+    int main() { boost::thread thread(f); thread.join(); }"
+    BOOST_THREAD_WORKS_WITHOUT_SYSTEM)
+unset(CMAKE_REQUIRED_LIBRARIES)
+if(NOT BOOST_THREAD_WORKS_WITHOUT_SYSTEM)
+    message(STATUS "checking for Boost.System")
+    find_library(BOOST_SYSTEM_LIBRARIES
+        NAMES boost_system-mt boost_system
+        DOC "Boost.System library path"
+        NO_SYSTEM_ENVIRONMENT_PATH)
+    if(NOT BOOST_SYSTEM_LIBRARIES)
+        message(FATAL_ERROR "Boost.System library not found")
+    endif(NOT BOOST_SYSTEM_LIBRARIES)
+    message(STATUS "  found Boost.System")
+endif(NOT BOOST_THREAD_WORKS_WITHOUT_SYSTEM)
+
 find_library(ALSA_LIBRARIES asound)
 
 find_package(LiveMedia REQUIRED)
