@@ -17,8 +17,10 @@ add_executable(dvsink-tee dvsink-tee.c ${common_sources})
 add_executable(dvsource-file dvsource-file.c frame_timer.c ${common_sources})
 target_link_libraries(dvsource-file pthread rt)
 
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 add_executable(dvsource-alien dvsource-alien.c dif_audio.c frame_timer.c ${common_sources})
-target_link_libraries(dvsource-alien v4l2 avcodec avutil swscale pthread rt m)
+target_link_libraries(dvsource-alien v4l2 avcodec avutil swscale pthread rt m ${ALSA_LIBRARIES})
+endif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 
 add_executable(dvsource-dvgrab dvsource-dvgrab.c ${common_sources})
 

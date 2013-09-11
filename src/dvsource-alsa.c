@@ -61,11 +61,13 @@ Usage: %s [-h HOST] [-p PORT] [-s ntsc|pal] \\\n\
 }
 
 struct transfer_params {
+
     snd_pcm_t *              pcm;
     snd_pcm_uframes_t        hw_frame_count;
     const struct dv_system * system;
     enum dv_sample_rate      sample_rate_code;
     snd_pcm_uframes_t        delay_size;
+
     int                      sock;
 };
 

@@ -79,6 +79,7 @@
  * 2013-08-08 jw@suse.de, V0.7  - adding support for libavcodec-2.0 VERSION(55,18,108)
  *                                http://ffmpeg.org/doxygen/1.0/deprecated.html
  * 2013-09-11 jw@suse.de, V0.8  - Fixed --help to no longer segfault.
+ *                                Added WITH_AUDIO code. It segfaults. Disabled.
  */
 
 /* Copyright 2007-2009 Ben Hutchings.
@@ -92,6 +93,7 @@
 #define VERSION "0.8"
 #define TBUF_VERBOSE 0
 #define MJPEG_VERBOSE 0
+#define WITH_AUDIO 0	// include alsa grabber code too.
 
 #include <assert.h>
 #include <stdbool.h>
@@ -112,6 +114,10 @@
 #include <netinet/in.h>
 #include <signal.h>
 
+#if WITH_AUDIO
+# include <alsa/asoundlib.h>
+#endif
+
 
 #include "config.h"
 #include "dif.h"
@@ -131,14 +137,14 @@
 #include <libavutil/pixfmt.h>		// PIX_FMT_YUV420P
 #include <libswscale/swscale.h>		// SWS_FAST_BILINEAR 
 
-static struct option options[] = {	// is this used at all?
+static struct option options[] = {
     {"host",   1, NULL, 'h'},
     {"port",   1, NULL, 'p'},
     {"geometry", 1, NULL, 'g'},
     {"help",   0, NULL, 'H'},
-    {"aa_preview",   0, NULL, 'a'},
     {"rate",   1, NULL, 'r'},
     {"crop",   1, NULL, 'c'},
+    {"audiodev",  1, NULL, 'A'},
     {NULL,     0, NULL, 0}
 };
 
@@ -146,6 +152,7 @@ static char * mixer_host = NULL;
 static char * mixer_port = NULL;
 static char * video_geometry = NULL;
 static char * crop_margin = NULL;
+static char * audio_device = NULL;
 
 static void handle_config(const char * name, const char * value)
 {
@@ -169,6 +176,11 @@ static void handle_config(const char * name, const char * value)
 	free(crop_margin);
 	crop_margin = strdup(value);
     }
+    else if (strcmp(name, "AUDIO_DEVICE") == 0)
+    {
+	free(audio_device);
+	audio_device = strdup(value);
+    }
 }
 
 
@@ -176,7 +188,7 @@ static void usage(const char * progname)
 {
     fprintf(stderr,
 	    "\n\
-Usage: %s [-h HOST] [-p PORT] [-g 640x480] [-c 0:0:0:0] [/dev/video0]\n\
+Usage: %s [-h HOST] [-p PORT] [-g 640x480] [-c 0:0:0:0] [-a hw:1] [/dev/video0]\n\
        %s [-h HOST] [-p PORT] - \n\
        %s [-h HOST] [-p PORT] http://192.168.178.27:8080/video\n",
 	    progname, progname, progname);
@@ -201,12 +213,18 @@ Options:\n\
 	Only with v4l devices.\n\
 \n\
 -q\n\
-	Disable ascii-art preview. Default: One line from the middle of \n\
+	Disable ascii-art preview. Default: One line from the middle of\n\
 	the video is rendered as ascii art gray ramp to stderr.\n\
+\n\
+-a AUDIO_DEV\n\
+	Open an audio device just like dvsource-alsa would do. A typical\n\
+	usb-webcam comes as a v4l2 device (e.g. /dev/video0) and a separate\n\
+	alsa audio device (e.g. hw:1, aka /dev/snd/pcmC1D0c). Default: No\n\
+	audio, digital silence.\n\
 \n\
 -r AUDIO_RATE\n\
 	Supported values are 48000,32000. Default 48000.\n\
-	The audio track is digital silence, but it still needs to have a sample rate.\n\
+	The audio track is digital silence, unless -a is also specified.\n\
 \n\
 \n");
     fprintf(stderr, "dvsource-alien V%s\n\n", VERSION);
@@ -923,6 +941,14 @@ struct transfer_params {
     bool		aa_preview;
     enum dv_sample_rate sample_rate_code;
     struct crop_margins crop;
+    const struct dv_system * system;	// ToDo: NTSC not yet supported.
+#if WITH_AUDIO	// taken from dvsource-alsa.c, keep in sync.
+    snd_pcm_t *              audio_pcm;
+    snd_pcm_uframes_t        audio_hw_frame_count;
+    const struct dv_system * audio_system;
+    enum dv_sample_rate      audio_sample_rate_code;
+    snd_pcm_uframes_t        audio_delay_size;
+#endif
 };
 
 #if 0
@@ -971,10 +997,23 @@ void tbuf_producer(volatile struct dv_triple_buf *shm, struct transfer_params *t
 static void transfer_frames(struct transfer_params * params)
 {
   unsigned long	seq_num_in = 0;
+
+#if WITH_AUDIO
+  unsigned audio_avail_count = 0;
+  unsigned audio_serial_num = 0;
+  unsigned long audio_frame_count = 0;
+
+  const snd_pcm_uframes_t audio_buffer_size =
+	(params->audio_delay_size >= 2000 ? params->audio_delay_size : 2000)
+	+ params->audio_hw_frame_count - 1;
+  pcm_sample * audio_samples =
+	malloc(sizeof(pcm_sample) * PCM_CHANNELS * audio_buffer_size);
+#else
   unsigned long audio_frame_count = 1920;	// dvswitch/src/dif.c: 48k, 16bit
 
   if (params->sample_rate_code == dv_sample_rate_32k)
     audio_frame_count = 1280;			// dvswitch/src/dif.c: 32k, 12bit
+#endif
 
   volatile struct dv_triple_buf *shm = tbuf_init();
 
@@ -1038,7 +1077,9 @@ static void transfer_frames(struct transfer_params * params)
 
 	  // NULL is allowed for digital silence
 	  // OOPS, sample_rate_code == dv_sample_rate_32k does not seem to work...
+#if !WITH_AUDIO
 	  dv_buffer_set_audio(params->enc->pkt.data, params->sample_rate_code, audio_frame_count, NULL);
+#endif
   	  assert((unsigned char *)shm->buf[cur_buf] == params->enc->pkt.data);
 	  shm->len[cur_buf] = params->enc->pkt.size;
 
@@ -1067,6 +1108,37 @@ static void transfer_frames(struct transfer_params * params)
   	  int cur_buf;
   	  tbuf_consumer_get(shm, &cur_buf);
 
+#if WITH_AUDIO
+	  unsigned audio_frame_count =
+	    params->system->audio_frame_counts[params->sample_rate_code].std_cycle[
+		audio_serial_num % params->system->audio_frame_counts[params->sample_rate_code].std_cycle_len];
+
+	  while (audio_avail_count < params->audio_delay_size || 
+	         audio_avail_count < audio_frame_count)
+	    {
+	      snd_pcm_sframes_t rc = snd_pcm_readi(params->audio_pcm,
+		       audio_samples + PCM_CHANNELS * audio_avail_count,
+		       params->audio_hw_frame_count);
+	      if (rc < 0)
+	        {
+		  // Recover from buffer underrun
+		  if (rc == -EPIPE && snd_pcm_prepare(params->audio_pcm) == 0)
+		    {
+		      fprintf(stderr, "WARN: Failing to keep up with audio source\n");
+		      continue;
+		    }
+		  else
+		    {
+		      fprintf(stderr, "ERROR: snd_pcm_readi: %s\n", snd_strerror(rc));
+		      exit(1);
+		    }
+	        }
+	      audio_avail_count += rc;
+	    }
+
+	  dv_buffer_set_audio(params->enc->pkt.data, params->sample_rate_code, audio_frame_count, audio_samples);
+#endif
+
 	  if (write(params->mixer_sock, (void *)shm->buf[cur_buf], shm->len[cur_buf]) != (ssize_t)shm->len[cur_buf])
 	    {
 		perror("ERROR: write");
@@ -1076,6 +1148,13 @@ static void transfer_frames(struct transfer_params * params)
 
 	  frame_timestamp += frame_interval;
 	  frame_timer_wait(frame_timestamp);
+#if WITH_AUDIO
+	  memmove(audio_samples, audio_samples + PCM_CHANNELS * audio_frame_count,
+		sizeof(pcm_sample) * PCM_CHANNELS *
+		(audio_avail_count - audio_frame_count));
+	  audio_avail_count -= audio_frame_count;
+	  ++audio_serial_num;
+#endif
 	}
       _exit(0);	// do not letting the child process walk out of here...
     }
@@ -1105,11 +1184,18 @@ int main(int argc, char ** argv)
     params.crop.b = 0;
     params.aa_preview = true;
     params.sample_rate_code = dv_sample_rate_48k;
+#if WITH_AUDIO
+    params.system = &dv_system_625_50;
+    // TODO: ntsc
+    // params.system = &dv_system_525_60;
+#endif
+    char * system_name = NULL;
+    long audio_sample_rate = 48000;
 
     /* Parse arguments. */
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "h:p:g:c:r:qHa", options, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "h:p:g:c:r:qs:HaA", options, NULL)) != -1)
     {
 	switch (opt)
 	{
@@ -1120,6 +1206,10 @@ int main(int argc, char ** argv)
 	case 'p':
 	    free(mixer_port);
 	    mixer_port = strdup(optarg);
+	    break;
+	case 's':
+	    free(system_name);
+	    system_name = strdup(optarg);
 	    break;
 	case 'c':
 	    free(crop_margin);
@@ -1132,10 +1222,17 @@ int main(int argc, char ** argv)
 	case 'q':
 	    params.aa_preview = false;
 	    break;
+	case 'a':
+	    free(audio_device);
+	    audio_device = strdup(optarg);
+#if !WITH_AUDIO
+	    fprintf(stderr, "%s: compiled without audio support.\n", argv[0]);
+#endif
+	    break;
 	case 'r':
-	    opt = atoi(optarg);
+	    audio_sample_rate = strtol(optarg, NULL, 10);
 	    params.sample_rate_code = dv_sample_rate_48k;
-	    if (opt == 32000) params.sample_rate_code = dv_sample_rate_32k;
+	    if (audio_sample_rate == 32000) params.sample_rate_code = dv_sample_rate_32k;
 	    break;
 	case 'H': /* --help */
 	    usage(argv[0]);
@@ -1154,10 +1251,77 @@ int main(int argc, char ** argv)
 	return 2;
     }
 
+    if (!system_name || !strcasecmp(system_name, "pal"))
+    {
+	params.system = &dv_system_625_50;
+    }
+    else if (!strcasecmp(system_name, "ntsc"))
+    {
+	params.system = &dv_system_525_60;
+    }
+    else
+    {
+	fprintf(stderr, "%s: invalid system name \"%s\"\n", argv[0], system_name);
+	return 2;
+    }
+
+
     if (optind < argc)
     {
         params.filename = argv[optind];
     }
+
+#if WITH_AUDIO
+    if (audio_device)
+      {
+        int rc;
+        printf("INFO: Capturing from %s\n", audio_device);
+        rc = snd_pcm_open(&params.audio_pcm, audio_device, SND_PCM_STREAM_CAPTURE, 0);
+        if (rc < 0)
+          {
+	    fprintf(stderr, "ERROR: snd_pcm_open: %s\n", snd_strerror(rc));
+	    return 1;
+          }
+    
+	snd_pcm_hw_params_t * hw_params;
+	snd_pcm_hw_params_alloca(&hw_params);
+	rc = snd_pcm_hw_params_any(params.audio_pcm, hw_params);
+	if (rc < 0)
+	  {
+	    fprintf(stderr, "ERROR: snd_pcm_hw_params_any: %s\n", snd_strerror(rc));
+	    return 1;
+	  }
+	rc = snd_pcm_hw_params_set_access(params.audio_pcm, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
+	if (rc >= 0)
+	    rc = snd_pcm_hw_params_set_format(params.audio_pcm, hw_params, SND_PCM_FORMAT_S16);
+	if (rc >= 0)
+	    snd_pcm_hw_params_set_channels(params.audio_pcm, hw_params, 2);
+	if (rc >= 0)
+	    snd_pcm_hw_params_set_rate_resample(params.audio_pcm, hw_params, 1);
+	if (rc >= 0)
+	    snd_pcm_hw_params_set_rate(params.audio_pcm, hw_params, audio_sample_rate, 0);
+	if (rc >= 0)
+	  {
+	    params.audio_hw_frame_count =
+		params.system->audio_frame_counts[params.sample_rate_code].std_cycle[0];
+	    rc = snd_pcm_hw_params_set_period_size_near(params.audio_pcm, hw_params,
+							&params.audio_hw_frame_count, 0);
+	  }
+	if (rc >= 0)
+	  {
+	    unsigned buffer_time = 250000;
+	    rc = snd_pcm_hw_params_set_buffer_time_near(params.audio_pcm, hw_params,
+							&buffer_time, 0);
+	  }
+	if (rc >= 0)
+	    rc = snd_pcm_hw_params(params.audio_pcm, hw_params);
+	if (rc < 0)
+	  {
+	    fprintf(stderr, "ERROR: snd_pcm_hw_params: %s\n", snd_strerror(rc));
+	    return 1;
+	  }
+      }
+#endif // WITH_AUDIO
 
     signal(SIGPIPE, SIG_IGN);	// make Broken pipe visible in perror write.
 
