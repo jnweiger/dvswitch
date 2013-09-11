@@ -78,6 +78,7 @@
  * 2013-07-12 jw@suse.de, V0.6  - mjpeg decoder code_section added.
  * 2013-08-08 jw@suse.de, V0.7  - adding support for libavcodec-2.0 VERSION(55,18,108)
  *                                http://ffmpeg.org/doxygen/1.0/deprecated.html
+ * 2013-09-11 jw@suse.de, V0.8  - Fixed --help to no longer segfault.
  */
 
 /* Copyright 2007-2009 Ben Hutchings.
@@ -88,7 +89,7 @@
  */
 
 
-#define VERSION "0.7"
+#define VERSION "0.8"
 #define TBUF_VERBOSE 0
 #define MJPEG_VERBOSE 0
 
@@ -174,11 +175,11 @@ static void handle_config(const char * name, const char * value)
 static void usage(const char * progname)
 {
     fprintf(stderr,
-	    "\
+	    "\n\
 Usage: %s [-h HOST] [-p PORT] [-g 640x480] [-c 0:0:0:0] [/dev/video0]\n\
        %s [-h HOST] [-p PORT] - \n\
        %s [-h HOST] [-p PORT] http://192.168.178.27:8080/video\n",
-	    progname, progname);
+	    progname, progname, progname);
 
     fprintf(stderr, "\n\
 dvsource-alien is a synchronizer and format converter for \n\
@@ -1108,7 +1109,7 @@ int main(int argc, char ** argv)
     /* Parse arguments. */
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "h:p:g:c:r:q", options, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "h:p:g:c:r:qHa", options, NULL)) != -1)
     {
 	switch (opt)
 	{
