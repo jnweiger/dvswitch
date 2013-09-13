@@ -627,6 +627,11 @@ void mixer_window::mfade_mix()
     if (pri_video_source_id_ >= source_count_) return;
     if (sec_video_source_id_ >= source_count_) return;
 
+    mfade_ab_.set_sensitive(allow_mfade_);
+    mfade_button_.set_sensitive(allow_mfade_);
+
+    if(!mfade_active_) return;
+
     if (sec_video_source_id_ != pri_video_source_id_)
     {
 	int fade = mfade_ab_.get_value();
@@ -647,8 +652,6 @@ void mixer_window::mfade_mix()
     {
 	mixer_.set_video_mix(mixer_.create_video_mix_simple(pri_video_source_id_));
     }
-    mfade_ab_.set_sensitive(allow_mfade_);
-    mfade_button_.set_sensitive(allow_mfade_);
 }
 
 void mixer_window::mfade_update()
