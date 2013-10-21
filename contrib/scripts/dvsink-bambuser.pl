@@ -2,10 +2,12 @@
 # dvsink-bambuser.pl is a userfriendly wrapper for dvsink-command.
 # It creates a live stream suitable for bambuser.com
 #
-# (C) 2012, jw@suse.de, distribute under GPL-2.0+ or ask.
+# (C) 2013, jw@suse.de, distribute under GPL-2.0+ or ask.
 # 2012-09-30 -- V0.1 initial draft.
 # 2012-10-21 -- V0.2 broken config file support added
 # 2012-10-25 -- V0.3 fixed config file support
+# 2013-10-21 -- V0.4 Added --record option. Beware of dropouts.
+# 2013-10-21 -- V0.5 Added ping test and verbose hint to find bad config easier.
 #
 ## Requires: ffmpeg
 
@@ -16,7 +18,7 @@ use File::Glob;
 use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
 
-my $version = '0.4';
+my $version = '0.5';
 my $a_chan = undef;
 my $a_name = undef;
 my $retry_connect = 0;
@@ -76,10 +78,11 @@ Valid options are:
 	host address may be specified by name or as an IPv4 or IPv6 literal.
 
  -r, --recording=FILE_FORMAT
-        Send only to bambuser, if record was pressed.
-        Use dvsink_tee instead of dvsink_command to also record what is 
+        Stop sending to bambuser, when record button is not pressed; and
+        use dvsink_tee instead of dvsink_command to also record what is 
 	beeing sent.  If the FILE_FORMAT does not contain '%' characters,
 	'_%F_%H%M%S' is appended.  A '_%04d.dv' suffix is also added.
+	Default: always send, never record to file.
 
  --320 --480 --640 --720
  	Select a specific output size and bandwidth. 
@@ -106,6 +109,14 @@ is run by $channel_admin
 $ffmpeg_opt = getconfig('ffmpeg_opt') || $ffmpeg_opt_def;
 my $url = shift || getconfig('bambuser_rtmp_url') || die "please provide a URL like $ffmpeg_rtmp\n";
 $ffmpeg_rtmp = $url;
+
+my $hostname = $1 if $url =~ m{//([^:/]+)};
+if ($hostname)
+  {
+    # try pinging first, makes debugging easier.
+    print "+ ping -n 1 -w 3 $hostname\n";
+    system("ping -n 1 -w 3 $hostname");
+  } 
 
 my $ff_verbose = ($verbose > 1) ? 'verbose' : 'quiet';
 
