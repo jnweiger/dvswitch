@@ -42,10 +42,10 @@ EQUALS = =
 CMAKE_EDIT_COMMAND = /usr/bin/ccmake
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/testy/src/github/dvswitch
+CMAKE_SOURCE_DIR = /home/jw/github/dvswitch
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/testy/src/github/dvswitch
+CMAKE_BINARY_DIR = /home/jw/github/dvswitch
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -82,19 +82,6 @@ install/local: preinstall
 install/local/fast: install/local
 .PHONY : install/local/fast
 
-<<<<<<< HEAD
-# Special rule for the target install/strip
-install/strip: preinstall
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
-	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
-.PHONY : install/strip
-
-# Special rule for the target install/strip
-install/strip/fast: install/strip
-.PHONY : install/strip/fast
-
-=======
->>>>>>> 0010-happy-alsa.diff committed.
 # Special rule for the target list_install_components
 list_install_components:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"Unspecified\""
@@ -116,15 +103,9 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-<<<<<<< HEAD
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/testy/src/github/dvswitch/CMakeFiles /home/testy/src/github/dvswitch/CMakeFiles/progress.marks
-	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/testy/src/github/dvswitch/CMakeFiles 0
-=======
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/jw/github/dvswitch/CMakeFiles /home/jw/github/dvswitch/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/jw/github/dvswitch/CMakeFiles 0
->>>>>>> 0010-happy-alsa.diff committed.
 .PHONY : all
 
 # The main clean target
@@ -178,7 +159,6 @@ dvsink-files/fast:
 .PHONY : dvsink-files/fast
 
 #=============================================================================
-<<<<<<< HEAD
 # Target rules for targets named dvsink-tee
 
 # Build rule for target.
@@ -205,8 +185,6 @@ dvsource-alien/fast:
 .PHONY : dvsource-alien/fast
 
 #=============================================================================
-=======
->>>>>>> 0010-happy-alsa.diff committed.
 # Target rules for targets named dvsource-alsa
 
 # Build rule for target.
@@ -409,19 +387,12 @@ help:
 	@echo "... edit_cache"
 	@echo "... install"
 	@echo "... install/local"
-<<<<<<< HEAD
-	@echo "... install/strip"
-=======
->>>>>>> 0010-happy-alsa.diff committed.
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... dvsink-command"
 	@echo "... dvsink-files"
-<<<<<<< HEAD
 	@echo "... dvsink-tee"
 	@echo "... dvsource-alien"
-=======
->>>>>>> 0010-happy-alsa.diff committed.
 	@echo "... dvsource-alsa"
 	@echo "... dvsource-dvgrab"
 	@echo "... dvsource-file"
