@@ -50,30 +50,30 @@ tally_rtsp_server* tally_rtsp_server::createNew(int pipefd, bool verbose, UsageE
     return NULL;
 }
 
-RTSPServer::RTSPClientConnection*
-tally_rtsp_server::createNewClientConnection(int clientSocket, struct sockaddr_in clientAddr)
+RTSPServer::RTSPClientSession*
+tally_rtsp_server::createNewClientSession(unsigned sessionId, int clientSocket, struct sockaddr_in clientAddr)
 {
-    return new RTSPClientConnection(*this, clientSocket, clientAddr);
+    return new RTSPClientSession(*this, sessionId, clientSocket, clientAddr);
 }
 
-tally_rtsp_server::RTSPClientConnection::RTSPClientConnection(tally_rtsp_server& ourServer, int clientSocket, struct sockaddr_in clientAddr)
-    : RTSPServer::RTSPClientConnection(ourServer, clientSocket, clientAddr), server_(ourServer)
+tally_rtsp_server::RTSPClientSession::RTSPClientSession(tally_rtsp_server& ourServer, unsigned sessionId, int clientSocket, struct sockaddr_in clientAddr)
+    : RTSPServer::RTSPClientSession(ourServer, sessionId, clientSocket, clientAddr), server_(ourServer)
 {
 }
 
-tally_rtsp_server::RTSPClientConnection::~RTSPClientConnection()
+tally_rtsp_server::RTSPClientSession::~RTSPClientSession()
 {
 }
 
 void
-tally_rtsp_server::RTSPClientConnection::handleCmd_SET_PARAMETER(ServerMediaSubsession* subsession __attribute__((unused)), char const* cseq, char const* fullRequestStr)
+tally_rtsp_server::RTSPClientSession::handleCmd_SET_PARAMETER(ServerMediaSubsession* subsession __attribute__((unused)), char const* cseq, char const* fullRequestStr)
 {
     enum tally newstate;
     const char* tallyloc;
 
     tallyloc = strstr(fullRequestStr, "TALLY:");
     if (!tallyloc) {
-    	setRTSPResponse("RTSP/1.0 200 OK");
+    	snprintf((char*)fResponseBuffer, sizeof(fResponseBuffer), "RTSP/1.0 200 OK\r\nCSeq: %s\r\n%sSession: %08X\r\n\r\n", cseq, dateHeader(), fOurSessionId);
     }
     char* ptr;
     if ((ptr = (char*)strchr(tallyloc, '\r')))
@@ -101,7 +101,9 @@ tally_rtsp_server::RTSPClientConnection::handleCmd_SET_PARAMETER(ServerMediaSubs
     else
     {
 	// invalid
-	setRTSPResponse("RTSP/1.0 400 Bad Request");
+	snprintf((char*)fResponseBuffer, sizeof(fResponseBuffer),
+	    "RTSP/1.0 400 Bad Request\r\nCSeq: %s\r\n%sSession: %08X\r\n\r\n",
+	    cseq, dateHeader(), fOurSessionId);
 	return;
     }
     if (newstate != server_.tally_state_)
@@ -114,5 +116,7 @@ tally_rtsp_server::RTSPClientConnection::handleCmd_SET_PARAMETER(ServerMediaSubs
 	    perror("write to pipe");
 	}
     }
-    setRTSPResponse("RTSP/1.0 200 OK");
+    snprintf((char*)fResponseBuffer, sizeof(fResponseBuffer),
+        "RTSP/1.0 200 OK\r\nCSeq: %s\r\n%sSession: %08X\r\n\r\n",
+        cseq, dateHeader(), fOurSessionId);
 }
