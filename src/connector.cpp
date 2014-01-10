@@ -11,9 +11,9 @@
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include <BasicUsageEnvironment.hh>
-#define RTSPCLIENT_SYNCHRONOUS_INTERFACE
-#include <RTSPClient.hh>
+//#include <BasicUsageEnvironment.hh>
+//#define RTSPCLIENT_SYNCHRONOUS_INTERFACE
+//#include <RTSPClient.hh>
 
 #include "connector.hpp"
 

@@ -60,9 +60,8 @@
 // | ╚═══════════════════════════════════════════════════════════════╝ |
 // +-------------------------------------------------------------------+
 
-mixer_window::mixer_window(mixer & mixer, connector & connector)
+mixer_window::mixer_window(mixer & mixer)
     : mixer_(mixer),
-      connector_(connector),
       file_menu_item_(gettext("_File"), true),
       quit_menu_item_(Gtk::StockID("gtk-quit")),
       settings_menu_item_(gettext("_Settings"), true),
@@ -492,8 +491,8 @@ void mixer_window::open_format_dialog()
 
 void mixer_window::open_sources_dialog()
 {
-    sources_dialog dialog(*this, mixer_, connector_);
-    dialog.run();
+    /*sources_dialog dialog(*this, mixer_, connector_);
+    dialog.run();*/
 }
 
 void mixer_window::open_quit_dialog()

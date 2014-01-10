@@ -47,7 +47,7 @@ if(NOT BOOST_THREAD_WORKS_WITHOUT_SYSTEM)
     message(STATUS "  found Boost.System")
 endif(NOT BOOST_THREAD_WORKS_WITHOUT_SYSTEM)
 
-find_package(LiveMedia REQUIRED)
+#find_package(LiveMedia REQUIRED)
 
 # Cope with recent move of ffmpeg headers into subdirectories
 set(LIBAVCODEC_INCLUDE_DIRS ${LIBAVCODEC_INCLUDE_DIRS} ${LIBAVCODEC_INCLUDEDIR}/libavcodec)

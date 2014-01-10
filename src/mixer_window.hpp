@@ -40,7 +40,7 @@ class connector;
 class mixer_window : public Gtk::Window, public mixer::monitor
 {
 public:
-    mixer_window(mixer & mixer, connector & connector);
+    mixer_window(mixer & mixer);
     ~mixer_window();
     void init_osc_connection(OSC * osc);
 
@@ -79,7 +79,7 @@ private:
     virtual void effect_status(int min, int cur, int max, bool more);
 
     mixer & mixer_;
-    connector & connector_;
+    /*connector & connector_;*/
 
     Gtk::VBox main_box_;
     Gtk::MenuBar menu_bar_;

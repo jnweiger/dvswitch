@@ -17,10 +17,13 @@ target_link_libraries(dvsource-file pthread rt)
 
 add_executable(dvsource-dvgrab dvsource-dvgrab.c ${common_sources})
 
-add_executable(dvsource-firewire-rtsp dvsource-firewire.cpp os_error.cpp
-  DVVideoStreamFramer.cpp tally_rtsp_server.cpp ${common_sources})
-target_link_libraries(dvsource-firewire-rtsp pthread raw1394
-  ${LiveMedia_LIBRARIES})
+# The RTSP code is disabled for now, since libLiveMedia changes API far
+# too often, and is quite undocumented; also, nobody uses it in
+# production.
+#add_executable(dvsource-firewire-rtsp dvsource-firewire.cpp os_error.cpp
+#  DVVideoStreamFramer.cpp tally_rtsp_server.cpp ${common_sources})
+#target_link_libraries(dvsource-firewire-rtsp pthread raw1394
+#  ${LiveMedia_LIBRARIES})
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 add_executable(dvsource-alsa dvsource-alsa.c dif_audio.c ${common_sources})
@@ -36,15 +39,14 @@ add_executable(dvswitch dvswitch.cpp mixer.cpp frame_timer.c
   mixer_window.cpp dv_display_widget.cpp dv_selector_widget.cpp
   server.cpp auto_pipe.cpp os_error.cpp video_effect.c frame_pool.cpp
   frame.c auto_codec.cpp format_dialog.cpp dif_audio.c vu_meter.cpp
-  status_overlay.cpp connector.cpp sources_dialog.cpp osc_ctrl.cpp ${common_sources})
+  status_overlay.cpp osc_ctrl.cpp ${common_sources})
 target_link_libraries(dvswitch m pthread rt X11 Xext Xv
   ${BOOST_THREAD_LIBRARIES} ${BOOST_SYSTEM_LIBRARIES} ${GTKMM_LIBRARIES}
   ${LIBAVCODEC_LIBRARIES} ${LIBAVUTIL_LIBRARIES} ${LiveMedia_LIBRARIES}
   ${GETTEXT_LIBRARIES} ${OSC_LIBRARIES})
 
 install(TARGETS dvsink-command dvsink-files dvsource-file dvsource-dvgrab
-                dvswitch dvsource-firewire-rtsp dvsource-jack
-                dvswitch dvsource-firewire-rtsp dvsource-jack
+                dvswitch dvsource-jack
         DESTINATION ${bindir})
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
