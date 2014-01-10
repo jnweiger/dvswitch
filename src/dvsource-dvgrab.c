@@ -35,6 +35,8 @@ enum mode {
     mode_unknown,
     mode_firewire,
     mode_v4l2,
+    mode_dvgrab_max, // marker: below this, modes use dvgrab; above, modes use avconv
+    mode_v4l2_raw,
 };
 
 static enum mode mode = mode_unknown;
@@ -57,6 +59,8 @@ static enum mode program_mode(const char * progname)
 	return mode_firewire;
     if (strcmp(progname, "dvsource-v4l2-dv") == 0)
 	return mode_v4l2;
+    if (strcmp(progname, "dvsource-v4l2-raw") == 0)
+	return mode_v4l2_raw;
     return mode_unknown;
 }
 
@@ -72,7 +76,7 @@ static void handle_config(const char * name, const char * value)
 	free(device_name);
 	device_name = strdup(value);
     }
-    else if (strcmp(name, "V4L2_DV_DEVICE") == 0 && mode == mode_v4l2)
+    else if (strcmp(name, "V4L2_DV_DEVICE") == 0 && (mode == mode_v4l2 || mode == mode_v4l2_raw))
     {
 	free(device_name);
 	device_name = strdup(value);
@@ -115,10 +119,13 @@ static void usage(const char * progname)
 		progname, other_args, firewire_args);
 	break;
     case mode_v4l2:
+    case mode_v4l2_raw:
 	fprintf(stderr,
 		"Usage: %s %s \\\n"
 		"           %s\n",
 		progname, other_args, v4l2_args);
+	break;
+    default:
 	break;
     }
 }
@@ -250,7 +257,7 @@ int main(int argc, char ** argv)
 	else
 	    printf("INFO: Reading from first Firewire card with camera\n");
     }
-    else if (mode == mode_v4l2)
+    else if (mode == mode_v4l2 || mode == mode_v4l2_raw)
     {
 	if (!device_name)
 	    device_name = "/dev/video";
@@ -294,28 +301,45 @@ int main(int argc, char ** argv)
 
     /* Run dvgrab with the socket as stdout. */
 
-    char * dvgrab_argv[9];
+    char * dvgrab_argv[13];
     char ** argp = dvgrab_argv;
-    *argp++ = "dvgrab";
-    if (mode == mode_v4l2)
-	*argp++ = "-v4l2";
-    if (device_name)
+    if (mode <= mode_dvgrab_max)
     {
-	*argp++ = "-input";
+	*argp++ = "dvgrab";
+	if (mode == mode_v4l2)
+	    *argp++ = "-v4l2";
+	if (device_name)
+	{
+	    *argp++ = "-input";
+	    *argp++ = device_name;
+	}
+	else if (firewire_card)
+	{
+	    *argp++ = "-card";
+	    *argp++ = firewire_card;
+	}
+	if (firewire_guid)
+	{
+	    *argp++ = "-guid";
+	    *argp++ = firewire_guid;
+	}
+	*argp++ = "-noavc";
+	*argp++ = "-";
+    } else {
+	assert(mode == mode_v4l2_raw);
+	*argp++ = "avconv";
+	*argp++ = "-v";
+	*argp++ = "quiet";
+	*argp++ = "-f";
+	*argp++ = "video4linux2";
+	*argp++ = "-i";
 	*argp++ = device_name;
+	*argp++ = "-r";
+	*argp++ = "25";
+	*argp++ = "-target";
+	*argp++ = "pal-dv";
+	*argp++ = "-";
     }
-    else if (firewire_card)
-    {
-	*argp++ = "-card";
-	*argp++ = firewire_card;
-    }
-    if (firewire_guid)
-    {
-	*argp++ = "-guid";
-	*argp++ = firewire_guid;
-    }
-    *argp++ = "-noavc";
-    *argp++ = "-";
     *argp = NULL;
     assert(argp < dvgrab_argv + sizeof(dvgrab_argv) / sizeof(dvgrab_argv[0]));
 
@@ -334,7 +358,7 @@ int main(int argc, char ** argv)
     }
     close(sock);
 
-    execvp("dvgrab", dvgrab_argv);
+    execvp(dvgrab_argv[0], dvgrab_argv);
     perror("ERROR: execvp");
     return 1;
 }
