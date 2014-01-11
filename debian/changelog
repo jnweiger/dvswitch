@@ -1,3 +1,10 @@
+dvswitch (0.9.2-1) unstable; urgency=medium
+
+  * New upstream release, directed towards unstable
+    - Remove libLiveMedia from build-depends, as that isn't required anymore.
+
+ -- Wouter Verhelst <wouter@debian.org>  Sat, 11 Jan 2014 10:16:39 +0100
+
 dvswitch (0.9.1-1) experimental; urgency=low
 
   * New upstream release
