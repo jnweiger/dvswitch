@@ -1,4 +1,19 @@
-dvswitch (0.9.1)
+dvswitch (0.9.2) unstable; urgency=medium
+
+  [ Ben Hutchings ]
+  * Fix placement of VS and VSC packs in dvsource-alsa
+  * Correct the standard cycle of samples per frame for 32 kHz audio
+  [ Sebastian Ramacher ]
+  * Update library requirements for boost and libavutil
+  [ Wouter Verhelst ]
+  * Fix manual fade behaviour
+  * Implement a generic v4l2 dvsource, using avconv rather than dvgrab
+  * Disable RTSP support; it isn't used, and the libLiveMedia API
+    instability is causing us far too much issues
+
+ -- Wouter Verhelst <wouter@debian.org>  Sat, 11 Jan 2014 10:19:45 +0100
+
+dvswitch (0.9.1) unstable; urgency=low
   [ Robin Gareus ]
   * OSC remote-control (see doc/README)
   * add contrib examples and tools for OSC
@@ -9,6 +24,8 @@ dvswitch (0.9.1)
   [ James Bromberger ]
   * Add support for printing timing information to screen during
     playout in dvsource-file
+
+ -- Wouter Verhelst <wouter@debian.org>  Sun, 10 Mar 2013 12:46:35 +0100
 
 dvswitch (0.9) unstable; urgency=low
 
