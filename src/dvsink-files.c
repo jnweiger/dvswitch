@@ -24,15 +24,17 @@
 #include "socket.h"
 
 static struct option options[] = {
-    {"host",   1, NULL, 'h'},
-    {"port",   1, NULL, 'p'},
-    {"help",   0, NULL, 'H'},
-    {NULL,     0, NULL, 0}
+    {"host",    1, NULL, 'h'},
+    {"port",    1, NULL, 'p'},
+    {"help",    0, NULL, 'H'},
+    {"pidfile", 1, NULL, 'P'},
+    {NULL,      0, NULL, 0}
 };
 
 static char * mixer_host = NULL;
 static char * mixer_port = NULL;
 static char * output_name_format = NULL;
+static char * pidfile_name = NULL;
 
 static void handle_config(const char * name, const char * value)
 {
@@ -57,7 +59,7 @@ static void usage(const char * progname)
 {
     fprintf(stderr,
 	    "\
-Usage: %s [-h HOST] [-p PORT] [NAME-FORMAT]\n",
+Usage: %s [-h HOST] [-p PORT] [-P PID filename] [NAME-FORMAT]\n",
 	    progname);
 }
 
@@ -261,7 +263,7 @@ int main(int argc, char ** argv)
     // Parse arguments.
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "h:p:", options, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "h:p:P:", options, NULL)) != -1)
     {
 	switch (opt)
 	{
@@ -272,6 +274,10 @@ int main(int argc, char ** argv)
 	case 'p':
 	    free(mixer_port);
 	    mixer_port = strdup(optarg);
+	    break;
+	case 'P':
+	    free(pidfile_name);
+	    pidfile_name = strdup(optarg);
 	    break;
 	case 'H': // --help
 	    usage(argv[0]);
@@ -305,6 +311,16 @@ int main(int argc, char ** argv)
 	fprintf(stderr, "%s: output name format not defined or empty\n",
 		argv[0]);
 	return 2;
+    }
+
+    if (pidfile_name)
+    {
+	FILE* pidf = fopen(pidfile_name, "w");
+	if (pidf == NULL)
+	    break;
+
+	fprintf(pidf, "%d\n", (int)getpid());
+	fclose(pidf);
     }
 
     struct transfer_params params;

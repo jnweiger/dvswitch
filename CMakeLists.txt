@@ -5,7 +5,7 @@ if(COMMAND cmake_policy)
 endif(COMMAND cmake_policy)
 
 project(DVSWITCH CXX C)
-set(PACKAGE_VERSION 0.9~alpha)
+set(PACKAGE_VERSION 0.9.2)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 include(FindGettext)
