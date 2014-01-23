@@ -85,15 +85,23 @@ namespace
 
 // dv_display_widget
 
-dv_display_widget::dv_display_widget(int lowres)
+dv_display_widget::dv_display_widget(int scale)
     : decoder_(avcodec_alloc_context3(NULL)),
+      pix_fmt_(PIX_FMT_NONE),
+      height_(0),
+      scale_(scale),
       decoded_serial_num_(-1),
-      shm_busy_(false)
+      shm_busy_(false),
+      xv_port_(invalid_xv_port),
+      xv_image_(0),
+      xv_shm_info_(0)
 {
+    std::memset(&source_region_, 0, sizeof(source_region_));
+    std::memset(&frame_header_, 0, sizeof(frame_header_));
+
     AVCodecContext * decoder = decoder_.get();
     if (!decoder)
 	throw std::bad_alloc();
-    decoder->lowres = lowres;
     auto_codec_open_decoder(decoder_, AV_CODEC_ID_DVVIDEO);
     decoder->opaque = this;
     decoder->get_buffer = get_buffer;
@@ -252,20 +260,16 @@ int dv_display_widget::reget_buffer(AVCodecContext *, AVFrame *)
 // dv_full_display_widget
 
 dv_full_display_widget::dv_full_display_widget()
-    : pix_fmt_(PIX_FMT_NONE),
-      height_(0),
-      xv_port_(invalid_xv_port),
-      xv_image_(0),
-      xv_shm_info_(0),
-      // We don't know what the frame format will be, but assume "PAL"
+    : // We don't know what the frame format will be, but assume "PAL"
       // 4:3 frames and therefore an active image size of 702x576 and
       // pixel aspect ratio of 59:54.
-      dest_width_(767), dest_height_(576),
       sel_enabled_(false),
       sel_in_progress_(false),
       highlight_title_safe_area_(true)
 {
-    std::memset(&source_region_, 0, sizeof(source_region_));
+    dest_width_ = 767;
+    dest_height_ = 576;
+
     std::memset(&selection_, 0, sizeof(selection_));
 
     set_size_request(dest_width_, dest_height_);
@@ -311,7 +315,7 @@ rectangle dv_full_display_widget::get_selection()
     return selection_;
 }
 
-bool dv_full_display_widget::try_init_xvideo(PixelFormat pix_fmt,
+bool dv_display_widget::try_init_xvideo(PixelFormat pix_fmt,
 					     unsigned height) throw()
 {
     if (pix_fmt == pix_fmt_ && height == height_)
@@ -431,7 +435,7 @@ end_adaptor_loop:
     return xv_image_;
 }
 
-void dv_full_display_widget::fini_xvideo() throw()
+void dv_display_widget::fini_xvideo() throw()
 {
     if (xv_port_ != invalid_xv_port)
     {
@@ -460,12 +464,12 @@ void dv_full_display_widget::fini_xvideo() throw()
     height_ = 0;
 }
 
-AVFrame * dv_full_display_widget::get_frame_header()
+AVFrame * dv_display_widget::get_frame_header()
 {
     return frame_header_;
 }
 
-AVFrame * dv_full_display_widget::get_frame_buffer(AVFrame * header,
+AVFrame * dv_display_widget::get_frame_buffer(AVFrame * header,
 						   PixelFormat pix_fmt,
 						   unsigned height)
 {
@@ -534,6 +538,12 @@ void dv_full_display_widget::put_frame_buffer(
 	video_effect_brighten(frame_ref, selection_);
     }
 
+    dv_display_widget::put_frame_buffer(source_region);
+}
+
+void dv_display_widget::put_frame_buffer(
+    const display_region & source_region)
+{
     if (pix_fmt_ == PIX_FMT_YUV411P)
     {
 	// Lines are interleaved in the buffer; convert them in-place.
@@ -582,6 +592,8 @@ void dv_full_display_widget::put_frame_buffer(
 					 * source_region.pixel_height,
 					 source_region.pixel_width);
     }
+    dest_width_ /= scale_;
+    dest_height_ /= scale_;
     source_region_ = source_region;
     set_size_request(dest_width_, dest_height_);
 }
@@ -697,7 +709,7 @@ bool dv_full_display_widget::on_motion_notify_event(GdkEventMotion * event)
     return true;
 }
 
-bool dv_full_display_widget::on_expose_event(GdkEventExpose *) throw()
+bool dv_display_widget::on_expose_event(GdkEventExpose *) throw()
 {
     Glib::RefPtr<Gdk::Drawable> drawable;
     int dest_x, dest_y;
@@ -740,49 +752,23 @@ bool dv_full_display_widget::on_expose_event(GdkEventExpose *) throw()
     return true;
 }
 
-void dv_full_display_widget::on_unrealize() throw()
+void dv_display_widget::on_unrealize() throw()
 {
     fini_xvideo();
 
-    dv_display_widget::on_unrealize();
+    Gtk::DrawingArea::on_unrealize();
 }
 
 // dv_thumb_display_widget
 
-namespace
-{
-    const unsigned dv_block_size_log2 = 3;
-    const unsigned dv_block_size = 1 << dv_block_size_log2;
-
-    const unsigned frame_thumb_linesize_4 =
-	(FRAME_WIDTH / dv_block_size + 15) & ~15;
-    const unsigned frame_thumb_linesize_2 =
-	(FRAME_WIDTH / 2 / dv_block_size + 15) & ~15;
-}
-
-struct dv_thumb_display_widget::raw_frame_thumb
-{
-    AVFrame *header = av_frame_alloc();
-    enum PixelFormat pix_fmt;
-    dv_frame_aspect aspect;
-    struct
-    {
-	uint8_t y[frame_thumb_linesize_4 * FRAME_HEIGHT_MAX / dv_block_size];
-	uint8_t c_dummy[frame_thumb_linesize_2];
-    } buffer __attribute__((aligned(16)));
-    ~raw_frame_thumb() { av_frame_dealloc(header); };
-};
-
 dv_thumb_display_widget::dv_thumb_display_widget()
-    : dv_display_widget(dv_block_size_log2),
-      raw_frame_(new raw_frame_thumb),
-      x_image_(0),
-      x_shm_info_(0),
-      dest_width_(0),
-      dest_height_(0),
+    : dv_display_widget(/*scale=*/4),
       error_pixbuf_(load_icon("gtk-dialog-warning", 64)),
       error_(false)
 {
+    dest_width_ = 0;
+    dest_height_ = 0;
+
     // We don't know what the frame format will be, but assume "PAL"
     // 4:3 frames and therefore an active image size of 702x576 and
     // pixel aspect ratio of 59:54.
@@ -793,217 +779,23 @@ dv_thumb_display_widget::~dv_thumb_display_widget()
 {
 }
 
-bool dv_thumb_display_widget::try_init_xshm(PixelFormat pix_fmt,
-					    unsigned height) throw()
-{
-    assert(pix_fmt == PIX_FMT_YUV420P || pix_fmt == PIX_FMT_YUV422P
-	   || pix_fmt == PIX_FMT_YUV410P || pix_fmt == PIX_FMT_YUV411P);
-    assert(height <= FRAME_HEIGHT_MAX / dv_block_size);
-
-    if (x_image_)
-    {
-	raw_frame_->pix_fmt = pix_fmt;
-	return true;
-    }
-
-    if (!init_x_shm_events())
-	return false;
-
-    Display * x_display = get_x_display(*this);
-
-    Glib::RefPtr<Gdk::Drawable> drawable;
-    int dest_x, dest_y;
-    get_window()->get_internal_paint_info(drawable, dest_x, dest_y);
-    drawable->reference(); // get_internal_paint_info() doesn't do this!
-    Visual * visual =
-	gdk_x11_visual_get_xvisual(drawable->get_visual()->gobj());
-    int depth = drawable->get_depth();
-
-    if ((visual->c_class == TrueColor || visual->c_class == DirectColor)
-	&& (depth == 24 || depth == 32))
-    {
-	if (XShmSegmentInfo * x_shm_info = new (std::nothrow) XShmSegmentInfo)
-	{
-	    if (XImage * x_image = XShmCreateImage(
-		    x_display, visual, depth, ZPixmap,
-		    0, x_shm_info,
-		    // Calculate maximum dimensions assuming widest pixel
-		    // ratio and full frame (slightly over-conservative).
-		    div_round_nearest<unsigned>(FRAME_WIDTH * 118,
-						81 * thumb_scale_denom),
-		    div_round_nearest<unsigned>(FRAME_HEIGHT_MAX,
-						thumb_scale_denom)))
-	    {
-		if ((x_image->data = allocate_x_shm(
-			 x_display, x_shm_info,
-			 x_image->height * x_image->bytes_per_line)))
-		{
-		    raw_frame_->pix_fmt = pix_fmt;
-		    x_image_ = x_image;
-		    x_shm_info_ = x_shm_info;
-		}
-		else
-		{
-		    free(x_image);
-		}
-	    }
-	    if (!x_shm_info_)
-		delete x_shm_info;
-	}
-
-	if (!x_image_)
-	    std::cerr << "ERROR: Could not create Xshm image\n";
-    }
-    else
-    {
-	std::cerr << "ERROR: Window does not support 24- or 32-bit colour\n";
-    }
-
-    return x_image_;
-}
-
-void dv_thumb_display_widget::fini_xshm() throw()
-{
-    if (XImage * x_image = static_cast<XImage *>(x_image_))
-    {
-	XShmSegmentInfo * x_shm_info =
-	    static_cast<XShmSegmentInfo *>(x_shm_info_);
-	free_x_shm(x_shm_info);
-	delete x_shm_info;
-	x_shm_info_ = 0;
-	free(x_image);
-	x_image_ = 0;
-
-	fini_x_shm_events();
-    }
-}
-
-void dv_thumb_display_widget::on_unrealize() throw()
-{
-    fini_xshm();
-
-    dv_display_widget::on_unrealize();
-}
-
-AVFrame * dv_thumb_display_widget::get_frame_header()
-{
-    return raw_frame_->header;
-}
-
-AVFrame * dv_thumb_display_widget::get_frame_buffer(AVFrame * header,
-						    PixelFormat pix_fmt,
-						    unsigned height)
-{
-    if (!try_init_xshm(pix_fmt, height))
-	return 0;
-
-    header->data[0] = raw_frame_->buffer.y;
-    header->linesize[0] = frame_thumb_linesize_4;
-    header->data[1] = raw_frame_->buffer.c_dummy;
-    header->linesize[1] = 0;
-    header->data[2] = raw_frame_->buffer.c_dummy;
-    header->linesize[2] = 0;
-    header->data[3] = 0;
-    header->linesize[3] = 0;
-
-    header->type = FF_BUFFER_TYPE_USER;
-    return header;
-}
-
-void dv_thumb_display_widget::put_frame_buffer(
-    const display_region & source_region)
-{
-    XImage * x_image = static_cast<XImage *>(x_image_);
-
-    dest_width_ = div_round_nearest<unsigned>((source_region.right - source_region.left)
-					      * source_region.pixel_width,
-					      source_region.pixel_height
-					      * thumb_scale_denom);
-    dest_height_ = div_round_nearest<unsigned>(source_region.bottom - source_region.top,
-					       thumb_scale_denom);
-
-    // Scale the image up using Bresenham's algorithm
-
-    assert(x_image->bits_per_pixel == 24 || x_image->bits_per_pixel == 32);
-
-    const unsigned source_width = ((source_region.right - source_region.left)
-				   / dv_block_size);
-    const unsigned source_height = ((source_region.bottom - source_region.top)
-				    / dv_block_size);
-    assert(source_width <= dest_width_);
-    assert(source_height <= dest_height_);
-    unsigned source_y = source_region.top / dv_block_size, dest_y = 0;
-    unsigned error_y = source_height / 2;
-    do
-    {
-	const uint8_t * source =
-	    raw_frame_->buffer.y + frame_thumb_linesize_4 * source_y
-	    + source_region.left / dv_block_size;
-	uint8_t * dest = reinterpret_cast<uint8_t *>(
-	    x_image->data + x_image->bytes_per_line * dest_y);
-	uint8_t * dest_row_end =
-	    dest + x_image->bits_per_pixel / 8 * dest_width_;
-	unsigned error_x = source_width / 2;
-	uint8_t source_value = *source;
-	do
-	{
-	    // Write Y component to each byte of the pixel
-	    *dest++ = source_value;
-	    *dest++ = source_value;
-	    *dest++ = source_value;
-	    if (x_image->bits_per_pixel == 32)
-		*dest++ = source_value;
-
-	    error_x += source_width;
-	    if (error_x >= dest_width_)
-	    {
-		source_value = *++source;
-		error_x -= dest_width_;
-	    }
-	}
-	while (dest != dest_row_end);
-
-	error_y += source_height;
-	if (error_y >= dest_height_)
-	{
-	    ++source_y;
-	    error_y -= dest_height_;
-	}
-	++dest_y;
-    }
-    while (dest_y != dest_height_);
-
-    set_size_request(dest_width_, dest_height_);
-}
-
 void dv_thumb_display_widget::set_error(bool error)
 {
     error_ = error;
 }
 
-bool dv_thumb_display_widget::on_expose_event(GdkEventExpose *) throw()
+bool dv_thumb_display_widget::on_expose_event(GdkEventExpose *event) throw()
 {
-    if (!x_image_ || !dest_width_ || !dest_height_)
-	return true;
+    dv_display_widget::on_expose_event(event);
 
-    Glib::RefPtr<Gdk::Drawable> drawable;
-    int dest_x, dest_y;
-    get_window()->get_internal_paint_info(drawable, dest_x, dest_y);
-    drawable->reference(); // get_internal_paint_info() doesn't do this!
-
-    if (Glib::RefPtr<Gdk::GC> gc = Gdk::GC::create(drawable))
+    if (error_)
     {
-	XShmPutImage(get_x_display(drawable),
-		     get_x_window(drawable),
-		     gdk_x11_gc_get_xgc(gc->gobj()),
-		     static_cast<XImage *>(x_image_),
-		     0, 0,
-		     dest_x, dest_y,
-		     dest_width_, dest_height_,
-		     /*send_event=*/ True);
-	set_shm_busy();
+	Glib::RefPtr<Gdk::Drawable> drawable;
+	int dest_x, dest_y;
+	get_window()->get_internal_paint_info(drawable, dest_x, dest_y);
+	drawable->reference(); // get_internal_paint_info() doesn't do this!
 
-	if (error_)
+	if (Glib::RefPtr<Gdk::GC> gc = Gdk::GC::create(drawable))
 	{
 	    drawable->draw_pixbuf(
 		gc, error_pixbuf_, 0, 0,

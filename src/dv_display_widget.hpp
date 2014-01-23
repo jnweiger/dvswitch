@@ -29,23 +29,35 @@ protected:
 	unsigned pixel_width, pixel_height;
     };
 
-    explicit dv_display_widget(int lowres = 0);
+    explicit dv_display_widget(int scale=1);
     ~dv_display_widget();
+
+    virtual void put_frame_buffer(const display_region &);
+    virtual bool on_expose_event(GdkEventExpose *) throw();
 
     bool init_x_shm_events();
     void fini_x_shm_events();
+    bool try_init_xvideo(PixelFormat pix_fmt, unsigned height) throw();
+    void fini_xvideo() throw();
     void set_shm_busy() { shm_busy_ = true; }
 
     auto_codec decoder_;
+    AVFrame frame_header_;
+    PixelFormat pix_fmt_;
+    unsigned height_;
+    unsigned dest_width_, dest_height_;
+    display_region source_region_;
 
 private:
     display_region get_display_region(const dv_system * system,
 				      dv_frame_aspect frame_aspect);
-    virtual AVFrame * get_frame_header() = 0;
-    virtual AVFrame * get_frame_buffer(AVFrame * header,
-				       PixelFormat pix_fmt, unsigned height) = 0;
-    virtual void put_frame_buffer(const display_region &) = 0;
+    AVFrame * get_frame_header();
+    AVFrame * get_frame_buffer(AVFrame * header,
+			       PixelFormat pix_fmt, unsigned height);
+
     virtual void set_error(bool);
+
+    virtual void on_unrealize() throw();
 
     static int get_buffer(AVCodecContext *, AVFrame *);
     static void release_buffer(AVCodecContext *, AVFrame *);
@@ -55,9 +67,13 @@ private:
 					      GdkEvent * event,
 					      void * data);
 
+    int scale_;
     unsigned decoded_serial_num_;
     int x_shm_first_event_;
     bool shm_busy_;
+    uint32_t xv_port_;
+    void * xv_image_;
+    void * xv_shm_info_;
 };
 
 class dv_full_display_widget : public dv_display_widget
@@ -71,32 +87,15 @@ public:
     void set_safe_area_highlight(bool v) { highlight_title_safe_area_ = v; }
 
 private:
-    bool try_init_xvideo(PixelFormat pix_fmt, unsigned height) throw();
-    void fini_xvideo() throw();
-
+    virtual void put_frame_buffer(const display_region &);
     void window_to_frame_coords(int & frame_x, int & frame_y,
 				int window_x, int window_y) throw();
     void update_selection(int x, int y);
 
-    virtual AVFrame * get_frame_header();
-    virtual AVFrame * get_frame_buffer(AVFrame * header,
-				       PixelFormat pix_fmt, unsigned height);
-    virtual void put_frame_buffer(const display_region &);
-
     virtual bool on_button_press_event(GdkEventButton *) throw();
     virtual bool on_button_release_event(GdkEventButton *) throw();
-    virtual bool on_expose_event(GdkEventExpose *) throw();
     virtual bool on_motion_notify_event(GdkEventMotion *) throw();
-    virtual void on_unrealize() throw();
 
-    PixelFormat pix_fmt_;
-    unsigned height_;
-    uint32_t xv_port_;
-    void * xv_image_;
-    void * xv_shm_info_;
-    AVFrame *frame_header_;			// AVFrame must be allocated using av_frame_alloc(). 
-    display_region source_region_;
-    unsigned dest_width_, dest_height_;
     bool sel_enabled_;
     bool sel_in_progress_;
     bool highlight_title_safe_area_;
@@ -111,24 +110,9 @@ public:
     ~dv_thumb_display_widget();
 
 private:
-    struct raw_frame_thumb;
-
-    bool try_init_xshm(PixelFormat pix_fmt, unsigned height) throw();
-    void fini_xshm() throw();
-
-    virtual AVFrame * get_frame_header();
-    virtual AVFrame * get_frame_buffer(AVFrame * header,
-				       PixelFormat pix_fmt, unsigned height);
-    virtual void put_frame_buffer(const display_region &);
     virtual void set_error(bool);
 
     virtual bool on_expose_event(GdkEventExpose *) throw();
-    virtual void on_unrealize() throw();
-
-    std::auto_ptr<raw_frame_thumb> raw_frame_;
-    void * x_image_;
-    void * x_shm_info_;
-    unsigned dest_width_, dest_height_;
 
     Glib::RefPtr<Gdk::Pixbuf> error_pixbuf_;
     bool error_;
