@@ -317,7 +317,11 @@ int main(int argc, char ** argv)
     {
 	FILE* pidf = fopen(pidfile_name, "w");
 	if (pidf == NULL)
-	    break;
+	{
+	    fprintf(stderr, "%s: could not open for writing\n",
+			    pidfile_name);
+	    return 2;
+	}
 
 	fprintf(pidf, "%d\n", (int)getpid());
 	fclose(pidf);
