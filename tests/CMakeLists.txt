@@ -18,3 +18,7 @@ add_executable(pic_in_pic_speed pic_in_pic.cpp ../src/video_effect.c)
 set_target_properties(pic_in_pic_speed
                       PROPERTIES COMPILE_FLAGS -DTEST_SPEED)
 target_link_libraries(pic_in_pic_speed ${LIBAVCODEC_LIBRARIES})
+
+add_test(basic ${CMAKE_SOURCE_DIR}/tests/runtest.sh ${CMAKE_SOURCE_DIR} run)
+add_test(mix ${CMAKE_SOURCE_DIR}/tests/runtest.sh ${CMAKE_SOURCE_DIR} mix)
+add_test(full ${CMAKE_SOURCE_DIR}/tests/runtest.sh ${CMAKE_SOURCE_DIR} full)

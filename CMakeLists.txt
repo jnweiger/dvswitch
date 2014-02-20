@@ -7,6 +7,8 @@ endif(COMMAND cmake_policy)
 project(DVSWITCH CXX C)
 set(PACKAGE_VERSION 0.9.2)
 
+enable_testing()
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 include(FindGettext)
 include(FindPkgConfig)
