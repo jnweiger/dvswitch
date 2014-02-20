@@ -74,6 +74,13 @@ void OSC::oscb_fade (lo_arg ** argv, int argc)
     tfade_set(argv[0]->i);
 }
 
+void OSC::oscb_quit (lo_arg **, int argc)
+{
+    if (want_verbose_)
+	fprintf(stderr, "OSC 'quit' %d\n", argc);
+    quit_signal_();
+}
+
 //////////////////////////////////////////////////////////////////////////////
 
 OSC::OSC(bool want_verbose)
@@ -125,6 +132,8 @@ int OSC::initialize_osc(int osc_port)
     OSC_REGISTER_CALLBACK(oscst_, "/dvswitch/rec/start", "",  oscb_start);
     OSC_REGISTER_CALLBACK(oscst_, "/dvswitch/rec/stop",  "",  oscb_stop);
     OSC_REGISTER_CALLBACK(oscst_, "/dvswitch/rec/cut",   "",  oscb_cut);
+
+    OSC_REGISTER_CALLBACK(oscst_, "/dvswitch/app/quit", "", oscb_quit);
 
     if(want_verbose_)
 	fprintf(stderr, "OSC server started on port %i\n",port);

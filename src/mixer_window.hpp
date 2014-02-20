@@ -71,6 +71,8 @@ private:
     void mfade_mix();
     void mfade_update();
 
+    void quit();
+
     virtual void put_frames(unsigned source_count,
 			    const dv_frame_ptr * source_dv,
 			    mixer::mix_settings,

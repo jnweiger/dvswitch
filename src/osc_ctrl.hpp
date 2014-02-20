@@ -30,6 +30,7 @@ class OSC
 	sigc::signal<void> & signal_cut_recording()   { return cut_recording_signal_;}
 	sigc::signal<void> & signal_stop_recording()  { return stop_recording_signal_;}
 	sigc::signal<void> & signal_start_recording() { return start_recording_signal_;}
+	sigc::signal<void> & signal_quit() { return quit_signal_;}
 
     private:
 	bool osc_input_handler (Glib::IOCondition ioc, lo_server srv);
@@ -47,6 +48,7 @@ class OSC
 	sigc::signal<void> cut_recording_signal_;
 	sigc::signal<void> start_recording_signal_;
 	sigc::signal<void> stop_recording_signal_;
+	sigc::signal<void> quit_signal_;
 
 
 #define OSC_PATH_CALLBACK(name) \
@@ -67,6 +69,8 @@ class OSC
 	OSC_PATH_CALLBACK(oscb_cut)
 	OSC_PATH_CALLBACK(oscb_start)
 	OSC_PATH_CALLBACK(oscb_stop)
+
+	OSC_PATH_CALLBACK(oscb_quit)
 };
 
 #endif // !defined(DVSWITCH_OSC_CTRL_HPP)

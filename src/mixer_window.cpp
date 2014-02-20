@@ -345,6 +345,8 @@ void mixer_window::init_osc_connection(OSC * osc)
 	sigc::mem_fun(*this, &mixer_window::rec_stop));
     osc_->signal_start_recording().connect(
 	sigc::mem_fun(*this, &mixer_window::rec_start));
+    osc_->signal_quit().connect(
+	sigc::mem_fun(*this, &mixer_window::quit));
 }
 
 void mixer_window::rec_start()
@@ -370,6 +372,11 @@ void mixer_window::mfade_set(int val)
     mfade_button_.set_active(allow_mfade_);
     mfade_ab_.set_value(val);
     mfade_update();
+}
+
+void mixer_window::quit()
+{
+    Gtk::Main::quit();
 }
 
 void mixer_window::tfade_set(int val)
