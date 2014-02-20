@@ -8,7 +8,7 @@ build/Makefile :
 clean :
 	rm -rf build
 
-% :
+% : build/Makefile
 	make -C build $*
 
 .PHONY : build clean
