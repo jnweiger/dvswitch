@@ -9,7 +9,7 @@ PID=0
 BASEDIR=$1
 
 setup() {
-	xvfb-run $BASEDIR/build/src/dvswitch -h 127.0.0.1 -p 1234 -o 2345
+	xvfb-run $BASEDIR/build/src/dvswitch -h 127.0.0.1 -p 1234 -o 2345 &
 	PID=$!
 	sleep 1
 	$BASEDIR/build/src/dvsource-file -l -h 127.0.0.1 -p 1234 $BASEDIR/tests/test1.dv &
