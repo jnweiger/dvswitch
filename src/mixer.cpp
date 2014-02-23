@@ -838,7 +838,7 @@ void mixer::run_mixer()
     unsigned serial_num = 0;
     const mix_data * m = 0;
 
-    auto_codec decoder(auto_codec_open_decoder(CODEC_ID_DVVIDEO));
+    auto_codec decoder(auto_codec_open_decoder(AV_CODEC_ID_DVVIDEO));
     AVCodecContext * dec = decoder.get();
     dec->get_buffer = raw_frame_get_buffer;
     dec->release_buffer = raw_frame_release_buffer;
@@ -891,7 +891,7 @@ void mixer::run_mixer()
 		int enc_thread_count =
 		    std::min<int>(8, std::max<long>(sysconf(_SC_NPROCESSORS_ONLN), 1));
 		std::cout << "INFO: DV encoder threads: " << enc_thread_count << "\n";
-		auto_codec_open_encoder(encoder, CODEC_ID_DVVIDEO, enc_thread_count);
+		auto_codec_open_encoder(encoder, AV_CODEC_ID_DVVIDEO, enc_thread_count);
 	    }
 	    enc->sample_aspect_ratio.num = system->pixel_aspect[m->format.frame_aspect].width;
 	    enc->sample_aspect_ratio.den = system->pixel_aspect[m->format.frame_aspect].height;
