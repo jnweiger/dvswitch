@@ -902,10 +902,12 @@ void mixer::run_mixer()
 	    enc->time_base.den = system->frame_rate_numer;
 	    mixed_raw->header.pts = serial_num;
   	    mixed_dv = allocate_dv_frame();
-	    // FIXME: deprecated. use avcodec_encode_video2 instead:
-	    int out_size = avcodec_encode_video(enc,
-						mixed_dv->buffer, system->size,
-						&mixed_raw->header);
+	    AVPacket packet;
+	    memset(&packet, 0, sizeof(AVPacket));
+	    int got_packet;
+	    int out_size = avcodec_encode_video2(enc,
+						&packet,
+						&mixed_raw->header, &got_packet);
 	    assert(size_t(out_size) == system->size);
 	    mixed_dv->serial_num = serial_num;
 
