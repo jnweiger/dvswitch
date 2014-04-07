@@ -11,34 +11,6 @@ bitrate=
 duration=
 cwd=
 
-usage () 
-{
-echo "      
-      dv2webm Version $version
-
-      Usage: $0 [OPTIONS] INFILE.dv [... INFILE.dv]
-      
-      Options:
-        -s,--startsecs N.N
-        -s,--startsecs HH:MM:SS[.XXX]
-	        Skip number of seconds from the start.
-                Default: '$startsecs' .
-        -t,--duration N.N
-        -t,--duration HH:MM:SS[.XXX]
-	        Stop after N.N seconds of video were produced.
-		Default: stop when input ends.
-        -o,--output  FILE.webm
-	        Define the output file name. Default: Derive from 
-		input file name (first input file name, if multiple).
-        -h,--help
-		Display this help.
-
-      INFILE.dv ...
-        One or multiple input files in dv format. The files will be concatenated
-	in the given order, then a startsecs skip will be applied if any.
-"
-}
-
 
 ARGS=`getopt -o "s:o:t:h" -l "start:,output:,duration:,help" -n "dv2webm V$version" -- "$@"`
 eval set -- "$ARGS"

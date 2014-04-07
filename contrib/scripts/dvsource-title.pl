@@ -10,6 +10,7 @@
 # (C) 2012, jw@suse.de, distribute under GPL-2.0+ or ask.
 # 2012-10-10 -- V0.1 initial draft.
 # 2012-10-16 -- V0.2 added support for directories
+# 2014-04-07 -- V0.3 /dev/zero no longer works. Need to place a real file.
 #############
 
 ## Requires: perl, ffmpeg
@@ -23,7 +24,7 @@ use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
 use POSIX ":sys_wait_h";
 
-my $version = '0.2';
+my $version = '0.3';
 my $retry_connect = 0;
 my $host = undef;
 my $port = undef;
@@ -100,8 +101,12 @@ my $stat = stat $img;
 my $last_touch = $stat->mtime;
 my $last_size = $stat->size;
 
+my $silence_blocks = int(1 + 2 * 8 * $loop_sec);
+my $silence_wav = "_title_silence_${silence_blocks}k.wav";
+system "dd if=/dev/zero of=$silence_wav bs=1024 count=$silence_blocks";
+
 my $ff_ver = $verbose ? 'info' : 'error';
-my $ffmpeg_fmt = "ffmpeg -v $ff_ver -f s16le -ar 8000 -i /dev/zero -loop 1 -t $loop_sec -i '%s' -target pal-dv '$img.dv'";
+my $ffmpeg_fmt = "ffmpeg -v $ff_ver -f s16le -ar 8000 -i $silence_wav -loop 1 -t $loop_sec -i '%s' -target pal-dv '$img.dv'";
 
 my @cmd = ( $ENV{DVSOURCE_FILE} || 'dvsource-file' );
 
