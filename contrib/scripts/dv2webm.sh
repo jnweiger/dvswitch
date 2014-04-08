@@ -3,11 +3,12 @@
 ## FIXME: -deinterlace is deprecated, use -filter:v yadif instead
 ## 2013-08-17, v0.3, jw	-- added --bitrate option.
 ## 2013-11-19, v0.4, jw	-- added --cwd option to strip the full path.
+## 2014-04-08, v0.5, jw -- pumped up the default bitrate according to tests by darix.
 
 
-version=0.4
+version=0.5
 startsecs=0.0
-bitrate=
+bitrate="b:v 500k"
 duration=
 cwd=
 
