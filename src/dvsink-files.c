@@ -1,5 +1,7 @@
 // Copyright 2007-2008 Ben Hutchings.
 // Copyright 2008 Petter Reinholdtsen.
+// Copyright 2014 Jürgen Weigert <jnweiger@gmail.com>
+//
 // See the file "COPYING" for licence details.
 
 // Sink that creates DIF ("raw DV") files
@@ -17,11 +19,15 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <sys/statvfs.h>
 
 #include "config.h"
 #include "dif.h"
 #include "protocol.h"
 #include "socket.h"
+
+#define MAX_PATH  4096
+#define MBYTES_PER_HOUR 6500	// Standard DV-files (slight over-estimation)
 
 static struct option options[] = {
     {"host",   1, NULL, 'h'},
@@ -57,8 +63,10 @@ static void usage(const char * progname)
 {
     fprintf(stderr,
 	    "\
-Usage: %s [-h HOST] [-p PORT] [NAME-FORMAT]\n",
-	    progname);
+Usage: %s [-h HOST] [-p PORT] [NAME-FORMAT]\n\
+   or\n\
+       %s -t PATH_WHERE_TO_TEST_DISK_SPACE\n",
+	    progname, progname);
 }
 
 struct transfer_params {
@@ -162,6 +170,53 @@ static ssize_t write_retry(int fd, const void * buf, size_t count)
     return total;
 }
 
+void print_disk_full_estimate(char *filename)
+{
+  char *path = strdup(filename);
+
+  if (path[0] != '/')	// path = abs_path(path)
+    {
+      char cwd[MAX_PATH];
+      char *c = getcwd(cwd, MAX_PATH);
+      char *old = path;
+      path = (char *)malloc(strlen(old)+strlen(c)+3);
+      path[0] = '\0';
+      strcat(path, c);
+      if (path[strlen(path)] != '/')
+        strcat(path, "/");
+      strcat(path, old);
+    }
+
+  char *p = path+strlen(path);
+
+  while (p > path)	// path = dirname(path); # file may not yet exist.
+    {
+      if (p[-1] == '/')
+        {
+	  *p = '\0';
+	  break;
+	}
+      p--;
+    }
+
+  struct statvfs buf;
+  int r = statvfs(path, &buf);
+
+  if (r)
+    {
+      printf("WARN: %s: cannot calculate free space\n", path);
+    }
+  else
+    {
+      unsigned long mbytes = buf.f_bsize*buf.f_bavail/1024/1024;
+      double hours = mbytes / MBYTES_PER_HOUR;
+
+      // printf("r=%d, blocksize = %ld, available blocks = %ld bytes=%ld\n", r, buf.f_bsize, buf.f_bavail, buf.f_bsize*buf.f_bavail);
+      printf("%s: %.1fGB free; disk full in %.1f hours\n", path, mbytes/1024., hours);
+    }
+  free(path);
+}
+
 static void transfer_frames(struct transfer_params * params)
 {
     static uint8_t buf[SINK_FRAME_HEADER_SIZE + DIF_MAX_FRAME_SIZE];
@@ -200,6 +255,7 @@ static void transfer_frames(struct transfer_params * params)
 	    if (buf[SINK_FRAME_CUT_FLAG_POS] == SINK_FRAME_CUT_STOP)
 	    {
 		printf("INFO: Stopped recording\n");
+	        print_disk_full_estimate(name);
 		fflush(stdout);
 		continue;
 	    }
@@ -207,6 +263,8 @@ static void transfer_frames(struct transfer_params * params)
 	    file = create_file(output_name_format, &name);
 	    if (starting)
 		printf("INFO: Started recording\n");
+
+	    print_disk_full_estimate(name);
 	    printf("INFO: Created file %s\n", name);
 	    fflush(stdout);
 	}
@@ -257,14 +315,18 @@ int main(int argc, char ** argv)
 {
     // Initialise settings from configuration files.
     dvswitch_read_config(handle_config);
+    int test_only = 0;
 
     // Parse arguments.
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "h:p:", options, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "h:p:t", options, NULL)) != -1)
     {
 	switch (opt)
 	{
+	case 't':
+            test_only = 1;
+	    break;
 	case 'h':
 	    free(mixer_host);
 	    mixer_host = strdup(optarg);
@@ -280,13 +342,6 @@ int main(int argc, char ** argv)
 	    usage(argv[0]);
 	    return 2;
 	}
-    }
-
-    if (!mixer_host || !mixer_port)
-    {
-	fprintf(stderr, "%s: mixer hostname and port not defined\n",
-		argv[0]);
-	return 2;
     }
 
     if (optind < argc)
@@ -307,6 +362,17 @@ int main(int argc, char ** argv)
 	return 2;
     }
 
+    print_disk_full_estimate(output_name_format);
+    if (test_only) 
+      exit(0);
+
+    if (!mixer_host || !mixer_port)
+    {
+	fprintf(stderr, "%s: mixer hostname and port not defined\n",
+		argv[0]);
+	return 2;
+    }
+
     struct transfer_params params;
     printf("INFO: Connecting to %s:%s\n", mixer_host, mixer_port);
     fflush(stdout);
@@ -317,7 +383,7 @@ int main(int argc, char ** argv)
 	perror("ERROR: write");
 	exit(1);
     }
-    printf("INFO: Connected.\n");
+    printf("INFO: Connected. (Waiting for start record)\n");
 
     transfer_frames(&params);
 
