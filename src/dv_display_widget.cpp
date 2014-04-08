@@ -263,12 +263,15 @@ dv_full_display_widget::dv_full_display_widget()
       dest_width_(767), dest_height_(576),
       sel_enabled_(false),
       sel_in_progress_(false),
-      highlight_title_safe_area_(true)
+      highlight_title_safe_area_(false)
 {
     std::memset(&source_region_, 0, sizeof(source_region_));
     std::memset(&selection_, 0, sizeof(selection_));
 
     set_size_request(dest_width_, dest_height_);
+
+    frame_header_ = av_frame_alloc();
+    assert(frame_header_);
 
     add_events(Gdk::BUTTON_PRESS_MASK | Gdk::BUTTON_RELEASE_MASK
 	       | Gdk::BUTTON1_MOTION_MASK | Gdk::BUTTON2_MOTION_MASK);
@@ -454,7 +457,7 @@ void dv_full_display_widget::fini_xvideo() throw()
 
 AVFrame * dv_full_display_widget::get_frame_header()
 {
-    return &frame_header_;
+    return frame_header_;
 }
 
 AVFrame * dv_full_display_widget::get_frame_buffer(AVFrame * header,
@@ -500,7 +503,7 @@ AVFrame * dv_full_display_widget::get_frame_buffer(AVFrame * header,
     header->linesize[3] = 0;
 
     header->type = FF_BUFFER_TYPE_USER;
-    return &frame_header_;
+    return frame_header_;
 }
 
 void dv_full_display_widget::put_frame_buffer(
@@ -509,8 +512,8 @@ void dv_full_display_widget::put_frame_buffer(
     raw_frame_ref frame_ref;
     for (int plane = 0; plane != 4; ++plane)
     {
-	frame_ref.planes.data[plane] = frame_header_.data[plane];
-	frame_ref.planes.linesize[plane] = frame_header_.linesize[plane];
+	frame_ref.planes.data[plane] = frame_header_->data[plane];
+	frame_ref.planes.linesize[plane] = frame_header_->linesize[plane];
     }
     frame_ref.pix_fmt = pix_fmt_;
     frame_ref.height = height_;
@@ -805,7 +808,7 @@ namespace
 
 struct dv_thumb_display_widget::raw_frame_thumb
 {
-    AVFrame header;
+    AVFrame *header = av_frame_alloc();
     enum PixelFormat pix_fmt;
     dv_frame_aspect aspect;
     struct
@@ -929,7 +932,7 @@ void dv_thumb_display_widget::on_unrealize() throw()
 
 AVFrame * dv_thumb_display_widget::get_frame_header()
 {
-    return &raw_frame_->header;
+    return raw_frame_->header;
 }
 
 AVFrame * dv_thumb_display_widget::get_frame_buffer(AVFrame * header,
