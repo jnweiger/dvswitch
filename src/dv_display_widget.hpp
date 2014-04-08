@@ -93,7 +93,7 @@ private:
     uint32_t xv_port_;
     void * xv_image_;
     void * xv_shm_info_;
-    AVFrame frame_header_;
+    AVFrame *frame_header_;			// AVFrame must be allocated using av_frame_alloc(). 
     display_region source_region_;
     unsigned dest_width_, dest_height_;
     bool sel_enabled_;
