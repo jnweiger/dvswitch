@@ -145,7 +145,7 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
     safe_area_menu_item_.signal_toggled().connect(
 	sigc::mem_fun(this, &mixer_window::toggle_safe_area_display));
     safe_area_menu_item_.show();
-    safe_area_menu_item_.set_active(true);
+    safe_area_menu_item_.set_active(false);
     fullscreen_menu_item_.signal_toggled().connect(
     	sigc::mem_fun(this, &mixer_window::toggle_fullscreen));
     fullscreen_menu_item_.show();
