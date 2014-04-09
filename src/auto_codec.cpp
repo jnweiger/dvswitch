@@ -30,7 +30,7 @@ namespace
     } initialiser;
 }
 
-auto_codec auto_codec_open_decoder(CodecID codec_id)
+auto_codec auto_codec_open_decoder(AVCodecID codec_id)
 {
     auto_codec result(avcodec_alloc_context3(NULL));
     if (!result.get())
@@ -39,7 +39,7 @@ auto_codec auto_codec_open_decoder(CodecID codec_id)
     return result;
 }
 
-void auto_codec_open_decoder(const auto_codec & context, CodecID codec_id)
+void auto_codec_open_decoder(const auto_codec & context, AVCodecID codec_id)
 {
     boost::mutex::scoped_lock lock(avcodec_mutex);
     AVCodec * codec = avcodec_find_decoder(codec_id);
@@ -48,7 +48,7 @@ void auto_codec_open_decoder(const auto_codec & context, CodecID codec_id)
     os_check_error("avcodec_open", -avcodec_open2(context.get(), codec, NULL));
 }
 
-auto_codec auto_codec_open_encoder(CodecID codec_id, int thread_count)
+auto_codec auto_codec_open_encoder(AVCodecID codec_id, int thread_count)
 {
     auto_codec result(avcodec_alloc_context3(NULL));
     if (!result.get())
@@ -57,7 +57,7 @@ auto_codec auto_codec_open_encoder(CodecID codec_id, int thread_count)
     return result;
 }
 
-void auto_codec_open_encoder(const auto_codec & context, CodecID codec_id,
+void auto_codec_open_encoder(const auto_codec & context, AVCodecID codec_id,
 			     int thread_count)
 {
     boost::mutex::scoped_lock lock(avcodec_mutex);
