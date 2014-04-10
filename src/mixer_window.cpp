@@ -60,7 +60,7 @@
 // | ╚═══════════════════════════════════════════════════════════════╝ |
 // +-------------------------------------------------------------------+
 
-mixer_window::mixer_window(mixer & mixer, connector & connector)
+mixer_window::mixer_window(mixer & mixer, connector & connector, bool safe_area_flag)
     : mixer_(mixer),
       connector_(connector),
       file_menu_item_(gettext("_File"), true),
@@ -145,7 +145,8 @@ mixer_window::mixer_window(mixer & mixer, connector & connector)
     safe_area_menu_item_.signal_toggled().connect(
 	sigc::mem_fun(this, &mixer_window::toggle_safe_area_display));
     safe_area_menu_item_.show();
-    safe_area_menu_item_.set_active(false);
+    // from dvswitchrc variable SAFE_AREA
+    safe_area_menu_item_.set_active(safe_area_flag);
     fullscreen_menu_item_.signal_toggled().connect(
     	sigc::mem_fun(this, &mixer_window::toggle_fullscreen));
     fullscreen_menu_item_.show();

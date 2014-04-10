@@ -34,12 +34,14 @@ namespace
 	{"port",             1, NULL, 'p'},
 	{"osc",              1, NULL, 'o'},
 	{"help",             0, NULL, 'H'},
+	{"safe-area-off",    0, NULL, 'S'},
 	{NULL,               0, NULL, 0}
     };
 
     std::string mixer_host;
     std::string mixer_port;
     std::string listen_addr;
+    bool safe_area_flag = true; 
 
     extern "C"
     {
@@ -51,6 +53,11 @@ namespace
 		mixer_port = value;
 	    else if (strcmp(name, "LISTEN") == 0)
 		listen_addr = value;
+	    else if (strcmp(name, "SAFE_AREA") == 0)
+		if (!strcasecmp(value, "off")  ||
+		    !strcasecmp(value, "false") ||
+		    !strcasecmp(value, "0"))
+		  safe_area_flag = false;
 	}
     }
 
@@ -58,7 +65,7 @@ namespace
     {
 	std::cerr << "\
 Usage: " << progname << " [gtk-options] \\\n\
-           [{-h|--host} LISTEN-HOST] [{-p|--port} LISTEN-PORT] [{-o|--osc} OSC-PORT]\\\n\
+           [{-h|--host} LISTEN-HOST] [{-p|--port} LISTEN-PORT] [{-o|--osc} OSC-PORT] [{-S|--safe-area-off}]\\\n\
 	   (use --host '*'  for INADDR_ANY)\n";
     }
 }
@@ -79,7 +86,7 @@ int main(int argc, char **argv)
 
 	int osc_port = 0;
 	int opt;
-	while ((opt = getopt_long(argc, argv, "h:p:o:", options, NULL)) != -1)
+	while ((opt = getopt_long(argc, argv, "h:p:o:S", options, NULL)) != -1)
 	{
 	    switch (opt)
 	    {
@@ -95,6 +102,9 @@ int main(int argc, char **argv)
 	    case 'H': /* --help */
 		usage(argv[0]);
 		return 0;
+	    case 'S': /* --safe-area-off */
+		safe_area_flag = false;
+		break;
 	    default:
 		usage(argv[0]);
 		return 2;
@@ -122,7 +132,7 @@ int main(int argc, char **argv)
 	mixer the_mixer;
 	server the_server(mixer_host, mixer_port, the_mixer);
 	connector the_connector(the_mixer);
-	the_window.reset(new mixer_window(the_mixer, the_connector));
+	the_window.reset(new mixer_window(the_mixer, the_connector, safe_area_flag));
 	the_mixer.set_monitor(the_window.get());
 	the_window->show();
 	the_window->signal_hide().connect(sigc::ptr_fun(&Gtk::Main::quit));

@@ -41,7 +41,7 @@ class connector;
 class mixer_window : public Gtk::Window, public mixer::monitor
 {
 public:
-    mixer_window(mixer & mixer, connector & connector);
+    mixer_window(mixer & mixer, connector & connector, bool safe_area_flag);
     ~mixer_window();
     void init_osc_connection(OSC * osc);
 
