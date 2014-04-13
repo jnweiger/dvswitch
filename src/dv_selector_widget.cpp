@@ -99,7 +99,12 @@ void dv_selector_widget::set_source_count(unsigned count)
 		}
 
 		dv_thumb_display_widget * thumb =
-		    manage(new dv_thumb_display_widget);
+		    manage(new dv_thumb_display_widget(&pri_video_selected_signal_, i));
+		// FIXME: I'd like to handle the button event here driectly, rather than in 
+		// dv_thumb_display_widget::on_button_press_event() with a function pointer.
+		// But I cannot catch it here.
+		// thumb->add_events(Gdk::BUTTON_PRESS_MASK | Gdk::BUTTON_RELEASE_MASK
+                //    | Gdk::BUTTON1_MOTION_MASK | Gdk::BUTTON2_MOTION_MASK);
 		thumb->show();
 		attach(*thumb,
 		       column + column_display, column + column_display + 1,
@@ -108,9 +113,9 @@ void dv_selector_widget::set_source_count(unsigned count)
 		       0, 0);
 		thumbnails_[i] = thumb;
 
-		char label_text[4];
+		char label_text[5];
 		snprintf(label_text, sizeof(label_text),
-			 (i < 9) ? "_%u" : "%u", unsigned(1 + i));
+			 (i < 9) ? "_%u _" : "%u _", unsigned(1 + i));
 		Gtk::Label * label =
 		    manage(new Gtk::Label(label_text, true));
 		label->show();

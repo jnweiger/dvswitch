@@ -818,13 +818,15 @@ struct dv_thumb_display_widget::raw_frame_thumb
     } buffer __attribute__((aligned(16)));
 };
 
-dv_thumb_display_widget::dv_thumb_display_widget()
+dv_thumb_display_widget::dv_thumb_display_widget(sigc::signal1<void, unsigned>*sel, unsigned source_id)
     : dv_display_widget(dv_block_size_log2),
       raw_frame_(new raw_frame_thumb),
       x_image_(0),
       x_shm_info_(0),
       dest_width_(0),
       dest_height_(0),
+      source_id_(source_id),
+      pri_selector_(sel),
       error_pixbuf_(load_icon("gtk-dialog-warning", 64)),
       error_(false)
 {
@@ -832,6 +834,17 @@ dv_thumb_display_widget::dv_thumb_display_widget()
     // 4:3 frames and therefore an active image size of 702x576 and
     // pixel aspect ratio of 59:54.
     set_size_request(192, 144);
+
+    // FIXME: this add_events() allows me to catch button_press events here.
+    // I'd rather catch them in dv_selector_widget::set_source_count().
+    add_events(Gdk::BUTTON_PRESS_MASK | Gdk::BUTTON_RELEASE_MASK
+     	       | Gdk::BUTTON1_MOTION_MASK | Gdk::BUTTON2_MOTION_MASK);
+}
+
+bool dv_thumb_display_widget::on_button_press_event(GdkEventButton * event)
+{
+    (*pri_selector_)(source_id_);
+    return true;
 }
 
 dv_thumb_display_widget::~dv_thumb_display_widget()

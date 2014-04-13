@@ -111,7 +111,7 @@ private:
 class dv_thumb_display_widget : public dv_display_widget
 {
 public:
-    dv_thumb_display_widget();
+    dv_thumb_display_widget(sigc::signal1<void, unsigned>*pri_sel, unsigned source_id);
     ~dv_thumb_display_widget();
 
 private:
@@ -126,6 +126,7 @@ private:
     virtual void put_frame_buffer(const display_region &);
     virtual void set_error(bool);
 
+    virtual bool on_button_press_event(GdkEventButton *);
     virtual bool on_expose_event(GdkEventExpose *) throw();
     virtual void on_unrealize() throw();
 
@@ -133,6 +134,8 @@ private:
     void * x_image_;
     void * x_shm_info_;
     unsigned dest_width_, dest_height_;
+    unsigned source_id_;
+    sigc::signal1<void, unsigned>*pri_selector_;
 
     Glib::RefPtr<Gdk::Pixbuf> error_pixbuf_;
     bool error_;
