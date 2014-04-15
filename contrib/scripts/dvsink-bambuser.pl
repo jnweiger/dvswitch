@@ -8,6 +8,7 @@
 # 2012-10-25 -- V0.3 fixed config file support
 # 2013-10-21 -- V0.4 Added --record option. Beware of dropouts.
 # 2013-10-21 -- V0.5 Added ping test and verbose hint to find bad config easier.
+# 2014-04-15 -- V0.6 Fixed ping options, ffmpeg option ordering for ffmpeg-2.2
 #
 ## Requires: ffmpeg
 
@@ -18,7 +19,7 @@ use File::Glob;
 use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
 
-my $version = '0.5';
+my $version = '0.6';
 my $a_chan = undef;
 my $a_name = undef;
 my $retry_connect = 0;
@@ -26,7 +27,7 @@ my $host = undef;
 my $port = undef;
 my $verbose = 1;
 my $help = undef;
-my $ffmpeg_fmt  = 'ffmpeg -v %s -y -i - -re -af aresample=22050 %s -vcodec flv -g 150 -cmp 2 -subcmp 2 -mbd 2 -f flv "%s"';
+my $ffmpeg_fmt  = 'ffmpeg -v %s -y -re -i - -af aresample=22050 %s -vcodec flv -g 150 -cmp 2 -subcmp 2 -mbd 2 -f flv "%s"';
 my $ffmpeg_opt_def  = '-s 480x360 -b:v 300k';
 my $ffmpeg_opt = undef;
 my $ffmpeg_rtmp_def = 'rtmp://68NNNN.fme.bambuser.com/b-fme/ad6XXXXXXXXXXXXXXXXXXX';
@@ -46,7 +47,7 @@ GetOptions(
 	"320"		=> sub { $ffmpeg_opt = '-s 320x240 -b:v 150k'; },
 	"480"		=> sub { $ffmpeg_opt = '-s 480x360 -b:v 300k'; },
 	"640"   	=> sub { $ffmpeg_opt = '-s 640x480 -b:v 400k'; },
-	"720"   	=> sub { $ffmpeg_opt = '-s 720x768 -b:v 500k'; },
+	"720"   	=> sub { $ffmpeg_opt = '-s 768x576 -b:v 500k'; },
 	"opt|o=s"       => \$ffmpeg_opt,
 	"help|?"	=> \$help,
 ) or $help++;
@@ -86,7 +87,7 @@ Valid options are:
 
  --320 --480 --640 --720
  	Select a specific output size and bandwidth. 
-	Default: '$ffmpeg_opt'
+	Default: '$ffmpeg_opt_def'
 
  --opt='FFMPEG_OPTIONS'
  	Default: --opt='$ffmpeg_opt'
@@ -106,7 +107,7 @@ The channel at $channel_url
 is run by $channel_admin
 }) if $help;
 	
-$ffmpeg_opt = getconfig('ffmpeg_opt') || $ffmpeg_opt_def;
+$ffmpeg_opt = getconfig('ffmpeg_opt') || $ffmpeg_opt || $ffmpeg_opt_def;
 my $url = shift || getconfig('bambuser_rtmp_url') || die "please provide a URL like $ffmpeg_rtmp\n";
 $ffmpeg_rtmp = $url;
 
@@ -114,8 +115,9 @@ my $hostname = $1 if $url =~ m{//([^:/]+)};
 if ($hostname)
   {
     # try pinging first, makes debugging easier.
-    print "+ ping -n 1 -w 3 $hostname\n";
-    system("ping -n 1 -w 3 $hostname");
+    my $ping = "ping -n -w 1 -i 0.3 $hostname";
+    print "+ $ping\n";
+    system($ping);
   } 
 
 my $ff_verbose = ($verbose > 1) ? 'verbose' : 'quiet';
