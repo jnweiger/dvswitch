@@ -15,7 +15,9 @@ Build-Depends: debhelper (>= 5),
  liblo-dev,
  libraw1394-dev,
  libxv-dev,
- pkg-config
+ pkg-config,
+ xvfb,
+ liblo-tools
 Standards-Version: 3.9.3
 Homepage: http://dvswitch.alioth.debian.org/
 Vcs-Git: git://git.debian.org/git/dvswitch/dvswitch.git
