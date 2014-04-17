@@ -1,18 +1,37 @@
-.\" dvsource-file.1 written by Ben Hutchings <ben@decadent.org.uk>
-.TH DVSOURCE-FILE 1 "18 February 2009"
+.\" dvsource-alien.1 written by Jürgen Weigert <jw@opensuse.org>
+.TH DVSOURCE-ALIEN 1 "06 July 2013"
 .SH NAME
-dvsource-file \- file source for DVswitch
+dvsource-alien \- A source for DVswitch connecting v4l2 devices or webstreams.
 .SH SYNOPSIS
 .HP
-.B dvsource-file
-.RI [ OPTIONS ]
-.RB [ \-l ]
-.I FILE
+.B dvsource-alien
+.RI "[\fB-h\fP " HOST  "] [\fB-p\fP "  PORT ]
+.RI "[\fB--geometry\fP " 640  [ "\fBx\fP480" "]] [\fB--crop\fP " 0\fB:\fP0\fB:\fP0\fB:\fP0 "] [\fB--rate\fP " 48000 "] [\fB--audiodev\fP " hw:0 ]
+.RI [ /dev/video0 ]
+.HP
+.B dvsource-alien
+.R -
+.HP
+.B dvsource-alien
+.R http://192.168.178.27:8080/video
+
 .SH DESCRIPTION
 .LP
-Stream a DV file to the mixer.  By default this plays the file once
-and then exits.  This is mostly useful for development and testing
-purposes.
+Stream a non-DV source to the mixer.  By default this opens /dev/video0 as
+input device. You can explicitly name a video4linux devices, or use it in a 
+pipeline with - or pull webcam videos by specfying an URL. 
+
+The correct framerate and videoformat is generated internally, unlike 
+dvsource-command or dvsource-v4l2, which both expect the surrounding pipeline
+(or connected device) to produce the correct rate and format.
+
+With webcams or stdin, only motion jpeg is currently supported.
+The android app 'IP Webcam' can be connected so that exhibits can be examined
+with a handheld and wireless device.
+
+For easy checking if the input is alive, an ascii-art line on stderr may server
+as a minimalistic preview. 
+
 .SH OPTIONS
 \fB\-h\fR, \fB\-\-host=\fIHOST\fR
 .TP
@@ -22,16 +41,50 @@ Specify the network address on which DVswitch is listening.  The host
 address may be specified by name or as an IPv4 or IPv6 literal.
 .RE
 .TP
-.BR \-l , " \-\-loop"
+\fB\-c\fR, \fB\-\-crop=\fILEFT\fB:\fIRIGHT\fB:\fITOP\fB:\fIBOTTOM\fR
 .RS
-Play the file repeatedly in a loop.
+Specify crop margins for the source image. This is useful to workaround the
+onscreen display of your video camera, or visible artefacts at the borders.  
+Default: -c 0:0:0:0
 .RE
 .TP
-.BR \-t
+\fB\-g\fR, \fB\-\-geometry=\fIWIDTH\fR[\fBx\fIHEIGHT\fR]
 .RS
-Print timing information while playing out the file
+Specify the requested video resolution for v4l.
+This will be scaled to fit into the pal-dv format. Only with v4l devices.
+If you only specify a WIDTH, a matching HEIGHT for 4:3 format is attempted.
+Some v4l drivers may silently ignore the requested geometry.
 .RE
+.TP
+.BR \-q , " \-\-quiet"
+.RS
+Disable ascii-art preview. Default: One line from the middle of
+the video is rendered as ascii art gray ramp to stderr.
+.RE
+.TP
+\fB\-a\fR, \fB\-\-audio=\fIAUDIO_DEV\fR
+.RS
+Open an audio device just like dvsource-alsa would do. See there for details.
+A typical usb-webcam comes as a v4l2 device (e.g. /dev/video0) and a separate
+alsa audio device (e.g. hw:1, aka /dev/snd/pcmC1D0c). Default: No
+audio, digital silence.
+Audio input is experimental.
+.RE
+.TP
+\fB\-r\fR, \fB\-\-rate=\fIAUDIO_RATE\fR
+.RS
+Supported values are 48000,32000.  Default 48000.
+The audio track is digital silence, unless -a is also specified.
+Audio input is experimental.
+.RE
+.SH FILES
+.B /etc/dvswitchrc
+The following keywords are parsed from the init file:
+MIXER_HOST, MIXER_PORT, VIDEO_GEOMETRY, CROP_MARGIN, AUDIO_DEVICE
+.SH BUGS
+As with version 0.8 optional audio input is not fully tested. It may segfault on you.
+The compile time symbol WITH_AUDIO defaults to 0.
 .SH AUTHOR
-Ben Hutchings <ben@decadent.org.uk>.
+Juergen Weigert <jw@opensuse.org>
 .SH SEE ALSO
 /usr/share/doc/dvswitch/README

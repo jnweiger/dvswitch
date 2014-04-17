@@ -25,6 +25,8 @@
  * - scale to pal-dv, format convert from packed rgb to planar yuv into an AVFrame 
  * - encode to dv frame,
  * - stream to mixer.
+ *
+ * See also: https://github.com/timvideos/dvsource-v4l2-other
  */
 /* V4L2 video picture grabber
    Copyright (C) 2009 Mauro Carvalho Chehab <mchehab@infradead.org>
@@ -143,8 +145,9 @@ static struct option options[] = {
     {"geometry", 1, NULL, 'g'},
     {"help",   0, NULL, 'H'},
     {"rate",   1, NULL, 'r'},
+    {"quiet",  0, NULL, 'q'},
     {"crop",   1, NULL, 'c'},
-    {"audiodev",  1, NULL, 'A'},
+    {"audiodev",  1, NULL, 'a'},
     {NULL,     0, NULL, 0}
 };
 
@@ -188,7 +191,7 @@ static void usage(const char * progname)
 {
     fprintf(stderr,
 	    "\n\
-Usage: %s [-h HOST] [-p PORT] [-g 640x480] [-c 0:0:0:0] [-a hw:1] [/dev/video0]\n\
+Usage: %s [-h HOST] [-p PORT] [-g 640x480] [-c 0:0:0:0] [-q] [-r 48000] [-a hw:1] [/dev/video0]\n\
        %s [-h HOST] [-p PORT] - \n\
        %s [-h HOST] [-p PORT] http://192.168.178.27:8080/video\n",
 	    progname, progname, progname);
@@ -217,10 +220,10 @@ Options:\n\
 	the video is rendered as ascii art gray ramp to stderr.\n\
 \n\
 -a AUDIO_DEV\n\
-	Open an audio device just like dvsource-alsa would do. A typical\n\
-	usb-webcam comes as a v4l2 device (e.g. /dev/video0) and a separate\n\
-	alsa audio device (e.g. hw:1, aka /dev/snd/pcmC1D0c). Default: No\n\
-	audio, digital silence.\n\
+	Open an audio device just like dvsource-alsa would do. See there for\n\
+        details. A typical usb-webcam comes as a v4l2 device (e.g. \n\
+        /dev/video0) and a separate alsa audio device (e.g. hw:1, aka \n\
+        /dev/snd/pcmC1D0c). Default: No audio, digital silence.\n\
 \n\
 -r AUDIO_RATE\n\
 	Supported values are 48000,32000. Default 48000.\n\
@@ -1195,7 +1198,7 @@ int main(int argc, char ** argv)
     /* Parse arguments. */
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "h:p:g:c:r:qs:HaA", options, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "h:p:g:c:r:qs:Ha", options, NULL)) != -1)
     {
 	switch (opt)
 	{
