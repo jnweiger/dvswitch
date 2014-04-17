@@ -1,0 +1,37 @@
+.\" dvsource-file.1 written by Ben Hutchings <ben@decadent.org.uk>
+.TH DVSOURCE-FILE 1 "18 February 2009"
+.SH NAME
+dvsource-file \- file source for DVswitch
+.SH SYNOPSIS
+.HP
+.B dvsource-file
+.RI [ OPTIONS ]
+.RB [ \-l ]
+.I FILE
+.SH DESCRIPTION
+.LP
+Stream a DV file to the mixer.  By default this plays the file once
+and then exits.  This is mostly useful for development and testing
+purposes.
+.SH OPTIONS
+\fB\-h\fR, \fB\-\-host=\fIHOST\fR
+.TP
+\fB\-p\fR, \fB\-\-port=\fIPORT\fR
+.RS
+Specify the network address on which DVswitch is listening.  The host
+address may be specified by name or as an IPv4 or IPv6 literal.
+.RE
+.TP
+.BR \-l , " \-\-loop"
+.RS
+Play the file repeatedly in a loop.
+.RE
+.TP
+.BR \-t
+.RS
+Print timing information while playing out the file
+.RE
+.SH AUTHOR
+Ben Hutchings <ben@decadent.org.uk>.
+.SH SEE ALSO
+/usr/share/doc/dvswitch/README
