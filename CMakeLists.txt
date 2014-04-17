@@ -49,7 +49,6 @@ if(NOT BOOST_THREAD_WORKS_WITHOUT_SYSTEM)
     message(STATUS "  found Boost.System")
 endif(NOT BOOST_THREAD_WORKS_WITHOUT_SYSTEM)
 
-#find_package(LiveMedia REQUIRED)
 # Check if we have av_frame_alloc()
 include(CheckSymbolExists)
 CHECK_SYMBOL_EXISTS("av_frame_alloc" "<avcodec.h>" AVC_HAVE_FRAME_ALLOC)
