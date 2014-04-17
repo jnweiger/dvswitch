@@ -64,6 +64,7 @@ class dv_full_display_widget : public dv_display_widget
 {
 public:
     dv_full_display_widget();
+    ~dv_full_display_widget();
 
     void set_selection_enabled(bool);
     rectangle get_selection();

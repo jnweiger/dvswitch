@@ -50,6 +50,9 @@ if(NOT BOOST_THREAD_WORKS_WITHOUT_SYSTEM)
 endif(NOT BOOST_THREAD_WORKS_WITHOUT_SYSTEM)
 
 #find_package(LiveMedia REQUIRED)
+# Check if we have av_frame_alloc()
+include(CheckSymbolExists)
+CHECK_SYMBOL_EXISTS("av_frame_alloc" "<avcodec.h>" AVC_HAVE_FRAME_ALLOC)
 
 # Cope with recent move of ffmpeg headers into subdirectories
 set(LIBAVCODEC_INCLUDE_DIRS ${LIBAVCODEC_INCLUDE_DIRS} ${LIBAVCODEC_INCLUDEDIR}/libavcodec)

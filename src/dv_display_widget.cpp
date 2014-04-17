@@ -277,6 +277,11 @@ dv_full_display_widget::dv_full_display_widget()
 	       | Gdk::BUTTON1_MOTION_MASK | Gdk::BUTTON2_MOTION_MASK);
 }
 
+dv_full_display_widget::~dv_full_display_widget()
+{
+    av_frame_dealloc(frame_header_);
+}
+
 void dv_full_display_widget::set_selection_enabled(bool flag)
 {
     Glib::RefPtr<Gdk::Window> window(get_window());
@@ -765,6 +770,7 @@ struct dv_thumb_display_widget::raw_frame_thumb
 	uint8_t y[frame_thumb_linesize_4 * FRAME_HEIGHT_MAX / dv_block_size];
 	uint8_t c_dummy[frame_thumb_linesize_2];
     } buffer __attribute__((aligned(16)));
+    ~raw_frame_thumb() { av_frame_dealloc(header); };
 };
 
 dv_thumb_display_widget::dv_thumb_display_widget()

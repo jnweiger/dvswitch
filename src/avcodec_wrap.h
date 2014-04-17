@@ -17,6 +17,8 @@
 #define UINT64_C(n) n ## ULL
 #endif
 
+#include "config.h"
+
 // These guards were removed from <avcodec.h>... what were they thinking?
 #ifdef __cplusplus
 extern "C" {
@@ -76,5 +78,17 @@ avcodec_open2(AVCodecContext *avctx, AVCodec *codec, void **options __attribute_
     return avcodec_open(avctx, codec);
 }
 #endif /* < 53.5.0 */
+
+#ifndef AVC_HAVE_FRAME_ALLOC
+#define av_frame_alloc()	(AVFrame*)calloc(sizeof(AVFrame), 1)
+#define av_frame_dealloc(f)	free(f);
+#else
+/* The actual API uses a refcounter, so there is no such thing as a dealloc.
+ * However, we need it to simulate the API as above.
+ *
+ * Yes, this is ugly.
+ */
+#define av_frame_dealloc(f)
+#endif /* AVC_HAVE_FRAME_ALLOC */
 
 #endif /* AVCODEC_WRAP_H */
