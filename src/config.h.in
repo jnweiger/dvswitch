@@ -1,0 +1,6 @@
+#ifndef DVSWITCH_CONFIG_H
+#define DVSWITCH_CONFIG_H
+
+#cmakedefine AVC_HAVE_FRAME_ALLOC
+
+#endif
