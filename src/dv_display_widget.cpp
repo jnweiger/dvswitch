@@ -828,7 +828,9 @@ dv_thumb_display_widget::dv_thumb_display_widget(sigc::signal1<void, unsigned>*s
       source_id_(source_id),
       pri_selector_(sel),
       error_pixbuf_(load_icon("gtk-dialog-warning", 64)),
-      error_(false)
+      lost_pixbuf_(load_icon("gtk-dialog-error", 64)),
+      error_(false),
+      lost_(false)
 {
     // We don't know what the frame format will be, but assume "PAL"
     // 4:3 frames and therefore an active image size of 702x576 and
@@ -1039,6 +1041,12 @@ void dv_thumb_display_widget::set_error(bool error)
     error_ = error;
 }
 
+void dv_thumb_display_widget::set_lost(bool lost)
+{
+    lost_ = lost;
+    queue_draw();
+}
+
 bool dv_thumb_display_widget::on_expose_event(GdkEventExpose *) throw()
 {
     if (!x_image_ || !dest_width_ || !dest_height_)
@@ -1069,6 +1077,16 @@ bool dv_thumb_display_widget::on_expose_event(GdkEventExpose *) throw()
 		dest_y + (dest_height_ - error_pixbuf_->get_height()) / 2,
 		-1, -1, Gdk::RGB_DITHER_NORMAL, 0, 0);
 	}
+
+	if (lost_)
+	{
+	    drawable->draw_pixbuf(
+		gc, lost_pixbuf_, 0, 0,
+		dest_x + (dest_width_ - lost_pixbuf_->get_width()) / 2,
+		dest_y + (dest_height_ - lost_pixbuf_->get_height()) * 0,
+		-1, -1, Gdk::RGB_DITHER_NORMAL, 0, 0);
+	}
+
     }
 
     return true;

@@ -27,6 +27,8 @@ public:
     void put_frame(mixer::source_id source_id,
 		   const dv_frame_ptr & source_frame);
 
+    void set_lost(mixer::source_id source_id);
+
     void select_pri(mixer::source_id source_id);
     void select_sec(mixer::source_id source_id);
     void select_snd(mixer::source_id source_id);

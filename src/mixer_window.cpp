@@ -773,8 +773,12 @@ bool mixer_window::update(Glib::IOCondition) throw()
 		selector_.put_frame(id, source_dv[id]);
 
 		boost::mutex::scoped_lock lock(frame_mutex_);
-		if (mixed_dv_)
+		if (mixed_dv_)	// what does that break server here?
 		    break;
+	    }
+	    else
+	    {
+	        selector_.set_lost(id);
 	    }
 	}
     }

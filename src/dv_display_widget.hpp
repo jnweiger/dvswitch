@@ -113,6 +113,7 @@ class dv_thumb_display_widget : public dv_display_widget
 public:
     dv_thumb_display_widget(sigc::signal1<void, unsigned>*pri_sel, unsigned source_id);
     ~dv_thumb_display_widget();
+    virtual void set_lost(bool);
 
 private:
     struct raw_frame_thumb;
@@ -137,8 +138,10 @@ private:
     unsigned source_id_;
     sigc::signal1<void, unsigned>*pri_selector_;
 
-    Glib::RefPtr<Gdk::Pixbuf> error_pixbuf_;
+    Glib::RefPtr<Gdk::Pixbuf> error_pixbuf_;	// shown when audio format differs
+    Glib::RefPtr<Gdk::Pixbuf> lost_pixbuf_;	// shown when the source stop delivering
     bool error_;
+    bool lost_;
 };
 
 #endif // !defined(DVSWITCH_DV_DISPLAY_WIDGET_HPP)

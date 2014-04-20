@@ -1,3 +1,6 @@
+2014-04-18 jw
+  * showing red error icon for sources that we lost.
+
 dvswitch (0.9.1)
   [ Robin Gareus ]
   * OSC remote-control (see doc/README)

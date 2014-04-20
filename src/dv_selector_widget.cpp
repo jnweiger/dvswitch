@@ -236,11 +236,23 @@ void dv_selector_widget::set_source_count(unsigned count)
     }
 }
 
+void dv_selector_widget::set_lost(mixer::source_id source_id)
+{
+    /*
+     * The video source failed to deliver more frames.
+     */
+    if (source_id < thumbnails_.size())
+	thumbnails_[source_id]->set_lost(true);
+}
+
 void dv_selector_widget::put_frame(mixer::source_id source_id,
 				   const dv_frame_ptr & source_frame)
 {
     if (source_id < thumbnails_.size())
+      {
 	thumbnails_[source_id]->put_frame(source_frame);
+	thumbnails_[source_id]->set_lost(false);
+      }
 }
 
 void dv_selector_widget::select_pri(mixer::source_id id)
