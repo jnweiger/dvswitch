@@ -97,7 +97,6 @@ dv_display_widget::dv_display_widget(int scale)
       xv_shm_info_(0)
 {
     std::memset(&source_region_, 0, sizeof(source_region_));
-    std::memset(&frame_header_, 0, sizeof(frame_header_));
 
     AVCodecContext * decoder = decoder_.get();
     if (!decoder)

@@ -42,7 +42,7 @@ protected:
     void set_shm_busy() { shm_busy_ = true; }
 
     auto_codec decoder_;
-    AVFrame frame_header_;
+    AVFrame* frame_header_;
     PixelFormat pix_fmt_;
     unsigned height_;
     unsigned dest_width_, dest_height_;
