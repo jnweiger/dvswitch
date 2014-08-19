@@ -36,49 +36,6 @@ extern "C" {
 #define AV_VERSION_INT(a, b, c) (a<<16 | b<<8 | c)
 #endif
 
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 26, 0)
-
-#include <stdint.h>
-#include <string.h>
-
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 23, 0)
-/* avcodec.h doesn't use AVPacket at all, so provide our own minimal
- * definition. */
-typedef struct {
-    uint8_t *data;
-    int size;
-} AVPacket;
-#endif
-
-static inline void av_init_packet(AVPacket *avpkt)
-{
-    memset(avpkt, 0, sizeof(*avpkt));
-}
-
-static inline int
-avcodec_decode_video2(AVCodecContext *avctx, AVFrame *picture,
-		      int *got_picture_ptr, AVPacket *avpkt)
-{
-    return avcodec_decode_video(avctx, picture, got_picture_ptr,
-				avpkt->data, avpkt->size);
-}
-
-#endif /* < 52.26.0 */
-
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(53, 5, 0)
-static inline AVCodecContext *
-avcodec_alloc_context3(AVCodec *codec __attribute__((unused)))
-{
-    return avcodec_alloc_context();
-}
-
-static inline int
-avcodec_open2(AVCodecContext *avctx, AVCodec *codec, void **options __attribute__((unused))) 
-{
-    return avcodec_open(avctx, codec);
-}
-#endif /* < 53.5.0 */
-
 #ifndef AVC_HAVE_FRAME_ALLOC
 #define av_frame_alloc()	(AVFrame*)calloc(sizeof(AVFrame), 1)
 #define av_frame_dealloc(f)	free(f);
