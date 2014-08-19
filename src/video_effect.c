@@ -6,6 +6,8 @@
 #include <assert.h>
 #include <string.h>
 
+#include <libavutil/pixdesc.h>
+
 #include "video_effect.h"
 
 enum {
@@ -17,8 +19,8 @@ enum {
 void video_effect_show_title_safe(struct raw_frame_ref dest)
 {
     int chroma_shift_horiz, chroma_shift_vert;
-    avcodec_get_chroma_sub_sample(dest.pix_fmt,
-				  &chroma_shift_horiz, &chroma_shift_vert);
+    av_pix_fmt_get_chroma_sub_sample(dest.pix_fmt,
+                                     &chroma_shift_horiz, &chroma_shift_vert);
 
     unsigned width = FRAME_WIDTH;
     unsigned height = dest.height;
@@ -63,8 +65,8 @@ void video_effect_brighten(struct raw_frame_ref dest,
 			   struct rectangle d_rect)
 {
     int chroma_shift_horiz, chroma_shift_vert;
-    avcodec_get_chroma_sub_sample(dest.pix_fmt,
-				  &chroma_shift_horiz, &chroma_shift_vert);
+    av_pix_fmt_get_chroma_sub_sample(dest.pix_fmt,
+                                     &chroma_shift_horiz, &chroma_shift_vert);
 
     unsigned bias = luma_max;
 
@@ -96,8 +98,8 @@ void video_effect_pic_in_pic(struct raw_frame_ref dest,
 			     struct rectangle s_rect)
 {
     int chroma_shift_horiz, chroma_shift_vert;
-    avcodec_get_chroma_sub_sample(dest.pix_fmt,
-				  &chroma_shift_horiz, &chroma_shift_vert);
+    av_pix_fmt_get_chroma_sub_sample(dest.pix_fmt,
+                                     &chroma_shift_horiz, &chroma_shift_vert);
 
     // Round coordinates so they include whole numbers of chroma pixels
     s_rect.left &= -(1U << chroma_shift_horiz);
@@ -278,8 +280,8 @@ void video_effect_fade(struct raw_frame_ref dest,
     int width, height;
 
     int chroma_shift_horiz, chroma_shift_vert;
-    avcodec_get_chroma_sub_sample(dest.pix_fmt,
-				  &chroma_shift_horiz, &chroma_shift_vert);
+    av_pix_fmt_get_chroma_sub_sample(dest.pix_fmt,
+                                     &chroma_shift_horiz, &chroma_shift_vert);
 
     width = FRAME_WIDTH;
     height = dest.height;

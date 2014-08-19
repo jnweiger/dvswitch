@@ -8,6 +8,8 @@
 #include <stddef.h>
 #include <string.h>
 
+#include <libavutil/pixdesc.h>
+
 #include "avcodec_wrap.h"
 
 #include "frame.h"
@@ -65,8 +67,8 @@ void copy_raw_frame(struct raw_frame_ref dest,
     assert(dest.pix_fmt == source.pix_fmt);
 
     int chroma_shift_horiz, chroma_shift_vert;
-    avcodec_get_chroma_sub_sample(dest.pix_fmt,
-				  &chroma_shift_horiz, &chroma_shift_vert);
+    av_pix_fmt_get_chroma_sub_sample(dest.pix_fmt,
+                                     &chroma_shift_horiz, &chroma_shift_vert);
 
     unsigned width = FRAME_WIDTH;
     unsigned height = source.height;

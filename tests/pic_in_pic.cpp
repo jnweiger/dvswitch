@@ -2,6 +2,10 @@
 #include <cstring>
 #include <iostream>
 
+extern "C" {
+#include <libavutil/pixdesc.h>
+}
+
 #include "avcodec_wrap.h"
 #include "video_effect.h"
 
@@ -32,8 +36,8 @@ void alloc_plane(raw_frame_ref & frame, int i, int width, int height)
 raw_frame_ref alloc_frame(PixelFormat pix_fmt, int width, int height)
 {
     int chroma_shift_horiz, chroma_shift_vert;
-    avcodec_get_chroma_sub_sample(pix_fmt,
-				  &chroma_shift_horiz, &chroma_shift_vert);
+    av_pix_fmt_get_chroma_sub_sample(pix_fmt,
+                                     &chroma_shift_horiz, &chroma_shift_vert);
 
     raw_frame_ref frame;
     alloc_plane(frame, 0, width, height);
@@ -57,8 +61,8 @@ void free_frame(raw_frame_ref frame)
 void fill_rect_colour(raw_frame_ref frame, rectangle rect, uint32_t colour)
 {
     int chroma_shift_horiz, chroma_shift_vert;
-    avcodec_get_chroma_sub_sample(frame.pix_fmt,
-				  &chroma_shift_horiz, &chroma_shift_vert);
+    av_pix_fmt_get_chroma_sub_sample(frame.pix_fmt,
+                                     &chroma_shift_horiz, &chroma_shift_vert);
 
     for (int i = 0; i != 3; ++i)
     {
@@ -80,8 +84,8 @@ void fill_rect_colour(raw_frame_ref frame, rectangle rect, uint32_t colour)
 void assert_rect_colour(raw_frame_ref frame, rectangle rect, uint32_t colour)
 {
     int chroma_shift_horiz, chroma_shift_vert;
-    avcodec_get_chroma_sub_sample(frame.pix_fmt,
-				  &chroma_shift_horiz, &chroma_shift_vert);
+    av_pix_fmt_get_chroma_sub_sample(frame.pix_fmt,
+                                     &chroma_shift_horiz, &chroma_shift_vert);
 
     bool matched = true;
 
@@ -131,8 +135,8 @@ void test_pic_in_pic(raw_frame_ref dest, int d_width, int d_height,
 		     raw_frame_ref source, int s_width, int s_height)
 {
     int chroma_shift_horiz, chroma_shift_vert;
-    avcodec_get_chroma_sub_sample(dest.pix_fmt,
-				  &chroma_shift_horiz, &chroma_shift_vert);
+    av_pix_fmt_get_chroma_sub_sample(dest.pix_fmt,
+                                     &chroma_shift_horiz, &chroma_shift_vert);
 
     rectangle s_rect = { 0, 0, s_width, s_height };
 
@@ -191,8 +195,8 @@ void test_dest(raw_frame_ref dest, int d_width, int d_height,
     fill_rect_colour(source, s_frame_rect, source_colour);
 
     int chroma_shift_horiz, chroma_shift_vert;
-    avcodec_get_chroma_sub_sample(dest.pix_fmt,
-				  &chroma_shift_horiz, &chroma_shift_vert);
+    av_pix_fmt_get_chroma_sub_sample(dest.pix_fmt,
+                                     &chroma_shift_horiz, &chroma_shift_vert);
 
     for (int i = 0; i != n_dims; ++i)
     {
@@ -226,8 +230,8 @@ void test_format_size(PixelFormat pix_fmt, int d_width, int d_height)
     fill_rect_colour(dest, d_frame_rect, dest_colour);
 
     int chroma_shift_horiz, chroma_shift_vert;
-    avcodec_get_chroma_sub_sample(pix_fmt,
-				  &chroma_shift_horiz, &chroma_shift_vert);
+    av_pix_fmt_get_chroma_sub_sample(pix_fmt,
+                                     &chroma_shift_horiz, &chroma_shift_vert);
 
     for (int i = 0; i != n_dims; ++i)
     {
@@ -250,8 +254,8 @@ void test_format_size(PixelFormat pix_fmt, int d_width, int d_height)
 void test_format(PixelFormat pix_fmt)
 {
     int chroma_shift_horiz, chroma_shift_vert;
-    avcodec_get_chroma_sub_sample(pix_fmt,
-				  &chroma_shift_horiz, &chroma_shift_vert);
+    av_pix_fmt_get_chroma_sub_sample(pix_fmt,
+                                     &chroma_shift_horiz, &chroma_shift_vert);
 
     for (int i = 0; i != n_dims; ++i)
     {
