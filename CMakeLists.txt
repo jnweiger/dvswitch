@@ -74,12 +74,6 @@ include_directories(src)
 # Suppress bogus warnings (GCC PR7302)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-non-virtual-dtor")
 
-# Suppress deprecation warnings from libavcodec headers about themselves
-if(LIBAVCODEC_VERSION MATCHES "^51\\.")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-declarations")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
-endif(LIBAVCODEC_VERSION MATCHES "^51\\.")
-
 # Remove bogus -fPIC (Debian bug #478404)
 set(CMAKE_SHARED_LIBRARY_C_FLAGS "")
 set(CMAKE_SHARED_LIBRARY_CXX_FLAGS "")
