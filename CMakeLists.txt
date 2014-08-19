@@ -51,10 +51,7 @@ endif(NOT BOOST_THREAD_WORKS_WITHOUT_SYSTEM)
 
 # Check if we have av_frame_alloc()
 include(CheckSymbolExists)
-CHECK_SYMBOL_EXISTS("av_frame_alloc" "<avcodec.h>" AVC_HAVE_FRAME_ALLOC)
-
-# Cope with recent move of ffmpeg headers into subdirectories
-set(LIBAVCODEC_INCLUDE_DIRS ${LIBAVCODEC_INCLUDE_DIRS} ${LIBAVCODEC_INCLUDEDIR}/libavcodec)
+CHECK_SYMBOL_EXISTS("av_frame_alloc" "<libavcodec/avcodec.h>" AVC_HAVE_FRAME_ALLOC)
 
 set(prefix /usr/local
     CACHE PATH "Installation prefix")

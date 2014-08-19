@@ -3,7 +3,7 @@ include(Symlink)
 configure_file(config.h.in config.h)
 
 add_definitions(${ALSA_CFLAGS_OTHER} ${GTKMM_CFLAGS_OTHER} ${LIBAVCODEC_CFLAGS_OTHER})
-include_directories(${OSC_INCLUDE_DIRS} ${JACK_INCLUDE_DIRS} ${ALSA_INCLUDE_DIRS} ${GTKMM_INCLUDE_DIRS} ${LIBAVCODEC_INCLUDE_DIRS} ${LiveMedia_INCLUDE_DIRS} ${GETTEXT_INCLUDE_DIR})
+include_directories(${OSC_INCLUDE_DIRS} ${JACK_INCLUDE_DIRS} ${ALSA_INCLUDE_DIRS} ${GTKMM_INCLUDE_DIRS} ${LiveMedia_INCLUDE_DIRS} ${GETTEXT_INCLUDE_DIR})
 
 add_definitions(-DSHAREDIR="\\"${sharedir}\\"")
 
