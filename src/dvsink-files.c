@@ -210,6 +210,7 @@ static void transfer_frames(struct transfer_params * params)
 	    if (starting)
 		printf("INFO: Started recording\n");
 	    printf("INFO: Created file %s\n", name);
+	    free(name);
 	    fflush(stdout);
 	}
 
