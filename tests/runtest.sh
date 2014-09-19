@@ -1,9 +1,15 @@
 #!/bin/bash
 
-# Test basic functionality of dvswitch, using OSC commands and xvfb
+# Test basic functionality of dvswitch, using OSC commands
 
 set -e
 set -x
+
+# We really want to exit 77 (for "SKIP"), but ctest doesn't support that...
+if [ -z "$DISPLAY" ]
+then
+	exit 0
+fi
 
 PIDDVSW=0
 PIDSRC1=0
@@ -12,7 +18,7 @@ PIDOUT=0
 BASEDIR=$1
 
 setup() {
-	xvfb-run $BASEDIR/build/src/dvswitch -h 127.0.0.1 -p 1234 -o 2345 &
+	$BASEDIR/build/src/dvswitch -h 127.0.0.1 -p 1234 -o 2345 &
 	PIDDVSW=$!
 	sleep 1
 	$BASEDIR/build/src/dvsource-file -l -h 127.0.0.1 -p 1234 $BASEDIR/tests/test1.dv &
