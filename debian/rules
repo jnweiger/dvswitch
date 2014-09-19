@@ -21,7 +21,7 @@ build-indep: build-stamp
 
 build-stamp: build/Makefile
 	$(MAKE) -C build
-	$(MAKE) -C build test || cat build/Testing/Temporary/LastTest.log && false
+	$(MAKE) -C build test
 
 build/Makefile :
 	mkdir -p build
