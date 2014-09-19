@@ -5,16 +5,22 @@
 set -e
 set -x
 
-PID=0
+PIDDVSW=0
+PIDSRC1=0
+PIDSRC2=0
+PIDOUT=0
 BASEDIR=$1
 
 setup() {
 	xvfb-run $BASEDIR/build/src/dvswitch -h 127.0.0.1 -p 1234 -o 2345 &
-	PID=$!
+	PIDDVSW=$!
 	sleep 1
 	$BASEDIR/build/src/dvsource-file -l -h 127.0.0.1 -p 1234 $BASEDIR/tests/test1.dv &
+	PIDSRC1=$!
 	$BASEDIR/build/src/dvsource-file -l -h 127.0.0.1 -p 1234 $BASEDIR/tests/test2.dv &
+	PIDSRC2=$!
 	$BASEDIR/build/src/dvsink-files -h 127.0.0.1 -p 1234 $BASEDIR/build/tests/test-output &
+	PIDOUT=$!
 }
 
 cleanup() {
@@ -51,3 +57,8 @@ case $2 in
 	*)
 		exit 1
 esac
+
+wait $PIDDVSW
+wait $PIDSRC1
+wait $PIDSRC2
+wait $PIDOUT
