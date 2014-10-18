@@ -30,15 +30,17 @@
 #define MBYTES_PER_HOUR 6500	// Standard DV-files (slight over-estimation)
 
 static struct option options[] = {
-    {"host",   1, NULL, 'h'},
-    {"port",   1, NULL, 'p'},
-    {"help",   0, NULL, 'H'},
-    {NULL,     0, NULL, 0}
+    {"host",    1, NULL, 'h'},
+    {"port",    1, NULL, 'p'},
+    {"help",    0, NULL, 'H'},
+    {"pidfile", 1, NULL, 'P'},
+    {NULL,      0, NULL, 0}
 };
 
 static char * mixer_host = NULL;
 static char * mixer_port = NULL;
 static char * output_name_format = NULL;
+static char * pidfile_name = NULL;
 
 static void handle_config(const char * name, const char * value)
 {
@@ -63,9 +65,9 @@ static void usage(const char * progname)
 {
     fprintf(stderr,
 	    "\
-Usage: %s [-h HOST] [-p PORT] [NAME-FORMAT]\n\
+Usage: %s [-h HOST] [-p PORT] [-P PID filename] [NAME-FORMAT]\n\
    or\n\
-       %s -t PATH_WHERE_TO_TEST_DISK_SPACE\n",
+       %s -t PATH_WHERE_TO_CHECK_DISK_SPACE\n",
 	    progname, progname);
 }
 
@@ -169,8 +171,8 @@ static ssize_t write_retry(int fd, const void * buf, size_t count)
 
     return total;
 }
-
-void print_disk_full_estimate(char *filename)
+ 
+static void print_disk_full_estimate(char *filename)
 {
   char *path = strdup(filename);
 
@@ -263,7 +265,6 @@ static void transfer_frames(struct transfer_params * params)
 	    file = create_file(output_name_format, &name);
 	    if (starting)
 		printf("INFO: Started recording\n");
-
 	    print_disk_full_estimate(name);
 	    printf("INFO: Created file %s\n", name);
 	    fflush(stdout);
@@ -320,7 +321,7 @@ int main(int argc, char ** argv)
     // Parse arguments.
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "h:p:t", options, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "h:p:P:t", options, NULL)) != -1)
     {
 	switch (opt)
 	{
@@ -335,6 +336,10 @@ int main(int argc, char ** argv)
 	    free(mixer_port);
 	    mixer_port = strdup(optarg);
 	    break;
+	case 'P':
+	    free(pidfile_name);
+	    pidfile_name = strdup(optarg);
+	    break;
 	case 'H': // --help
 	    usage(argv[0]);
 	    return 0;
@@ -342,6 +347,17 @@ int main(int argc, char ** argv)
 	    usage(argv[0]);
 	    return 2;
 	}
+    }
+
+    print_disk_full_estimate(output_name_format);
+    if (test_only) 
+      exit(0);
+
+    if (!mixer_host || !mixer_port)
+    {
+	fprintf(stderr, "%s: mixer hostname and port not defined\n",
+		argv[0]);
+	return 2;
     }
 
     if (optind < argc)
@@ -362,15 +378,18 @@ int main(int argc, char ** argv)
 	return 2;
     }
 
-    print_disk_full_estimate(output_name_format);
-    if (test_only) 
-      exit(0);
-
-    if (!mixer_host || !mixer_port)
+    if (pidfile_name)
     {
-	fprintf(stderr, "%s: mixer hostname and port not defined\n",
-		argv[0]);
-	return 2;
+	FILE* pidf = fopen(pidfile_name, "w");
+	if (pidf == NULL)
+	{
+	    fprintf(stderr, "%s: could not open for writing\n",
+			    pidfile_name);
+	    return 2;
+	}
+
+	fprintf(pidf, "%d\n", (int)getpid());
+	fclose(pidf);
     }
 
     struct transfer_params params;
